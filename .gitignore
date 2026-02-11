@@ -6,8 +6,7 @@
 /var/cache/
 
 # Uploads (user content)
-/public/uploads/*
-!/public/uploads/.gitkeep
+/public/uploads/
 
 # Environment / secrets
 .env
