@@ -1,0 +1,35 @@
+# Dependencies
+/vendor/
+
+# Runtime / generated
+/var/compiled/
+/var/cache/
+
+# Uploads (user content)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# Environment / secrets
+.env
+
+# Install lock
+/config/.installed
+
+# tinyshop-ui (separate frontend project)
+/tinyshop-ui/
+
+# Import scripts
+import_minimog.php
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Claude local project files
+.claude/

@@ -1,0 +1,565 @@
+/* ============================================================
+   TinyShop — Admin Panel Styles
+   Uses the same dashboard shell (bottom tabs, mobile-first).
+   Only admin-specific overrides here.
+   ============================================================ */
+
+/* Remove sidebar margin — admin uses bottom tabs like seller */
+.page-admin .dash-content {
+    margin-left: 0;
+}
+
+/* Admin avatar */
+.admin-avatar {
+    background: linear-gradient(135deg, #FEF2F2, #FEE2E2);
+    color: #EF4444;
+}
+
+/* 3-per-row stat grid for admin */
+.admin-stats-3 {
+    display: flex;
+    flex-wrap: nowrap;
+}
+.admin-stats-3 .stat-card {
+    flex: 1 1 0;
+    min-width: 0;
+}
+.admin-stats-row-2 {
+    margin-top: 4px;
+}
+
+/* Data table */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.data-table th,
+.data-table td {
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.data-table th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    background: var(--color-bg-alt);
+}
+
+.data-table tbody tr:hover {
+    background: var(--color-bg-alt);
+}
+
+.seller-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-decoration: none;
+    color: inherit;
+}
+a.seller-cell:hover strong {
+    color: var(--color-primary);
+}
+.seller-cell strong {
+    font-weight: 600;
+}
+.seller-cell small {
+    color: var(--color-text-muted);
+}
+
+/* Status toggle pill */
+.status-toggle {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: #FEF2F2;
+    color: #DC2626;
+}
+.status-toggle.active {
+    background: #F0FDF4;
+    color: #16A34A;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.badge-green {
+    background: #F0FDF4;
+    color: #16A34A;
+}
+.badge-orange {
+    background: #FFF7ED;
+    color: #EA580C;
+}
+.badge-muted {
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+}
+.badge-purple {
+    background: #F5F3FF;
+    color: #7C3AED;
+}
+.badge-red {
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 0;
+}
+.pagination-info {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+}
+
+/* Admin toolbar (search + filters) */
+.admin-toolbar {
+    padding: 0 20px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.admin-search {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+}
+.admin-search .form-control-sm {
+    height: 36px;
+    font-size: 0.8125rem;
+    padding-right: 30px;
+}
+.admin-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border-radius: 50%;
+}
+.admin-search-clear:hover {
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+}
+
+/* Admin list wrapper */
+.admin-list-wrap {
+    padding: 0 20px 20px;
+}
+
+/* Icon buttons */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+}
+.btn-icon:hover {
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+}
+
+.admin-actions {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+}
+
+/* Seller detail page */
+.seller-profile-wrap {
+    padding: 0 20px 20px;
+}
+
+.seller-info-card {
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+}
+
+.seller-info-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.seller-avatar-lg {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary), #a78bfa);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.seller-info-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.seller-info-email {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin: 2px 0 0;
+}
+
+.seller-info-sub {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin: 2px 0 0;
+}
+
+.seller-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.seller-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.8125rem;
+}
+
+.seller-meta-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
+.seller-detail-stats {
+    margin-top: 16px;
+}
+
+.seller-action-buttons {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.seller-products-section {
+    margin-top: 24px;
+}
+
+.btn-inline-icon {
+    margin-right: 4px;
+}
+
+/* Quick action icon colors */
+.action-icon.blue {
+    background: #EFF6FF;
+    color: #2563EB;
+}
+.action-icon.green {
+    background: #F0FDF4;
+    color: #16A34A;
+}
+
+/* Button extras */
+.btn-sm {
+    padding: 6px 14px;
+    font-size: 0.8125rem;
+    border-radius: var(--radius-md);
+}
+.btn-outline {
+    border: 1px solid var(--color-border);
+    background: none;
+    color: var(--color-text);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-outline:hover {
+    background: var(--color-bg-alt);
+}
+.btn-danger {
+    background: #DC2626;
+    color: #fff;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-danger:hover {
+    background: #B91C1C;
+}
+
+/* Modal confirm actions */
+.modal-confirm-text {
+    margin-bottom: 20px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+.modal-confirm-actions {
+    display: flex;
+    gap: 10px;
+}
+.modal-confirm-actions .btn {
+    flex: 1;
+    min-height: 48px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ============================================================
+   Settings Page
+   Uses .form-section cards from dashboard.css.
+   Only settings-specific overrides here.
+   ============================================================ */
+
+/* Inline fields (e.g. Port + Encryption side by side) */
+.settings-inline-group {
+    display: flex;
+    gap: 12px;
+}
+.settings-inline-field {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Toggle row: label + description left, switch right */
+.settings-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+.settings-toggle-info {
+    flex: 1;
+    min-width: 0;
+}
+.settings-toggle-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+.settings-toggle-desc {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+/* Toggle switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 26px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--color-border);
+    border-radius: 13px;
+    transition: background 0.2s;
+}
+.toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle-switch input:checked + .toggle-track {
+    background: var(--color-primary);
+}
+.toggle-switch input:checked + .toggle-track::after {
+    transform: translateX(18px);
+}
+
+/* Password field with toggle visibility */
+.password-field {
+    position: relative;
+}
+.password-field .form-control {
+    padding-right: 44px;
+}
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.password-toggle:hover {
+    color: var(--color-text);
+}
+
+/* Test email button */
+.btn-test-email {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--color-primary);
+    background: none;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-test-email:hover {
+    background: var(--color-primary);
+    color: #fff;
+}
+.btn-test-email:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Spinner for async buttons */
+.btn-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   Dark mode overrides
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    .admin-avatar {
+        background: linear-gradient(135deg, #3C1414, #451A1A);
+        color: #F87171;
+    }
+
+    .status-toggle {
+        background: #3C1414;
+        color: #F87171;
+    }
+    .status-toggle.active {
+        background: #14532D;
+        color: #4ADE80;
+    }
+
+    .badge-green {
+        background: #14532D;
+        color: #4ADE80;
+    }
+    .badge-orange {
+        background: #431407;
+        color: #FB923C;
+    }
+    .badge-muted {
+        background: #2C2C2E;
+        color: #8E8E93;
+    }
+    .badge-purple {
+        background: #2E1065;
+        color: #A78BFA;
+    }
+    .badge-red {
+        background: #3C1414;
+        color: #F87171;
+    }
+
+    .seller-info-card {
+        background: #2C2C2E;
+    }
+
+    .action-icon.blue {
+        background: #1E293B;
+        color: #60A5FA;
+    }
+    .action-icon.green {
+        background: #14532D;
+        color: #4ADE80;
+    }
+
+    .toggle-track {
+        background: #3A3A3C;
+    }
+}

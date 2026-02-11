@@ -1,0 +1,643 @@
+/* ============================================================
+   VOLT — Cyberpunk energy. Neon on void. Digital. Electric.
+   Think: Razer, MSCHF, Balenciaga digital, Matrix UI, Tesla,
+   Nothing Phone. Perfect for tech gadgets, gaming accessories,
+   crypto merch, digital products, futuristic fashion.
+   Layout: Inline horizontal header bar (logo + name + share),
+   neon green (#00FF87) on true black (#0A0A0C), full search bar
+   with neon glow focus, monospace/tech feel, glass pill contacts.
+   Template override: shop_header.tpl
+   ============================================================ */
+
+/* ── 1. Theme Variables — Full Dark/Neon Set ── */
+.theme-volt {
+    --color-primary: #E0E0E0;
+    --color-primary-hover: #FFFFFF;
+    --color-accent: #00FF87;
+    --color-accent-hover: #00CC6A;
+    --color-bg: #0A0A0C;
+    --color-bg-alt: #16161A;
+    --color-bg-secondary: #111114;
+    --color-bg-elevated: #16161A;
+    --color-text: #E8E8E8;
+    --color-text-muted: #6B6B78;
+    --color-border: #252530;
+    --color-success: #00FF87;
+    --color-error: #FF3366;
+    --color-warning: #FFB800;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.6);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.7);
+}
+
+/* ── 2. Page Backgrounds — True Black ── */
+.theme-volt .shop-page,
+.theme-volt .product-page {
+    background: var(--color-bg);
+}
+.theme-volt body,
+.theme-volt.shop-page,
+.theme-volt.product-page {
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+/* ── 3. Shop Header — Left-aligned, tight bottom border, inline bar ── */
+.theme-volt .shop-header {
+    text-align: left;
+    padding: var(--spacing-md) 0 var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-md);
+}
+
+/* ── 4. Header Top — Flex row: logo + name (flex:1, ellipsis, 800) + actions ── */
+.theme-volt .shop-header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+.theme-volt .shop-header-top .shop-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 1.125rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+    line-height: 1.2;
+}
+.theme-volt .shop-header-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+/* ── 5. Logo — 36px, neon green 2px border, neon glow, small radius ── */
+.theme-volt .shop-logo {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border: 2px solid var(--color-accent);
+    box-shadow: 0 0 12px rgba(0,255,135,0.15), 0 0 3px rgba(0,255,135,0.3);
+    border-radius: var(--radius-sm);
+}
+.theme-volt .shop-logo-placeholder {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background: var(--color-bg-alt);
+    color: var(--color-accent);
+    border: 2px solid var(--color-accent);
+    box-shadow: 0 0 12px rgba(0,255,135,0.15), 0 0 3px rgba(0,255,135,0.3);
+    font-weight: 700;
+    font-size: 0.875rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── 6. Tagline — Muted, small ── */
+.theme-volt .shop-tagline {
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+    margin-bottom: var(--spacing-sm);
+    line-height: 1.4;
+}
+
+/* ── 7. Contact — Neon glass pills: transparent bg, 1px rgba green border,
+        green text, small radius, 0.6875rem ── */
+.theme-volt .shop-contact {
+    justify-content: flex-start;
+    gap: 6px;
+}
+.theme-volt .shop-contact a {
+    color: var(--color-accent);
+    background: transparent;
+    border: 1px solid rgba(0,255,135,0.18);
+    border-radius: var(--radius-sm);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease;
+}
+.theme-volt .shop-contact a:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 14px rgba(0,255,135,0.3), 0 0 4px rgba(0,255,135,0.5);
+}
+.theme-volt .shop-contact a:active {
+    transform: scale(0.95);
+}
+.theme-volt .shop-contact svg {
+    color: currentColor;
+}
+
+/* ── 8. Share Button — Same neon glass pill style ── */
+.theme-volt .shop-share-btn {
+    color: var(--color-accent);
+    background: transparent;
+    border: 1px solid rgba(0,255,135,0.18);
+    border-radius: var(--radius-sm);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease;
+}
+.theme-volt .shop-share-btn:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 14px rgba(0,255,135,0.3), 0 0 4px rgba(0,255,135,0.5);
+}
+.theme-volt .shop-share-btn:active {
+    transform: scale(0.92);
+}
+
+/* ── 9. Social — Dark alt bg, muted icons, dark border, small radius ── */
+.theme-volt .shop-social {
+    justify-content: flex-start;
+    padding: 0 0 var(--spacing-sm);
+}
+.theme-volt .shop-social a {
+    color: var(--color-text-muted);
+    background: var(--color-bg-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+.theme-volt .shop-social a:hover {
+    color: var(--color-accent);
+    border-color: rgba(0,255,135,0.3);
+    background: rgba(0,255,135,0.06);
+}
+.theme-volt .shop-social a:active {
+    transform: scale(0.9);
+}
+
+/* ── 10. Search — FULL BAR (toggle hidden), dark alt bg, neon glow
+         focus ring (2px rgba + 20px spread glow) ── */
+.theme-volt .shop-search-toggle {
+    display: none !important;
+}
+.theme-volt .shop-search {
+    margin-bottom: var(--spacing-md);
+}
+.theme-volt .shop-search.search-collapsed {
+    max-height: 60px;
+    overflow: visible;
+    opacity: 1;
+    margin-bottom: var(--spacing-md);
+}
+.theme-volt .shop-search-input {
+    background: var(--color-bg-alt);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    transition: border-color 0.2s, box-shadow 0.25s, background 0.2s;
+}
+.theme-volt .shop-search-input::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.7;
+}
+.theme-volt .shop-search-input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(0,255,135,0.15), 0 0 20px rgba(0,255,135,0.08);
+    background: var(--color-bg);
+    outline: none;
+}
+.theme-volt .shop-search-icon { color: var(--color-text-muted); }
+.theme-volt .shop-search-clear { color: var(--color-text-muted); }
+.theme-volt .shop-search-clear:hover {
+    color: var(--color-accent);
+    background: rgba(0,255,135,0.08);
+}
+.theme-volt .search-empty-title { color: var(--color-text); }
+.theme-volt .search-empty-hint { color: var(--color-text-muted); }
+
+/* ── 11. Categories — Force pill tabs, hide image cards. Neon bordered
+         tabs, muted text, dark bg, small radius ── */
+.theme-volt .category-tabs:not(.category-tabs-only) { display: flex !important; }
+.theme-volt .category-cards-scroll { display: none !important; }
+
+.theme-volt .category-tab {
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    background: var(--color-bg);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease;
+}
+.theme-volt .category-tab:hover {
+    border-color: rgba(0,255,135,0.4);
+    color: var(--color-accent);
+    background: rgba(0,255,135,0.04);
+}
+.theme-volt .category-tab.active {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 14px rgba(0,255,135,0.2), 0 0 4px rgba(0,255,135,0.35);
+    font-weight: 700;
+}
+
+/* ── 12. Product Count — Muted ── */
+.theme-volt .product-count {
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* ── 13. Product Grid — Standard gap ── */
+.theme-volt .product-grid {
+    gap: 14px;
+}
+
+/* ── 14. Product Cards — Dark alt bg, 1px border, medium radius,
+         hover: neon border tint (rgba green 0.35), neon glow shadow ── */
+.theme-volt .product-card {
+    background: var(--color-bg-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: border-color 0.2s ease, box-shadow 0.3s ease, transform 0.15s ease;
+    overflow: hidden;
+}
+.theme-volt .product-card:hover {
+    border-color: rgba(0,255,135,0.35);
+    box-shadow: 0 0 24px rgba(0,255,135,0.06), 0 4px 16px rgba(0,0,0,0.3);
+}
+.theme-volt .product-card:active {
+    transform: scale(0.97);
+}
+.theme-volt .product-card-sold .product-card-img img.loaded {
+    opacity: 0.4;
+    filter: grayscale(0.6);
+}
+
+/* ── 15. Product Card Images — Dark secondary bg, medium radius ── */
+.theme-volt .product-card-img {
+    background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-bg-alt) 50%, var(--color-bg-secondary) 75%);
+    background-size: 200% 100%;
+    border-radius: var(--radius-md);
+}
+
+/* ── 16. Product Title — 600, light text ── */
+.theme-volt .product-title {
+    font-weight: 600;
+    color: var(--color-text);
+    font-size: 0.8125rem;
+    letter-spacing: 0.01em;
+    line-height: 1.35;
+}
+
+/* ── 17. Product Price — Neon green, 700 weight ── */
+.theme-volt .product-price {
+    color: var(--color-accent);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+.theme-volt .price-compare { color: var(--color-text-muted); }
+.theme-volt .price-sale { color: #FF3366; }
+
+/* ── 18. Badges — Sale: neon green bg, dark text. Sold: white rgba bg ── */
+.theme-volt .product-badge { border-radius: var(--radius-sm); }
+.theme-volt .product-badge-sale {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+.theme-volt .product-badge-sold {
+    background: rgba(255,255,255,0.1);
+    color: #E8E8E8;
+    border-radius: var(--radius-sm);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+/* ── 19. Product Detail Gallery — Dark alt bg, nav buttons: green tinted bg
+         (rgba 0.12), green text, blur backdrop, small radius.
+         Dots: active = green + green glow ── */
+.theme-volt .product-gallery { background: var(--color-bg-alt); }
+.theme-volt .product-gallery-slide {
+    background: linear-gradient(90deg, var(--color-bg-alt) 25%, var(--color-bg-secondary) 50%, var(--color-bg-alt) 75%);
+    background-size: 200% 100%;
+}
+.theme-volt .product-nav-btn {
+    background: rgba(0,255,135,0.12);
+    color: var(--color-accent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(0,255,135,0.1);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.theme-volt .product-nav-btn:hover {
+    background: rgba(0,255,135,0.25);
+    color: var(--color-accent);
+    box-shadow: 0 0 12px rgba(0,255,135,0.15);
+}
+.theme-volt .gallery-dot {
+    background: rgba(255,255,255,0.25);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.theme-volt .gallery-dot.active {
+    background: var(--color-accent);
+    box-shadow: 0 0 8px rgba(0,255,135,0.5), 0 0 2px rgba(0,255,135,0.8);
+}
+.theme-volt .product-gallery-empty {
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+}
+
+/* ── 20. Product Info — Name 800, tight spacing. Price: neon green.
+         Sale price: #FF3366 ── */
+.theme-volt .product-info-name {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+    line-height: 1.15;
+}
+.theme-volt .product-info-price .price-current {
+    color: var(--color-accent);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+.theme-volt .product-info-price .price-sale { color: #FF3366; }
+.theme-volt .product-info-price .price-compare { color: var(--color-text-muted); }
+
+/* ── 21. Discount Badge — #FF3366 bg, small radius ── */
+.theme-volt .price-discount-badge {
+    background: #FF3366;
+    color: #fff;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+}
+
+/* ── 22. Variations — Dark alt bg, dark border, light text, small radius.
+         Selected: neon border, green tinted bg (rgba 0.08), green text, green glow ── */
+.theme-volt .product-variation-option {
+    border-color: var(--color-border);
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.theme-volt .product-variation-option:hover {
+    border-color: rgba(0,255,135,0.25);
+    background: rgba(0,255,135,0.04);
+}
+.theme-volt .product-variation-option.selected {
+    border-color: var(--color-accent);
+    background: rgba(0,255,135,0.08);
+    color: var(--color-accent);
+    box-shadow: 0 0 10px rgba(0,255,135,0.12), 0 0 3px rgba(0,255,135,0.2);
+    font-weight: 700;
+}
+.theme-volt .product-variation-option small { color: var(--color-text-muted); }
+.theme-volt .product-variation-option.selected small { color: rgba(0,255,135,0.65); }
+.theme-volt .product-variation-label {
+    color: var(--color-text);
+    letter-spacing: 0.04em;
+}
+
+/* ── 23. Description — Dark gradient fade, neon toggle color,
+         dark border-top on variations ── */
+.theme-volt .product-info-desc {
+    color: var(--color-text-muted);
+    line-height: 1.7;
+}
+.theme-volt .product-info-desc:not(.expanded)::after {
+    background: linear-gradient(transparent, var(--color-bg));
+}
+.theme-volt .product-desc-toggle {
+    color: var(--color-accent);
+    font-weight: 600;
+    transition: color 0.15s;
+}
+.theme-volt .product-desc-toggle:hover { color: var(--color-accent-hover); }
+.theme-volt .product-variations { border-top-color: var(--color-border); }
+
+/* ── 24. CTA — Neon green bg, dark text, small radius, 700 weight,
+         NEON GLOW (24px rgba green 0.2 + 4px inner glow).
+         Dark bg on sticky-cta container. ── */
+.theme-volt .sticky-cta {
+    background: var(--color-bg);
+    border-top: 1px solid rgba(37,37,48,0.5);
+}
+.theme-volt .sticky-cta::before {
+    background: linear-gradient(transparent, var(--color-bg));
+}
+.theme-volt .sticky-cta .btn {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-size: 1rem;
+    box-shadow: 0 0 24px rgba(0,255,135,0.2), 0 0 4px rgba(0,255,135,0.4);
+    transition: all 0.2s ease;
+}
+.theme-volt .sticky-cta .btn:hover {
+    background: var(--color-accent-hover);
+    box-shadow: 0 0 30px rgba(0,255,135,0.3), 0 0 6px rgba(0,255,135,0.5), 0 0 60px rgba(0,255,135,0.1);
+}
+.theme-volt .sticky-cta .btn:active:not(:disabled) {
+    transform: scale(0.97);
+    box-shadow: 0 0 18px rgba(0,255,135,0.25), 0 0 3px rgba(0,255,135,0.5);
+}
+.theme-volt .sticky-cta .btn:disabled {
+    background: var(--color-border);
+    color: var(--color-text-muted);
+    box-shadow: none;
+}
+.theme-volt .sticky-cta .btn svg { color: var(--color-bg); }
+
+/* ── 25. More Products — Dark alt bg images, small radius, neon prices ── */
+.theme-volt .more-products { border-top-color: var(--color-border); }
+.theme-volt .more-products-title {
+    color: var(--color-text);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+.theme-volt .more-product-img {
+    background: linear-gradient(90deg, var(--color-bg-alt) 25%, var(--color-bg-secondary) 50%, var(--color-bg-alt) 75%);
+    background-size: 200% 100%;
+    border-radius: var(--radius-sm);
+}
+.theme-volt .more-product-name {
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+.theme-volt .more-product-price {
+    color: var(--color-accent);
+    font-weight: 700;
+}
+
+/* ── 26. Footer — Muted text, muted links, green hover ── */
+.theme-volt .shop-footer {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
+}
+.theme-volt .shop-footer a {
+    color: var(--color-text-muted);
+    transition: color 0.15s;
+}
+.theme-volt .shop-footer a:hover { color: var(--color-accent); }
+
+/* ── 27. Share Sheet — Dark elevated bg, dark border-top, dark option hover ── */
+.theme-volt .share-sheet {
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.theme-volt .share-sheet-backdrop.active { background: rgba(0,0,0,0.65); }
+.theme-volt .share-sheet-handle { background: var(--color-border); }
+.theme-volt .share-sheet-title { color: var(--color-text); }
+.theme-volt .share-sheet-close {
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+}
+.theme-volt .share-sheet-close:hover {
+    color: var(--color-text);
+    border-color: rgba(0,255,135,0.2);
+}
+.theme-volt .share-sheet-option {
+    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    transition: background 0.15s;
+}
+.theme-volt .share-sheet-option:hover { background: var(--color-bg-alt); }
+.theme-volt .share-sheet-icon {
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+/* Preserve branded social icon colors */
+.theme-volt .share-icon-whatsapp { background: #25D366; color: #fff; border-color: #25D366; }
+.theme-volt .share-icon-facebook { background: #1877F2; color: #fff; border-color: #1877F2; }
+.theme-volt .share-icon-twitter { background: var(--color-text); color: var(--color-bg); border-color: var(--color-text); }
+
+/* ── 28. Toast — Neon green bg, dark text ── */
+.theme-volt .toast-success {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    font-weight: 600;
+}
+.theme-volt .toast-error { background: var(--color-error); color: #fff; }
+.theme-volt .toast-warning { background: var(--color-warning); color: var(--color-bg); }
+
+/* ── 29. Button Overrides — .btn-primary inverted (light bg, dark text).
+         Accent btn uses neon green. ── */
+.theme-volt .btn-primary {
+    background: var(--color-text);
+    color: var(--color-bg);
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+}
+.theme-volt .btn-primary:hover:not(:disabled) {
+    background: #FFFFFF;
+    color: var(--color-bg);
+}
+.theme-volt .btn-accent {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 0 16px rgba(0,255,135,0.15);
+}
+.theme-volt .btn-accent:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    box-shadow: 0 0 24px rgba(0,255,135,0.25);
+}
+.theme-volt .btn-outline {
+    background: transparent;
+    border-color: var(--color-border);
+    color: var(--color-text);
+    border-radius: var(--radius-sm);
+}
+.theme-volt .btn-outline:hover:not(:disabled) {
+    border-color: rgba(0,255,135,0.3);
+    color: var(--color-accent);
+}
+.theme-volt .btn-ghost { color: var(--color-text-muted); }
+.theme-volt .btn-ghost:hover { color: var(--color-accent); }
+.theme-volt .btn-danger {
+    background: var(--color-error);
+    color: #fff;
+    border-radius: var(--radius-sm);
+}
+
+/* ── Detail Page: Badge overlays ── */
+.theme-volt .product-detail-badge {
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+}
+.theme-volt .badge-sold {
+    background: rgba(255,255,255,0.1);
+    color: #E8E8E8;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.theme-volt .badge-featured {
+    background: var(--color-accent);
+    color: var(--color-bg);
+}
+
+/* ── Form Controls — Dark inputs for any forms within Volt ── */
+.theme-volt .form-control {
+    background: var(--color-bg-alt);
+    border-color: var(--color-border);
+    color: var(--color-text);
+    border-radius: var(--radius-sm);
+}
+.theme-volt .form-control:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(0,255,135,0.12), 0 0 16px rgba(0,255,135,0.06);
+    background: var(--color-bg);
+}
+.theme-volt .form-control::placeholder { color: var(--color-text-muted); }
+
+/* ── Product Toolbar — Muted styling ── */
+.theme-volt .product-toolbar { color: var(--color-text-muted); }
+
+/* ── Empty State — Dark context ── */
+.theme-volt .empty-state p { color: var(--color-text-muted); }
+
+/* ── Links — Green accent links ── */
+.theme-volt a { color: var(--color-accent); }
+.theme-volt a:hover { color: var(--color-accent-hover); }
+
+/* ── Scrollbar Styling — Neon thin scrollbar for webkit ── */
+.theme-volt ::-webkit-scrollbar { width: 4px; height: 4px; }
+.theme-volt ::-webkit-scrollbar-track { background: var(--color-bg); }
+.theme-volt ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+.theme-volt ::-webkit-scrollbar-thumb:hover { background: rgba(0,255,135,0.3); }
+
+/* ── Selection — Neon green text selection ── */
+.theme-volt ::selection { background: rgba(0,255,135,0.2); color: #fff; }
+.theme-volt ::-moz-selection { background: rgba(0,255,135,0.2); color: #fff; }
+
+/* ── Button Spinner — Ensure visibility on dark/green backgrounds ── */
+.theme-volt .btn-spinner {
+    border-color: rgba(10,10,12,0.3);
+    border-top-color: var(--color-bg);
+}
+
+/* ── 30. NO DARK MODE NEEDED ── */
+/* Volt is natively dark — no dark mode overrides needed */

@@ -1,0 +1,30 @@
+# TinyShop — WP-style rewrite
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Block access to sensitive directories
+    RewriteRule ^(src|config|templates|var|vendor|addons)/ - [F,L]
+
+    # Backward compat: /uploads/file → public/uploads/file
+    RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
+
+    # Serve existing files/directories directly (static assets)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Route everything else through index.php
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Block sensitive file extensions
+<FilesMatch "\.(sql|tpl|md|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>
+
+# Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript text/plain
+</IfModule>
