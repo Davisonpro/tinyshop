@@ -1,7 +1,6 @@
 /**
  * TinyShop — Dashboard JS
  * Product list, product form page, image uploads, categories, localStorage draft.
- * SPA-like navigation with progress bar.
  */
 var TinyShop = window.TinyShop || {};
 
@@ -55,6 +54,7 @@ TinyShop.openModal = function(title, contentHtml) {
     $('#modalTitle').text(title);
     $('#modalBody').html(contentHtml);
     $('#modal').addClass('active');
+    document.body.style.overflow = 'hidden';
     // Focus first focusable element inside modal
     setTimeout(function() {
         var $focusable = $('#modalBody').find('input, button, select, textarea, a[href]').filter(':visible').first();
@@ -65,6 +65,7 @@ TinyShop.openModal = function(title, contentHtml) {
 
 TinyShop.closeModal = function() {
     $('#modal').removeClass('active');
+    document.body.style.overflow = '';
     setTimeout(function() { $('#modalBody').html(''); }, 300);
     // Restore focus to trigger element
     if (TinyShop._previousFocus) {
@@ -73,33 +74,49 @@ TinyShop.closeModal = function() {
     }
 };
 
-$(function() {
-    $('#modalClose, #modal').on('click', function(e) {
-        if (e.target === this) TinyShop.closeModal();
+/**
+ * TinyShop.confirm(title, message, confirmLabel, onConfirm)
+ * Opens a confirmation modal using the existing bottom-sheet modal.
+ * confirmLabel defaults to 'Confirm'. Pass 'danger' as 5th arg for red button.
+ */
+TinyShop.confirm = function(title, message, confirmLabel, onConfirm, variant) {
+    var btnBg = variant === 'danger' ? '#FF3B30' : 'var(--color-accent)';
+    var html = '<p style="margin-bottom:20px;color:var(--color-text-muted);font-size:0.9rem;">' + message + '</p>' +
+        '<div style="display:flex;gap:10px">' +
+            '<button type="button" id="confirmModalCancel" style="flex:1;min-height:48px;font-size:1rem;font-weight:600;border-radius:12px;background:var(--color-bg-secondary);color:var(--color-text);border:none;cursor:pointer;font-family:inherit;">Cancel</button>' +
+            '<button type="button" id="confirmModalOk" style="flex:1;min-height:48px;font-size:1rem;font-weight:600;border-radius:12px;background:' + btnBg + ';color:#fff;border:none;cursor:pointer;font-family:inherit;">' + (confirmLabel || 'Confirm') + '</button>' +
+        '</div>';
+    TinyShop.openModal(title, html);
+    $('#confirmModalCancel').on('click', function() { TinyShop.closeModal(); });
+    $('#confirmModalOk').on('click', function() {
+        if (typeof onConfirm === 'function') onConfirm();
     });
+};
 
-    // Escape key closes modal
-    $(document).on('keydown', function(e) {
-        if (e.key === 'Escape' && $('#modal').hasClass('active')) {
-            TinyShop.closeModal();
-        }
-    });
+// Modal event handlers — use document delegation so they survive SPA navigation
+$(document).on('click', '#modalClose, #modal', function(e) {
+    if (e.target === this) TinyShop.closeModal();
+});
 
-    // Focus trap: Tab cycles within modal when open
-    $('#modal').on('keydown', function(e) {
-        if (e.key !== 'Tab') return;
-        var $focusable = $(this).find('input, button, select, textarea, a[href], [tabindex]:not([tabindex="-1"])').filter(':visible');
-        if (!$focusable.length) return;
-        var first = $focusable.first()[0];
-        var last = $focusable.last()[0];
-        if (e.shiftKey && document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-        }
-    });
+$(document).on('keydown', function(e) {
+    if (e.key === 'Escape' && $('#modal').hasClass('active')) {
+        TinyShop.closeModal();
+    }
+});
+
+$(document).on('keydown', '#modal', function(e) {
+    if (e.key !== 'Tab') return;
+    var $focusable = $(this).find('input, button, select, textarea, a[href], [tabindex]:not([tabindex="-1"])').filter(':visible');
+    if (!$focusable.length) return;
+    var first = $focusable.first()[0];
+    var last = $focusable.last()[0];
+    if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+    }
 });
 
 /* ============================================================
@@ -131,17 +148,6 @@ TinyShop.formatPrice = function(amount, currency) {
 };
 
 /* ============================================================
-   Navigate helper — uses SPA when available, else location
-   ============================================================ */
-TinyShop.navigate = function(url) {
-    if (TinyShop.spa && TinyShop.spa._ready) {
-        TinyShop.spa.go(url);
-    } else {
-        window.location.href = url;
-    }
-};
-
-/* ============================================================
    Product List Page (2-col card grid)
    ============================================================ */
 TinyShop.initProductList = function() {
@@ -162,14 +168,40 @@ TinyShop.initProductList = function() {
     var _visibleCount = PAGE_SIZE;
 
     function loadProducts() {
-        TinyShop.api('GET', '/api/products').done(function(res) {
+        TinyShop.api('GET', '/api/products?limit=0').done(function(res) {
             _allProducts = res.products || [];
             buildCategoryTabs(_allProducts);
-            // Always show search bar if 3+ products
             if (_allProducts.length >= 3) {
                 $searchBar.show();
             }
+
+            // Check if we need to scroll back to a product
+            var scrollToId = null;
+            try {
+                scrollToId = sessionStorage.getItem('spa_last_product');
+                if (scrollToId) {
+                    sessionStorage.removeItem('spa_last_product');
+                    // Expand visible count so the target product is rendered
+                    for (var i = 0; i < _allProducts.length; i++) {
+                        if (String(_allProducts[i].id) === String(scrollToId)) {
+                            if (i >= _visibleCount) {
+                                _visibleCount = i + PAGE_SIZE;
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch(ex) {}
+
             applyFilters();
+
+            // Scroll to the product card
+            if (scrollToId) {
+                var $el = $grid.find('[data-id="' + scrollToId + '"]');
+                if ($el.length) {
+                    $el[0].scrollIntoView({ block: 'center' });
+                }
+            }
         }).fail(function() {
             $grid.html('<div class="empty-state"><p>Failed to load products.</p></div>');
         });
@@ -255,10 +287,18 @@ TinyShop.initProductList = function() {
         updateSummary();
 
         if (products.length === 0) {
-            var msg = _searchQuery ? 'No products match "' + escapeHtml(_searchQuery) + '"'
-                    : _activeFilter ? 'No products in this category'
-                    : 'No products yet';
-            var hint = (!_activeFilter && !_searchQuery) ? '<p>Tap + to add your first product</p>' : '';
+            var msg, hint;
+            if (_searchQuery) {
+                msg = 'No results for "' + escapeHtml(_searchQuery) + '"';
+                hint = '<p>Try a different search term</p>';
+            } else if (_activeFilter) {
+                msg = 'Nothing in this category';
+                hint = '';
+            } else {
+                msg = 'Your store is ready';
+                hint = '<p>Add your first product to start selling</p>' +
+                       '<a href="/dashboard/products/add" class="empty-state-btn">Add product</a>';
+            }
             $grid.html(
                 '<div class="empty-state">' +
                     '<div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#AEAEB2" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>' +
@@ -384,6 +424,17 @@ TinyShop.initProductForm = function() {
     // Initialize price formatting
     $('.price-input').each(function() {
         TinyShop.initPriceInput($(this));
+    });
+
+    // --- Track Stock Toggle ---
+    $('#trackStock').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#stockQtyRow').show();
+            $('#stockQuantity').focus();
+        } else {
+            $('#stockQtyRow').hide();
+            $('#stockQuantity').val('');
+        }
     });
 
     // --- Image Gallery ---
@@ -819,7 +870,10 @@ TinyShop.initProductForm = function() {
             if (draft.name) $('#productName').val(draft.name);
             if (draft.price) { $('#productPrice').val(draft.price).trigger('input'); }
             if (draft.compare_price) { $('#productComparePrice').val(draft.compare_price).trigger('input'); }
-            if (draft.description) $('#productDesc').val(draft.description);
+            if (draft.description) {
+                $('#productDesc').val(draft.description);
+                if (window._setEditorContent) window._setEditorContent(draft.description);
+            }
             if (draft.category_id) {
                 $('#productCategory').val(draft.category_id);
                 // Update picker label from tree
@@ -856,33 +910,29 @@ TinyShop.initProductForm = function() {
         saveDraft();
     });
 
+    // Rich editor triggers draft save
+    var richContent = document.querySelector('.rich-editor-content');
+    if (richContent) {
+        richContent.addEventListener('input', function() { saveDraft(); });
+    }
+
     // Restore draft on load (add mode only)
     restoreDraft();
 
     // --- Delete Product (edit mode, with confirm modal) ---
     if (isEdit) {
         $('#deleteProductBtn').on('click', function() {
-            var html = '<p style="margin-bottom:20px;color:var(--color-text-muted);font-size:0.9rem;">This will permanently delete this product and all its images. This cannot be undone.</p>' +
-                '<div style="display:flex;gap:10px">' +
-                    '<button type="button" class="btn-primary" id="confirmDeleteCancel" style="flex:1;min-height:48px;font-size:1rem;font-weight:600;border-radius:12px;background:var(--color-bg-secondary);color:var(--color-text);border:none;cursor:pointer;font-family:inherit;">Cancel</button>' +
-                    '<button type="button" class="btn-primary" id="confirmDeleteYes" style="flex:1;min-height:48px;font-size:1rem;font-weight:600;border-radius:12px;background:#FF3B30;color:#fff;border:none;cursor:pointer;font-family:inherit;">Delete</button>' +
-                '</div>';
-            TinyShop.openModal('Delete Product?', html);
-
-            $('#confirmDeleteCancel').on('click', function() {
-                TinyShop.closeModal();
-            });
-
-            $('#confirmDeleteYes').on('click', function() {
-                $(this).prop('disabled', true).text('Deleting...');
+            TinyShop.confirm('Delete Product?', 'This will permanently delete this product and all its images. This cannot be undone.', 'Delete', function() {
+                $('#confirmModalOk').prop('disabled', true).text('Deleting...');
                 TinyShop.api('DELETE', '/api/products/' + productId).done(function() {
                     TinyShop.toast('Product deleted');
+                    TinyShop.closeModal();
                     TinyShop.navigate('/dashboard/products');
                 }).fail(function() {
                     TinyShop.toast('Failed to delete', 'error');
                     TinyShop.closeModal();
                 });
-            });
+            }, 'danger');
         });
     }
 
@@ -894,6 +944,13 @@ TinyShop.initProductForm = function() {
         var priceRaw = $('#productPrice').val().replace(/,/g, '');
         var compareRaw = $('#productComparePrice').val().replace(/,/g, '');
         var variations = getVariations();
+        var stockQty = null;
+        if ($('#trackStock').is(':checked')) {
+            var qtyVal = $('#stockQuantity').val();
+            stockQty = qtyVal !== '' ? parseInt(qtyVal, 10) : 0;
+            if (isNaN(stockQty) || stockQty < 0) stockQty = 0;
+        }
+
         var payload = {
             name: $('#productName').val(),
             price: parseFloat(priceRaw),
@@ -902,6 +959,7 @@ TinyShop.initProductForm = function() {
             category_id: $('#productCategory').val() || null,
             images: getImageUrls(),
             is_sold: $('#productSold').is(':checked') ? 1 : 0,
+            stock_quantity: stockQty,
             is_featured: $('#productFeatured').is(':checked') ? 1 : 0,
             is_active: $('#productActive').length ? ($('#productActive').is(':checked') ? 1 : 0) : 1,
             variations: variations.length > 0 ? variations : null,
@@ -974,182 +1032,6 @@ $(function() {
         }, 250);
     });
 
-    // Fire page:init on first load
-    $(document).trigger('page:init');
 });
 
-/* ============================================================
-   SPA Navigation — AJAX page loading for dashboard
-   ============================================================ */
-TinyShop.spa = {
-    _ready: false,
-    _loading: false,
-    _currentXhr: null,
 
-    init: function() {
-        var self = this;
-
-        // Store initial state
-        history.replaceState({ spa: true, url: location.pathname + location.search }, '', location.pathname + location.search);
-
-        // Intercept dashboard link clicks (delegated)
-        $(document).on('click', 'a', function(e) {
-            // Skip if modifier key (new tab intent)
-            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-
-            var href = this.getAttribute('href');
-            if (!href) return;
-
-            // Only intercept dashboard routes
-            if (!href.match(/^\/dashboard(\/|$)/)) return;
-
-            // Skip anchors, blobs, javascript:, etc.
-            if (href.charAt(0) === '#' || this.target === '_blank') return;
-
-            e.preventDefault();
-
-            // Don't re-navigate to the same page
-            if (href === location.pathname + location.search) return;
-
-            self.go(href);
-        });
-
-        // Handle browser back/forward
-        window.addEventListener('popstate', function(e) {
-            if (e.state && e.state.spa) {
-                self.go(e.state.url, true);
-            }
-        });
-
-        self._ready = true;
-    },
-
-    go: function(url, isPopState) {
-        var self = this;
-
-        // Abort any in-flight request
-        if (self._currentXhr) {
-            self._currentXhr.abort();
-            self._currentXhr = null;
-        }
-
-        self._loading = true;
-        self.showProgress();
-
-        self._currentXhr = $.ajax({
-            url: url,
-            method: 'GET',
-            dataType: 'html',
-            headers: { 'X-SPA': '1' },
-            success: function(html) {
-                self._currentXhr = null;
-
-                var parser = new DOMParser();
-                var doc = parser.parseFromString(html, 'text/html');
-
-                // Extract new content
-                var newContent = doc.querySelector('.dash-content');
-                if (!newContent) {
-                    // Not a dashboard page — full reload
-                    window.location.href = url;
-                    return;
-                }
-
-                // Swap content
-                var $content = $('.dash-content');
-                $content.html(newContent.innerHTML);
-
-                // Execute inline scripts in global scope via DOM insertion.
-                // This ensures function declarations, vars, and onclick handlers
-                // work exactly as on a full page load.
-                var scripts = doc.querySelectorAll('script');
-                scripts.forEach(function(s) {
-                    if (s.src) return;
-                    var code = s.textContent;
-                    if (!code.trim()) return;
-                    // Skip the service worker registration
-                    if (code.indexOf('serviceWorker') !== -1 && code.indexOf('register') !== -1) return;
-                    var el = document.createElement('script');
-                    el.textContent = code;
-                    document.body.appendChild(el);
-                    document.body.removeChild(el);
-                });
-
-                // Trigger page:init — re-runs all registered init hooks
-                $(document).trigger('page:init');
-
-                // Update active tab
-                self.updateTabs(url);
-
-                // Update history
-                if (!isPopState) {
-                    history.pushState({ spa: true, url: url }, '', url);
-                }
-
-                // Scroll to top
-                window.scrollTo(0, 0);
-
-                self._loading = false;
-                self.hideProgress();
-            },
-            error: function(xhr, status) {
-                self._currentXhr = null;
-                self._loading = false;
-                self.hideProgress();
-
-                // Don't do anything on abort
-                if (status === 'abort') return;
-
-                // Fallback to full page load
-                window.location.href = url;
-            }
-        });
-    },
-
-    showProgress: function() {
-        var $bar = $('#spaProgress');
-        if (!$bar.length) return;
-        // Reset and start
-        $bar.removeClass('spa-progress-done').css('width', '0%');
-        // Force reflow
-        $bar[0].offsetWidth;
-        $bar.addClass('spa-progress-active').css('width', '70%');
-    },
-
-    hideProgress: function() {
-        var $bar = $('#spaProgress');
-        if (!$bar.length) return;
-        $bar.css('width', '100%');
-        setTimeout(function() {
-            $bar.addClass('spa-progress-done').removeClass('spa-progress-active');
-            setTimeout(function() {
-                $bar.css('width', '0%').removeClass('spa-progress-done');
-            }, 200);
-        }, 150);
-    },
-
-    updateTabs: function(url) {
-        var $tabs = $('.dash-tabs .dash-tab');
-        $tabs.removeClass('active').removeAttr('aria-current');
-
-        // Match by path
-        var path = url.split('?')[0];
-        $tabs.each(function() {
-            var tabHref = this.getAttribute('href');
-            var isMatch = false;
-            if (tabHref === '/dashboard') {
-                isMatch = path === '/dashboard' || path === '/dashboard/';
-            } else {
-                isMatch = path.indexOf(tabHref) === 0;
-            }
-            if (isMatch) {
-                $(this).addClass('active').attr('aria-current', 'page');
-            }
-        });
-    }
-};
-
-// Initialize SPA on DOM ready
-$(function() {
-    TinyShop.spa.init();
-});

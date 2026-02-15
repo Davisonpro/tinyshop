@@ -18,7 +18,7 @@ use Throwable;
  */
 final class ShopView
 {
-    private PDO $db;
+    private readonly PDO $db;
 
     private const EMPTY_STATS = [
         'today'       => 0,

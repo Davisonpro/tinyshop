@@ -1,14 +1,15 @@
 /* ============================================================
-   Ivory — Editorial Magazine. Breathable whitespace. Huge type.
-   Think: Kinfolk, Cereal Magazine, Aesop, The Row.
+   Ivory — Ultra-Minimal Gallery. Muji / Apple Store / Art Gallery.
+   Think: Muji, Apple Store, white-cube gallery, Aesop.
 
-   Design philosophy: The magazine IS the shop. No chrome, no
-   decoration. Images speak for themselves. Typography does the
-   heavy lifting. Every pixel of whitespace is intentional.
+   Design philosophy: Maximum whitespace, minimum decoration.
+   Products breathe in a gallery-like space. Square images with
+   soft rounded corners. Borderless cards — no shadows, no chrome.
+   Ultra-thin font weights. Let the products do all the talking.
 
-   Layout: Huge left-aligned shop name as page heading, tiny logo
-   tucked right, search toggle icon, underline category tabs,
-   borderless product cards with portrait 3:4 images, wide gaps.
+   Layout: Huge left-aligned shop name, tiny logo tucked right,
+   thin outlined category pills, square 1:1 product images with
+   16px rounded corners, spacious 20px grid gap, hairline dividers.
 
    Template override: shop_header.tpl
    ============================================================ */
@@ -24,7 +25,7 @@
     --color-bg-secondary: #E8E7E3;
     --color-border: #D8D7D2;
     --color-text: #1A1A18;
-    --color-text-muted: #8A8A82;
+    --color-text-muted: #58584F;
     --shadow-sm: none;
     --shadow-md: none;
 }
@@ -45,12 +46,12 @@
    .shop-contact     (ghost text links, no SVG icons)
    .shop-social
 
-   The shop name IS the page heading — huge, bold, editorial.
+   The shop name IS the page heading — huge, light, gallery-like.
    The logo is small and tucked to the right — not the star.    */
 
 .theme-ivory .shop-header {
     text-align: left;
-    padding: var(--spacing-xl) 0 var(--spacing-md);
+    padding: var(--spacing-md) 0 var(--spacing-sm);
     border-bottom: none;
     margin-bottom: 0;
 }
@@ -73,11 +74,11 @@
     padding-top: 4px;
 }
 
-/* The shop name — editorial headline, huge and commanding */
+/* The shop name — gallery headline, light and airy */
 .theme-ivory .shop-name {
     font-size: 2.25rem;
-    font-weight: 800;
-    letter-spacing: -0.04em;
+    font-weight: 300;
+    letter-spacing: -0.03em;
     line-height: 1.05;
     color: var(--color-text);
     flex: 1;
@@ -92,15 +93,11 @@
 
 /* Logo: small, tucked beside search — not the hero */
 .theme-ivory .shop-logo {
-    width: 40px;
-    height: 40px;
+    max-height: 40px;
+    width: auto;
     margin: 0;
-    border: none;
-    box-shadow: none;
     flex-shrink: 0;
-    opacity: 0.85;
-    border-radius: 6px;
-    object-fit: cover;
+    object-fit: contain;
 }
 .theme-ivory .shop-logo-placeholder {
     width: 40px;
@@ -110,9 +107,6 @@
     font-weight: 600;
     background: var(--color-bg-alt);
     color: var(--color-text-muted);
-    border-radius: 6px;
-    border: none;
-    box-shadow: none;
 }
 
 /* Tagline: quiet, muted, editorial subhead */
@@ -221,8 +215,8 @@
 
 
 /* ── 5. Categories ─────────────────────────────────────────── *
-   Underline tabs ONLY. Force pill tabs visible, hide image cards.
-   No pill backgrounds — clean underline style like a TOC.    */
+   Thin outlined pills. Force pill tabs visible, hide image cards.
+   Quiet, minimal pills — gallery exhibition labels.           */
 
 /* Force text tabs, hide image cards */
 .theme-ivory .category-tabs:not(.category-tabs-only) {
@@ -233,102 +227,106 @@
 }
 
 .theme-ivory .category-tabs {
-    gap: 0;
-    padding-bottom: var(--spacing-sm);
-    border-bottom: 1px solid var(--color-border);
+    gap: 8px;
+    padding-bottom: 0;
+    border-bottom: none;
     margin-bottom: var(--spacing-md);
 }
 
 .theme-ivory .category-tab {
-    border: none;
-    border-radius: 0;
-    padding: 10px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    padding: 6px 14px;
     margin: 0;
     color: var(--color-text-muted);
     background: transparent;
-    border-bottom: 2px solid transparent;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 400;
     letter-spacing: 0.01em;
-    transition: color 0.2s ease, border-color 0.2s ease;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 .theme-ivory .category-tab:first-child {
-    padding-left: 0;
+    padding-left: 14px;
 }
 .theme-ivory .category-tab:hover {
+    border-color: var(--color-text-muted);
     color: var(--color-text);
     background: transparent;
 }
 .theme-ivory .category-tab.active {
-    background: transparent;
-    color: var(--color-text);
-    border-bottom-color: var(--color-text);
-    font-weight: 600;
+    background: var(--color-text);
+    color: var(--color-bg);
+    border-color: var(--color-text);
+    font-weight: 500;
+}
+
+
+/* ── 5b. Announcement Bar ─────────────────────────────────── */
+.theme-ivory .announcement-bar {
+    background: var(--color-text);
+    color: var(--color-bg);
+    border-radius: 12px;
+    margin: 0 0 12px;
+    font-weight: 500;
 }
 
 
 /* ── 6. Product Grid ───────────────────────────────────────── *
-   Wide gaps (28px). Borderless cards. NO shadow. NO border.
-   Portrait 3:4 images. Clean title + price, no side padding.
-   The grid breathes — this is a lookbook, not a catalog.    */
+   Ultra-spacious gallery grid. Borderless cards. NO shadow.
+   Square 1:1 images with 16px rounded corners. Thin typography.
+   The grid breathes — this is an art gallery, not a catalog.  */
 
 .theme-ivory .product-toolbar {
     margin-bottom: var(--spacing-xs);
 }
 .theme-ivory .product-count {
-    font-size: 0.6875rem;
+    font-size: 0.625rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--color-text-muted);
     font-weight: 400;
 }
-
-.theme-ivory .product-grid {
-    gap: 28px;
-    padding: var(--spacing-sm) 0 var(--spacing-lg);
+.theme-ivory .product-sort {
+    border-radius: 8px;
+    background: transparent;
+    border-color: var(--color-border);
+    font-weight: 400;
+    letter-spacing: 0.02em;
 }
 
+/* Product grid — ultra-spacious gallery spacing */
+.theme-ivory .product-grid {
+    gap: 20px;
+}
+
+/* Product images — square with soft rounded corners */
+.theme-ivory .product-card-img {
+    aspect-ratio: 1 / 1;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* Product cards — borderless, no decoration */
 .theme-ivory .product-card {
+    background: none;
     border: none;
     box-shadow: none;
     border-radius: 0;
-    background: transparent;
-    overflow: visible;
 }
-.theme-ivory .product-card:hover {
-    box-shadow: none;
-    transform: none;
-}
-.theme-ivory .product-card:active {
-    transform: scale(0.98);
-}
-
-/* 3:4 portrait image — editorial crop */
-.theme-ivory .product-card-img {
-    border-radius: 4px;
-    background: var(--color-bg-alt);
-    aspect-ratio: 3 / 4;
-    overflow: hidden;
-}
-.theme-ivory .product-card-img img {
-    object-fit: cover;
-    width: 100%;
-    height: 100%;
-}
-
-/* Card body: NO side padding — title and price flush left */
 .theme-ivory .product-card-body {
-    padding: 12px 0 4px;
+    padding: 8px 2px;
 }
 
+/* Product title — ultra-thin, quiet */
 .theme-ivory .product-title {
     font-weight: 400;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--color-text);
     line-height: 1.4;
     letter-spacing: 0.005em;
 }
 
+/* Product price — slightly heavier for hierarchy */
 .theme-ivory .product-price {
     font-weight: 500;
     font-size: 0.875rem;
@@ -337,18 +335,24 @@
 }
 .theme-ivory .product-price .price-compare {
     color: var(--color-text-muted);
-    font-weight: 400;
+    font-weight: 300;
     font-size: 0.75rem;
 }
 .theme-ivory .product-price .price-sale {
     color: var(--color-text);
 }
 
+/* Skeleton — match square aspect + rounded corners */
+.theme-ivory .product-card-skeleton .product-card-img {
+    aspect-ratio: 1 / 1;
+    border-radius: 16px;
+}
+
 /* Badges: minimal, small, flush */
 .theme-ivory .product-badge {
     border-radius: 3px;
     font-size: 0.5625rem;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     padding: 3px 8px;
@@ -402,13 +406,13 @@
     background: rgba(0, 0, 0, 0.3);
 }
 
-/* Product info: name — large, slightly serif feel, editorial */
+/* Product info: name — large, ultra-thin, gallery label */
 .theme-ivory .product-info {
     padding-top: var(--spacing-lg);
 }
 .theme-ivory .product-info-name {
-    font-family: 'Georgia', 'Times New Roman', serif;
-    font-weight: 400;
+    font-family: inherit;
+    font-weight: 300;
     font-size: 1.625rem;
     letter-spacing: -0.01em;
     line-height: 1.25;
@@ -416,19 +420,19 @@
     margin-bottom: var(--spacing-sm);
 }
 
-/* Price: understated, not screaming */
+/* Price: understated, quiet, gallery tag */
 .theme-ivory .product-info-price {
     margin-bottom: var(--spacing-lg);
 }
 .theme-ivory .product-info-price .price-current {
     color: var(--color-text);
-    font-weight: 500;
+    font-weight: 400;
     font-size: 1.25rem;
     letter-spacing: -0.01em;
 }
 .theme-ivory .product-info-price .price-compare {
     color: var(--color-text-muted);
-    font-weight: 400;
+    font-weight: 300;
 }
 .theme-ivory .product-info-price .price-sale {
     color: var(--color-text);
@@ -471,7 +475,7 @@
 }
 .theme-ivory .product-desc-toggle {
     color: var(--color-text);
-    font-weight: 500;
+    font-weight: 400;
     font-size: 0.8125rem;
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -486,7 +490,7 @@
 }
 .theme-ivory .product-variation-label {
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 400;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--color-text-muted);
@@ -497,7 +501,7 @@
     background: transparent;
     color: var(--color-text);
     font-size: 0.8125rem;
-    font-weight: 500;
+    font-weight: 400;
     padding: 9px 16px;
     transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
@@ -508,16 +512,31 @@
     border-color: var(--color-text);
     background: var(--color-text);
     color: var(--color-bg);
-    font-weight: 600;
+    font-weight: 500;
 }
 .theme-ivory .product-variation-option.selected small {
     color: rgba(250, 250, 248, 0.7);
 }
 
 
+/* ── Cart Components ───────────────────────────────────────── */
+.theme-ivory .cart-qty-selector {
+    border-radius: 8px;
+    border-color: var(--color-border);
+}
+.theme-ivory .cart-checkout-btn {
+    border-radius: 8px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+}
+.theme-ivory .cart-drawer {
+    border-radius: 16px 16px 0 0;
+}
+
+
 /* ── 8. CTA Button ─────────────────────────────────────────── *
    Minimal. Text-only feel. No icon. Rounded corners.
-   "Make an Inquiry" — not "BUY NOW" energy. Considered.     */
+   Quiet, gallery-appropriate. Considered, not aggressive.    */
 
 .theme-ivory .sticky-cta {
     background: var(--color-bg);
@@ -529,9 +548,9 @@
     background: var(--color-text);
     color: var(--color-bg);
     border-radius: 8px;
-    font-weight: 500;
+    font-weight: 400;
     font-size: 0.9375rem;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
     box-shadow: none;
     padding: 15px 24px;
 }
@@ -539,9 +558,7 @@
     background: var(--color-accent-hover);
 }
 /* Hide icon in CTA for text-only feel */
-.theme-ivory .sticky-cta .btn svg {
-    display: none;
-}
+.theme-ivory .sticky-cta .btn-whatsapp { background: #25D366; color: #fff; }
 
 
 /* ── 9. More Products Section ──────────────────────────────── *
@@ -552,7 +569,7 @@
     padding-top: var(--spacing-xl);
 }
 .theme-ivory .more-products-title {
-    font-size: 0.6875rem;
+    font-size: 0.625rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 400;
@@ -560,14 +577,29 @@
     margin-bottom: var(--spacing-md);
 }
 .theme-ivory .more-product-img {
-    border-radius: 4px;
+    border-radius: 12px;
     background: var(--color-bg-alt);
 }
 .theme-ivory .more-product-name {
     font-weight: 400;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     color: var(--color-text);
     letter-spacing: 0.005em;
+}
+
+/* ── Load More ────────────────────────────────────────────── */
+.theme-ivory .load-more-btn {
+    border-radius: 8px;
+    border-color: var(--color-border);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+}
+
+/* ── Floating Contact CTA ─────────────────────────────────── */
+.theme-ivory .floating-contact-cta .btn {
+    border-radius: 8px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
 }
 .theme-ivory .more-product-price {
     font-weight: 500;
@@ -629,6 +661,15 @@
 /* ── 14. Button Overrides ──────────────────────────────────── *
    Primary button uses accent (black) — clean and editorial.  */
 
+/* ── Mobile cart FAB — dark bg for visibility on white images ── */
+.theme-ivory .mobile-cart-fab {
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    border-radius: 50%;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
 .theme-ivory .btn-primary {
     background: var(--color-text);
     color: var(--color-bg);
@@ -647,8 +688,140 @@
 }
 
 
+/* ── 15. Ivory Gallery Grid ──────────────────────────────────── *
+   Ultra-spacious gallery layout. Thin typography. Hairline dividers. */
+
+/* Product title in grid — ultra-thin sans-serif */
+.theme-ivory .ivory-grid .product-title {
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    letter-spacing: 0.005em;
+}
+
+/* Ivory grid — match gallery spacing */
+.theme-ivory .ivory-grid {
+    gap: 20px;
+}
+
+/* Decorative thin rule — hairline section dividers */
+.theme-ivory .ivory-rule {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    width: 40px;
+    margin: 0 0 var(--spacing-md);
+}
+
+/* Collection label above grid — small uppercase, muted, gallery tag */
+.theme-ivory .ivory-collection-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    font-weight: 400;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Ivory gallery — square aspect-ratio for gallery feel */
+
+
+/* ── 16. Desktop Header & Footer ──────────────────────────── */
+@media (min-width: 1024px) {
+    .theme-ivory .desktop-header {
+        background: var(--color-bg);
+        box-shadow: none;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .theme-ivory .desktop-header-logo {
+    }
+    .theme-ivory .desktop-header-logo-placeholder {
+        border-radius: 6px;
+        background: var(--color-bg-alt);
+        color: var(--color-text-muted);
+        border: none;
+        box-shadow: none;
+    }
+    .theme-ivory .desktop-header-name {
+        font-size: 1.25rem;
+        font-weight: 300;
+        letter-spacing: -0.02em;
+    }
+    .theme-ivory .desktop-header-link {
+        font-weight: 400;
+        color: var(--color-text-muted);
+        font-size: 0.75rem;
+        letter-spacing: 0.02em;
+        border-radius: 4px;
+    }
+    .theme-ivory .desktop-header-link:hover {
+        color: var(--color-text);
+        background: transparent;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+    .theme-ivory .desktop-header-btn {
+        border-radius: 6px;
+    }
+    .theme-ivory .desktop-header-btn:hover {
+        color: var(--color-text);
+    }
+    .theme-ivory .desktop-header-cart {
+        border-radius: 6px;
+        background: transparent;
+        border: 1px solid var(--color-border);
+    }
+    .theme-ivory .desktop-header-cart:hover {
+        border-color: var(--color-text);
+        background: transparent;
+    }
+    .theme-ivory .desktop-header-btn .cart-badge {
+        background: var(--color-text);
+    }
+
+    .theme-ivory .desktop-footer {
+        background: var(--color-bg);
+        border-top: 1px solid var(--color-border);
+    }
+    .theme-ivory .desktop-footer-name {
+        font-family: inherit;
+        font-weight: 300;
+        letter-spacing: -0.01em;
+    }
+    .theme-ivory .desktop-footer-logo {
+    }
+    .theme-ivory .desktop-footer-logo-placeholder {
+    }
+    .theme-ivory .desktop-footer-heading {
+        font-weight: 400;
+        letter-spacing: 0.1em;
+    }
+    .theme-ivory .desktop-footer-social a {
+        background: transparent;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+    }
+    .theme-ivory .desktop-footer-social a:hover {
+        color: var(--color-text);
+        border-color: var(--color-text);
+        background: transparent;
+    }
+    .theme-ivory .desktop-footer-links a {
+        font-weight: 400;
+    }
+    .theme-ivory .desktop-footer-links a:hover {
+        color: var(--color-text);
+    }
+    .theme-ivory .desktop-footer-bottom {
+        border-top-color: var(--color-border);
+        font-size: 0.6875rem;
+        letter-spacing: 0.02em;
+    }
+}
+
 /* ============================================================
-   15. Dark Mode
+   16. Dark Mode
    Inverted editorial palette — warm charcoal, cream text.
    The same magazine, read at night.
    ============================================================ */
@@ -662,7 +835,7 @@
         --color-bg-secondary: #2C2C2A;
         --color-border: #3A3A38;
         --color-text: #EAEAE6;
-        --color-text-muted: #8A8A82;
+        --color-text-muted: #A0A098;
         --shadow-sm: none;
         --shadow-md: none;
     }
@@ -673,10 +846,6 @@
         background: var(--color-bg);
     }
 
-    /* Logo adjusts to dark context */
-    .theme-ivory .shop-logo {
-        opacity: 0.9;
-    }
     .theme-ivory .shop-logo-placeholder {
         background: var(--color-bg-alt);
         color: var(--color-text-muted);
@@ -703,11 +872,6 @@
         background: var(--color-bg);
     }
 
-    /* Category tabs */
-    .theme-ivory .category-tabs {
-        border-bottom-color: var(--color-border);
-    }
-
     /* Gallery dots */
     .theme-ivory .gallery-dot {
         background: rgba(255, 255, 255, 0.25);
@@ -718,11 +882,11 @@
 
     /* Nav buttons on gallery */
     .theme-ivory .product-nav-btn {
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.3);
         color: #fff;
     }
     .theme-ivory .product-nav-btn:hover {
-        background: rgba(255, 255, 255, 0.25);
+        background: rgba(0, 0, 0, 0.45);
     }
 
     /* Badges */
@@ -784,6 +948,7 @@
     .theme-ivory .sticky-cta .btn:hover {
         background: var(--color-accent-hover);
     }
+    .theme-ivory .sticky-cta .btn-whatsapp { background: #25D366; color: #fff; }
 
     /* Buttons */
     .theme-ivory .btn-primary {
@@ -821,5 +986,27 @@
     /* Footer */
     .theme-ivory .shop-footer {
         border-top-color: var(--color-border);
+    }
+
+    /* Ivory single-column grid — dark mode */
+    .theme-ivory .ivory-rule {
+        border-top-color: var(--color-border);
+    }
+    .theme-ivory .ivory-gallery .product-gallery-slide {
+        background: var(--color-bg-alt);
+    }
+
+    /* Desktop dark mode */
+    @media (min-width: 1024px) {
+        .theme-ivory .desktop-header {
+            border-bottom-color: var(--color-border);
+        }
+        .theme-ivory .desktop-footer {
+            background: var(--color-bg);
+            border-top-color: var(--color-border);
+        }
+        .theme-ivory .desktop-footer-social a {
+            border-color: var(--color-border);
+        }
     }
 }

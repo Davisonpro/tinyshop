@@ -10,14 +10,16 @@ if (!file_exists(__DIR__ . '/config/.installed')) {
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load();
-$dotenv->required(['APP_URL', 'APP_BASE_DOMAIN', 'DB_HOST', 'DB_NAME', 'DB_USERNAME'])->notEmpty();
+// Load environment from PHP config (OPcache-friendly, no file parsing)
+$env = require __DIR__ . '/config/env.php';
+foreach ($env as $key => $value) {
+    $_ENV[$key] = (string) $value;
+}
 
 $appConfig = require __DIR__ . '/config/app.php';
 $dbConfig  = require __DIR__ . '/config/database.php';
 
-// Secure session config
+// Secure session config (set before any session_start)
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.use_strict_mode', '1');

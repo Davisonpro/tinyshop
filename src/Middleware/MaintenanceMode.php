@@ -15,8 +15,8 @@ use TinyShop\Services\Auth;
 final class MaintenanceMode implements MiddlewareInterface
 {
     public function __construct(
-        private Setting $setting,
-        private Auth $auth
+        private readonly Setting $setting,
+        private readonly Auth $auth
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface

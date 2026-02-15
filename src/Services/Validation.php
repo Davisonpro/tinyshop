@@ -6,7 +6,7 @@ namespace TinyShop\Services;
 
 final class Validation
 {
-    public const VALID_THEMES = ['classic', 'ivory', 'obsidian', 'bloom', 'ember', 'monaco', 'volt'];
+    public const VALID_THEMES = ['classic', 'ivory', 'obsidian', 'bloom', 'ember', 'monaco', 'volt', 'halloween'];
 
     private const PASSWORD_MIN_LENGTH = 6;
     private const PASSWORD_MAX_LENGTH = 72; // bcrypt truncates at 72 bytes
@@ -117,6 +117,84 @@ final class Validation
         }
 
         return [$clean, null];
+    }
+
+    /**
+     * Sanitize HTML for product descriptions.
+     * Allows safe tags but strips dangerous attributes (javascript: URIs, event handlers).
+     */
+    public function sanitizeHtml(string $html): string
+    {
+        $html = strip_tags($html, '<p><br><b><strong><i><em><ul><ol><li><h2><h3><a>');
+
+        // Remove event handler attributes (onclick, onerror, onload, etc.)
+        $html = preg_replace('/\s+on\w+\s*=\s*["\'][^"\']*["\']/i', '', $html);
+        $html = preg_replace('/\s+on\w+\s*=\s*\S+/i', '', $html);
+
+        // Remove javascript:, vbscript:, data: URIs from href/src attributes
+        $html = preg_replace_callback(
+            '/(<a\s[^>]*?)href\s*=\s*["\']?\s*(javascript|vbscript|data)\s*:[^"\'>\s]*/i',
+            fn($m) => $m[1] . 'href="#"',
+            $html
+        );
+
+        return $html;
+    }
+
+    /**
+     * Validate and sanitize variations JSON structure.
+     * Expected: array of {name: string, options: string[]}
+     * Returns JSON string or null if invalid.
+     */
+    public function sanitizeVariations(mixed $variations): ?string
+    {
+        if (is_string($variations)) {
+            $variations = json_decode($variations, true);
+        }
+
+        if (!is_array($variations)) {
+            return null;
+        }
+
+        $clean = [];
+        foreach ($variations as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $name = trim((string) ($group['name'] ?? ''));
+            if ($name === '' || mb_strlen($name) > 100) {
+                continue;
+            }
+            $options = $group['options'] ?? [];
+            if (!is_array($options)) {
+                continue;
+            }
+            $cleanOptions = [];
+            foreach ($options as $opt) {
+                // Support object format {value, price} and plain string format
+                if (is_array($opt)) {
+                    $val = trim((string) ($opt['value'] ?? ''));
+                    if ($val === '' || mb_strlen($val) > 100) {
+                        continue;
+                    }
+                    $entry = ['value' => $val];
+                    if (isset($opt['price']) && is_numeric($opt['price'])) {
+                        $entry['price'] = (float) $opt['price'];
+                    }
+                    $cleanOptions[] = $entry;
+                } else {
+                    $val = trim((string) $opt);
+                    if ($val !== '' && mb_strlen($val) <= 100) {
+                        $cleanOptions[] = $val;
+                    }
+                }
+            }
+            if (!empty($cleanOptions)) {
+                $clean[] = ['name' => $name, 'options' => $cleanOptions];
+            }
+        }
+
+        return !empty($clean) ? json_encode($clean, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) : null;
     }
 
     /** Generate a URL-safe slug from a name. */

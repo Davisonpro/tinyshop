@@ -52,12 +52,23 @@ final class Upload
         $file->moveTo($originalPath);
 
         $realMime = $this->detectMime($originalPath);
-        if ($realMime !== null && !in_array($realMime, $this->allowedTypes, true)) {
+        // finfo may report SVG as text/xml or text/html — normalize
+        $effectiveMime = $realMime ?? $clientMime;
+        if ($clientMime === 'image/svg+xml' && in_array($realMime, ['text/xml', 'text/html', 'image/svg+xml'], true)) {
+            $effectiveMime = 'image/svg+xml';
+        }
+        if ($realMime !== null && !in_array($effectiveMime, $this->allowedTypes, true)) {
             @unlink($originalPath);
             throw new RuntimeException('File content does not match an allowed type');
         }
 
-        $webpUrl = $this->convertToWebP($originalPath, $baseName, $realMime ?? $clientMime);
+        // SVG: sanitize and serve as-is (no WebP conversion)
+        if ($effectiveMime === 'image/svg+xml') {
+            $this->sanitizeSvg($originalPath);
+            return $this->uploadUrl . '/' . $name;
+        }
+
+        $webpUrl = $this->convertToWebP($originalPath, $baseName, $effectiveMime);
 
         return $webpUrl ?? ($this->uploadUrl . '/' . $name);
     }
@@ -105,6 +116,42 @@ final class Upload
         @unlink($sourcePath);
 
         return $this->uploadUrl . '/' . $webpName;
+    }
+
+    /**
+     * Sanitize an SVG file by removing dangerous elements and attributes.
+     * Strips scripts, event handlers, foreign objects, and dangerous URIs.
+     */
+    private function sanitizeSvg(string $path): void
+    {
+        $xml = file_get_contents($path);
+        if ($xml === false) {
+            throw new RuntimeException('Failed to read SVG file');
+        }
+
+        // Remove processing instructions and XML declarations (except <?xml)
+        $xml = preg_replace('/<\?(?!xml\s)[^?]*\?>/i', '', $xml);
+
+        // Remove dangerous elements entirely (with contents)
+        $dangerousTags = ['script', 'foreignObject', 'iframe', 'embed', 'object', 'applet'];
+        foreach ($dangerousTags as $tag) {
+            $xml = preg_replace('/<' . $tag . '\b[^>]*>.*?<\/' . $tag . '>/si', '', $xml);
+            $xml = preg_replace('/<' . $tag . '\b[^>]*\/?\s*>/si', '', $xml);
+        }
+
+        // Remove event handler attributes (on*)
+        $xml = preg_replace('/\s+on\w+\s*=\s*"[^"]*"/i', '', $xml);
+        $xml = preg_replace('/\s+on\w+\s*=\s*\'[^\']*\'/i', '', $xml);
+        $xml = preg_replace('/\s+on\w+\s*=\s*[^\s>]+/i', '', $xml);
+
+        // Remove javascript/vbscript/data URIs in href and xlink:href
+        $xml = preg_replace('/(href\s*=\s*["\']?)\s*(javascript|vbscript|data)\s*:[^"\'>\s]*/i', '$1#', $xml);
+        $xml = preg_replace('/(xlink:href\s*=\s*["\']?)\s*(javascript|vbscript|data)\s*:[^"\'>\s]*/i', '$1#', $xml);
+
+        // Remove set/animate elements that target dangerous attributes
+        $xml = preg_replace('/<(?:set|animate)\b[^>]*attributeName\s*=\s*["\'](?:href|xlink:href|on\w+)["\'][^>]*\/?>/i', '', $xml);
+
+        file_put_contents($path, $xml);
     }
 
     /** Detect real MIME type from file content using finfo. */

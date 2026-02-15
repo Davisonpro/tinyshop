@@ -15,9 +15,9 @@ final class CategoryController
 {
     use JsonResponder;
     public function __construct(
-        private Category $categoryModel,
-        private Auth $auth,
-        private Validation $validation
+        private readonly Category $categoryModel,
+        private readonly Auth $auth,
+        private readonly Validation $validation
     ) {}
 
     public function list(Request $request, Response $response): Response
@@ -88,7 +88,23 @@ final class CategoryController
         if (array_key_exists('image_url', $data)) $updateData['image_url'] = $data['image_url'];
         if (isset($data['sort_order'])) $updateData['sort_order'] = (int) $data['sort_order'];
         if (array_key_exists('parent_id', $data)) {
-            $updateData['parent_id'] = !empty($data['parent_id']) ? (int) $data['parent_id'] : null;
+            $newParentId = !empty($data['parent_id']) ? (int) $data['parent_id'] : null;
+            if ($newParentId !== null) {
+                // Cannot set parent to self
+                if ($newParentId === $id) {
+                    return $this->json($response, ['error' => true, 'message' => 'A category cannot be its own parent'], 422);
+                }
+                // Validate parent belongs to this user
+                $parent = $this->categoryModel->findById($newParentId);
+                if (!$parent || (int) $parent['user_id'] !== $this->auth->userId()) {
+                    return $this->json($response, ['error' => true, 'message' => 'Parent category not found'], 404);
+                }
+                // Don't allow nesting deeper than 1 level
+                if ($parent['parent_id']) {
+                    return $this->json($response, ['error' => true, 'message' => 'Sub-categories cannot have their own sub-categories'], 422);
+                }
+            }
+            $updateData['parent_id'] = $newParentId;
         }
 
         $this->categoryModel->update($id, $updateData);

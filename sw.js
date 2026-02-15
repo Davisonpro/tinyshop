@@ -1,13 +1,14 @@
 /**
  * TinyShop — Service Worker
- * Cache-first for static assets, network-first for pages/API.
+ * Cache-first for static assets, stale-while-revalidate for pages.
  * Offline fallback page when network is unavailable.
  */
-var CACHE_NAME = 'tinyshop-v2';
+var CACHE_NAME = 'tinyshop-v3';
 var OFFLINE_URL = '/offline.html';
 var STATIC_ASSETS = [
     '/public/css/app.css',
     '/public/css/dashboard.css',
+    '/public/js/jquery.min.js',
     '/public/js/app.js',
     '/public/js/dashboard.js',
     '/public/img/placeholder.svg',
@@ -37,7 +38,7 @@ self.addEventListener('activate', function(e) {
     self.clients.claim();
 });
 
-// Fetch — cache-first for static, network-first for everything else
+// Fetch — cache-first for static, stale-while-revalidate for pages
 self.addEventListener('fetch', function(e) {
     var url = new URL(e.request.url);
 
@@ -62,19 +63,45 @@ self.addEventListener('fetch', function(e) {
         return;
     }
 
-    // HTML pages: network-first, fallback to cache, then offline page
+    // SPA fragment requests (X-SPA: 1): stale-while-revalidate
+    if (e.request.headers.get('X-SPA') === '1') {
+        e.respondWith(
+            caches.match(e.request).then(function(cached) {
+                var fetchPromise = fetch(e.request).then(function(res) {
+                    if (res.ok) {
+                        var clone = res.clone();
+                        caches.open(CACHE_NAME).then(function(cache) {
+                            cache.put(e.request, clone);
+                        });
+                    }
+                    return res;
+                }).catch(function() {
+                    return cached || new Response('{}', { status: 408 });
+                });
+
+                return cached || fetchPromise;
+            })
+        );
+        return;
+    }
+
+    // HTML pages: stale-while-revalidate (serve cached instantly, update in background)
     if (e.request.headers.get('Accept') && e.request.headers.get('Accept').includes('text/html')) {
         e.respondWith(
-            fetch(e.request).then(function(res) {
-                var clone = res.clone();
-                caches.open(CACHE_NAME).then(function(cache) {
-                    cache.put(e.request, clone);
-                });
-                return res;
-            }).catch(function() {
-                return caches.match(e.request).then(function(cached) {
+            caches.match(e.request).then(function(cached) {
+                var fetchPromise = fetch(e.request).then(function(res) {
+                    if (res.ok) {
+                        var clone = res.clone();
+                        caches.open(CACHE_NAME).then(function(cache) {
+                            cache.put(e.request, clone);
+                        });
+                    }
+                    return res;
+                }).catch(function() {
                     return cached || caches.match(OFFLINE_URL);
                 });
+
+                return cached || fetchPromise;
             })
         );
         return;

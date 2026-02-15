@@ -26,7 +26,7 @@
     --color-bg-elevated: #FFFFFF;
     --color-border: #D0D0D0;
     --color-text: #0A0A0A;
-    --color-text-muted: #6B6B6B;
+    --color-text-muted: #3D3D3D;
     --shadow-sm: none;
     --shadow-md: none;
 }
@@ -63,9 +63,9 @@
 .theme-obsidian .shop-header-band {
     background: #0A0A0A;
     color: #fff;
-    padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
-    margin: 0 calc(-1 * var(--spacing-md));
-    margin-top: calc(-1 * var(--spacing-md));
+    padding: var(--spacing-lg) 12px var(--spacing-md);
+    margin: 0 -12px;
+    margin-top: -12px;
 }
 
 /* Top row: logo left, search + share right */
@@ -113,21 +113,17 @@
 
 /* Logo: 44px, square, no radius — brutalist identity mark */
 .theme-obsidian .shop-logo {
-    width: 44px;
-    height: 44px;
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    box-shadow: none;
-    border-radius: 0;
+    max-height: 44px;
+    width: auto;
     flex-shrink: 0;
-    object-fit: cover;
+    object-fit: contain;
+    margin: 0;
 }
 .theme-obsidian .shop-logo-placeholder {
     width: 44px;
     height: 44px;
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.4);
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    border-radius: 0;
     font-weight: 900;
     font-size: 1.125rem;
     text-transform: uppercase;
@@ -266,24 +262,40 @@
 }
 
 .theme-obsidian .category-tab {
-    border: none;
+    border: 1px solid var(--color-border);
     border-radius: 0;
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
-    font-size: 0.625rem;
-    letter-spacing: 0.1em;
-    background: var(--color-bg-alt);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    background: transparent;
     color: var(--color-text-muted);
     padding: 10px 16px;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .theme-obsidian .category-tab:hover {
     background: var(--color-bg-secondary);
     color: var(--color-text);
+    border-color: var(--color-text-muted);
 }
 .theme-obsidian .category-tab.active {
+    background: var(--color-text);
+    color: var(--color-bg);
+    border-color: var(--color-text);
+    border-left: 3px solid var(--color-accent);
+}
+
+
+/* ── 5b. Announcement Bar ─────────────────────────────────── */
+.theme-obsidian .announcement-bar {
     background: var(--color-accent);
     color: #fff;
+    border-radius: 0;
+    margin: 0 -12px 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
 }
 
 
@@ -296,10 +308,20 @@
     font-size: 0.6875rem;
     color: var(--color-text-muted);
 }
+.theme-obsidian .product-sort {
+    border-radius: 0;
+    border-color: var(--color-text);
+    border-width: 2px;
+    background: transparent;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.75rem;
+}
 
 
 /* ── 7. Product Grid ───────────────────────────────────────── *
-   Tight 10px gap. Dense grid = hype display wall.
+   Ultra-tight 2px gap. Dense mosaic = hype display wall.
    No fluff, no breathing room. Product-first.                */
 
 .theme-obsidian .product-toolbar {
@@ -307,7 +329,7 @@
 }
 
 .theme-obsidian .product-grid {
-    gap: 10px;
+    gap: 2px;
     padding: var(--spacing-xs) 0 var(--spacing-md);
 }
 
@@ -344,13 +366,14 @@
     content: '';
     position: absolute;
     inset: 0;
-    border: 0px solid var(--color-accent);
+    border: 3px solid var(--color-accent);
     pointer-events: none;
-    transition: border-width 0.12s ease;
-    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 2;
 }
 .theme-obsidian .product-card:hover::after {
-    border-width: 3px;
+    opacity: 1;
 }
 
 /* SQUARE 1:1 product images */
@@ -366,9 +389,9 @@
     height: 100%;
 }
 
-/* Card body: price FIRST (larger), title SECOND (tiny, muted) */
+/* Card body: minimal — title only since price is overlaid on image */
 .theme-obsidian .product-card-body {
-    padding: 10px 6px 8px;
+    padding: 8px 6px 6px;
 }
 .theme-obsidian .product-price {
     font-weight: 900;
@@ -387,11 +410,11 @@
     font-weight: 900;
 }
 .theme-obsidian .product-title {
-    font-weight: 700;
+    font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.02em;
-    font-size: 0.625rem;
-    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    color: var(--color-text);
     line-height: 1.3;
 }
 
@@ -401,16 +424,18 @@
     font-weight: 900;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    font-size: 0.5625rem;
-    padding: 3px 8px;
+    font-size: 0.625rem;
+    padding: 4px 10px;
 }
 .theme-obsidian .product-badge-sale {
     background: var(--color-accent);
     color: #fff;
 }
 .theme-obsidian .product-badge-sold {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.85);
     color: #fff;
+    font-weight: 800;
+    letter-spacing: 0.06em;
     backdrop-filter: blur(4px);
 }
 
@@ -590,6 +615,27 @@
 }
 
 
+/* ── Cart Components ───────────────────────────────────────── */
+.theme-obsidian .cart-qty-selector {
+    border-radius: 0;
+    border-color: var(--color-text);
+    border-width: 2px;
+}
+.theme-obsidian .cart-qty-selector input {
+    border-color: var(--color-text);
+}
+.theme-obsidian .cart-checkout-btn {
+    border-radius: 0;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.875rem;
+}
+.theme-obsidian .cart-drawer {
+    border-radius: 0;
+}
+
+
 /* ── 14. CTA Button ────────────────────────────────────────── *
    Black, sharp, commanding. Zero radius. 900 weight.
    ALL CAPS with letter-spacing. The call to action DEMANDS
@@ -620,6 +666,7 @@
 .theme-obsidian .sticky-cta .btn:active {
     transform: scale(0.98);
 }
+.theme-obsidian .sticky-cta .btn-whatsapp { background: #25D366; color: #fff; }
 
 
 /* ── 15. More Products Section ─────────────────────────────── *
@@ -654,6 +701,25 @@
     font-size: 0.8125rem;
     color: var(--color-text);
     letter-spacing: -0.01em;
+}
+
+/* ── Load More ────────────────────────────────────────────── */
+.theme-obsidian .load-more-btn {
+    border-radius: 0;
+    border-color: var(--color-text);
+    border-width: 2px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.8125rem;
+}
+
+/* ── Floating Contact CTA ─────────────────────────────────── */
+.theme-obsidian .floating-contact-cta .btn {
+    border-radius: 0;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 
@@ -748,6 +814,15 @@
    Primary = accent fill, square. Outline = square border.
    Everything is 0 radius. 900 weight. Uppercase.             */
 
+/* ── Mobile cart FAB — dark bg for visibility on white images ── */
+.theme-obsidian .mobile-cart-fab {
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    border-radius: 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
 .theme-obsidian .btn-primary {
     background: var(--color-accent);
     color: #fff;
@@ -773,6 +848,301 @@
 }
 
 
+/* ── 22. Dense Grid ───────────────────────────────────────── *
+   Ultra-tight 2px gap for the hype display wall.
+   Obsidian grid-dense packs products like a consignment shelf. */
+
+.theme-obsidian .obsidian-grid-dense {
+    gap: 2px;
+}
+
+
+/* ── 23. Price Overlay on Card Image ──────────────────────── *
+   Price strip overlaid at the bottom of the product image.
+   Dark semi-transparent bar with white 900-weight price.
+   Requires .product-card-img to be position:relative.         */
+
+.theme-obsidian .product-card-img {
+    position: relative;
+}
+
+.theme-obsidian .obsidian-price-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 10px 8px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    z-index: 1;
+    line-height: 1;
+}
+.theme-obsidian .obsidian-price-overlay .price-compare {
+    font-weight: 500;
+    font-size: 0.6875rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: line-through;
+    margin-right: 6px;
+}
+.theme-obsidian .obsidian-price-overlay .price-sale {
+    color: var(--color-accent);
+}
+
+/* In dense grid, card body is minimal — title only */
+.theme-obsidian .obsidian-grid-dense .product-card-body {
+    padding: 8px 4px 6px;
+}
+.theme-obsidian .obsidian-grid-dense .product-card-body .product-price {
+    display: none;
+}
+
+/* Square 1:1 card images in dense grid */
+.theme-obsidian .obsidian-grid-dense .product-card-img {
+    aspect-ratio: 1 / 1;
+}
+
+
+/* ── 23b. Skeleton — Square Aspect Ratio ─────────────────────── *
+   Skeleton cards match the 1:1 square product images.
+   Zero radius. Hard edges on loading placeholders.                */
+
+.theme-obsidian .product-card-skeleton .product-card-img {
+    aspect-ratio: 1 / 1;
+    border-radius: 0;
+}
+.theme-obsidian .product-card-skeleton {
+    border-radius: 0;
+}
+
+
+/* ── 24. Drop Label on Product Page ───────────────────────── *
+   Tiny hot-pink "DROP" label above the product name.
+   Screams limited edition / streetwear drop culture.           */
+
+.theme-obsidian .obsidian-drop-label {
+    font-size: 0.625rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-accent);
+    margin-bottom: 6px;
+    line-height: 1;
+}
+
+
+/* ── 25. Product Info Name (Enhanced) ─────────────────────── *
+   Bumped to 2rem on product detail for huge commanding title. */
+
+.theme-obsidian .product-info-name {
+    font-size: 2rem;
+}
+
+
+/* ── 26. Price Block on Product Detail ────────────────────── *
+   Stark price block with border-top/bottom for separation.
+   Brutalist horizontal rules framing the price.               */
+
+.theme-obsidian .obsidian-price-block {
+    padding: var(--spacing-sm) 0;
+    border: none;
+    margin-bottom: var(--spacing-md);
+}
+.theme-obsidian .obsidian-price-block .price-current {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+}
+
+
+/* ── 27. CTA Button (Enhanced) ────────────────────────────── *
+   Full-width black slab, no radius, 900 weight.
+   Larger font size for product CTA prominence.                */
+
+.theme-obsidian .sticky-cta .btn {
+    border-radius: 0;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 1rem;
+}
+
+
+/* ── 28. Gallery Dots as Dashes (Enhanced) ────────────────── *
+   Flat dash indicators. Active = wider + accent color.        */
+
+.theme-obsidian .gallery-dot {
+    width: 16px;
+    height: 3px;
+    border-radius: 0;
+}
+
+
+/* ── 29. Share Button — Icon-only Square ──────────────────── *
+   Matches search toggle: 36x36 square, no text, no radius.   */
+
+.theme-obsidian .obsidian-share-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+}
+
+
+/* ── 30. Gallery Square Aspect Ratio ──────────────────────── *
+   Force gallery slides to 1:1 square on product detail.       */
+
+.theme-obsidian .product-gallery-slide {
+    aspect-ratio: 1 / 1;
+}
+.theme-obsidian .product-gallery-slide img {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+
+/* ── 31. Variation Options (Enhanced) ─────────────────────── *
+   Thicker 2px borders on variation options for brutalist feel. */
+
+.theme-obsidian .product-variation-option {
+    border-width: 2px;
+}
+
+
+/* ── 32. More Products — Square Images ────────────────────── */
+
+.theme-obsidian .more-product-img {
+    aspect-ratio: 1 / 1;
+}
+.theme-obsidian .more-product-img img {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+/* ── 33. Desktop Header & Footer ─────────────────────────── */
+@media (min-width: 1024px) {
+    .theme-obsidian .desktop-header {
+        background: #0A0A0A;
+        box-shadow: none;
+        border-bottom: none;
+    }
+    .theme-obsidian .desktop-header-logo {
+    }
+    .theme-obsidian .desktop-header-logo-placeholder {
+        border-radius: 0;
+        background: rgba(255,255,255,0.06);
+        color: rgba(255,255,255,0.4);
+        border: 2px solid rgba(255,255,255,0.15);
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+    .theme-obsidian .desktop-header-name {
+        color: #fff;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -0.02em;
+    }
+    .theme-obsidian .desktop-header-tagline {
+        color: rgba(255,255,255,0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.6875rem;
+    }
+    .theme-obsidian .desktop-header-link {
+        color: rgba(255,255,255,0.6);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.6875rem;
+        border-radius: 0;
+    }
+    .theme-obsidian .desktop-header-link:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.08);
+    }
+    .theme-obsidian .desktop-header-btn {
+        border-radius: 0;
+        color: rgba(255,255,255,0.6);
+    }
+    .theme-obsidian .desktop-header-btn:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.1);
+    }
+    .theme-obsidian .desktop-header-cart {
+        border-radius: 0;
+        background: rgba(255,255,255,0.06);
+        color: #fff;
+    }
+    .theme-obsidian .desktop-header-cart:hover {
+        background: rgba(255,255,255,0.15);
+    }
+    .theme-obsidian .desktop-header-btn .cart-badge {
+        background: var(--color-accent);
+        border-radius: 0;
+    }
+
+    .theme-obsidian .desktop-footer {
+        background: #0A0A0A;
+        border-top: 2px solid var(--color-border);
+    }
+    .theme-obsidian .desktop-footer-name {
+        color: #fff;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    .theme-obsidian .desktop-footer-tagline {
+        color: rgba(255,255,255,0.5);
+    }
+    .theme-obsidian .desktop-footer-logo {
+    }
+    .theme-obsidian .desktop-footer-logo-placeholder {
+        background: rgba(255,255,255,0.06);
+        color: rgba(255,255,255,0.4);
+    }
+    .theme-obsidian .desktop-footer-heading {
+        color: rgba(255,255,255,0.5);
+        font-weight: 900;
+        letter-spacing: 0.1em;
+    }
+    .theme-obsidian .desktop-footer-social a {
+        border-radius: 0;
+        background: rgba(255,255,255,0.06);
+        color: rgba(255,255,255,0.6);
+    }
+    .theme-obsidian .desktop-footer-social a:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.15);
+    }
+    .theme-obsidian .desktop-footer-links a {
+        color: rgba(255,255,255,0.6);
+    }
+    .theme-obsidian .desktop-footer-links a i {
+        color: rgba(255,255,255,0.4);
+    }
+    .theme-obsidian .desktop-footer-links a:hover {
+        color: #fff;
+    }
+    .theme-obsidian .desktop-footer-links a:hover i {
+        color: var(--color-accent);
+    }
+    .theme-obsidian .desktop-footer-bottom {
+        color: rgba(255,255,255,0.4);
+        border-top-color: rgba(255,255,255,0.08);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.625rem;
+    }
+}
+
+
 /* ============================================================
    21. Dark Mode
    Inverted brutalist palette — near-black canvas, cream text.
@@ -792,7 +1162,7 @@
         --color-bg-elevated: #141414;
         --color-border: #2E2E2E;
         --color-text: #F0F0F0;
-        --color-text-muted: #777777;
+        --color-text-muted: #909090;
         --shadow-sm: none;
         --shadow-md: none;
     }
@@ -808,14 +1178,9 @@
         background: #000000;
     }
 
-    /* ── Dark: Logo adjusts ── */
-    .theme-obsidian .shop-logo {
-        border-color: rgba(255, 255, 255, 0.1);
-    }
     .theme-obsidian .shop-logo-placeholder {
         background: rgba(255, 255, 255, 0.04);
         color: rgba(255, 255, 255, 0.35);
-        border-color: rgba(255, 255, 255, 0.1);
     }
 
     /* ── Dark: Search toggle in band ── */
@@ -850,18 +1215,22 @@
         color: var(--color-text);
     }
 
-    /* ── Dark: Category tabs — active inverts to light ── */
+    /* ── Dark: Category tabs — bordered pills, active inverts to light ── */
     .theme-obsidian .category-tab {
-        background: var(--color-bg-alt);
+        background: transparent;
         color: var(--color-text-muted);
+        border-color: var(--color-border);
     }
     .theme-obsidian .category-tab:hover {
         background: var(--color-bg-secondary);
         color: var(--color-text);
+        border-color: var(--color-text-muted);
     }
     .theme-obsidian .category-tab.active {
         background: #F5F5F7;
         color: #1C1C1E;
+        border-color: #F5F5F7;
+        border-left: 3px solid var(--color-accent);
     }
 
     /* ── Dark: Product card background ── */
@@ -889,11 +1258,11 @@
 
     /* ── Dark: Gallery nav buttons ── */
     .theme-obsidian .product-nav-btn {
-        background: rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.35);
         color: #fff;
     }
     .theme-obsidian .product-nav-btn:hover {
-        background: rgba(255, 255, 255, 0.22);
+        background: rgba(0, 0, 0, 0.5);
     }
 
     /* ── Dark: Gallery background ── */
@@ -967,6 +1336,7 @@
         background: var(--color-accent);
         color: #fff;
     }
+    .theme-obsidian .sticky-cta .btn-whatsapp { background: #25D366; color: #fff; }
 
     /* ── Dark: Buttons ── */
     .theme-obsidian .btn-primary {
@@ -1013,5 +1383,45 @@
     /* ── Dark: Footer ── */
     .theme-obsidian .shop-footer {
         border-top-color: var(--color-border);
+    }
+
+    /* ── Dark: Price overlay on card ── */
+    .theme-obsidian .obsidian-price-overlay {
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+    }
+    .theme-obsidian .obsidian-price-overlay .price-compare {
+        color: rgba(255, 255, 255, 0.4);
+    }
+    .theme-obsidian .obsidian-price-overlay .price-sale {
+        color: var(--color-accent);
+    }
+
+    /* ── Dark: Drop label ── */
+    .theme-obsidian .obsidian-drop-label {
+        color: var(--color-accent);
+    }
+
+    /* ── Dark: Price block ── */
+    .theme-obsidian .obsidian-price-block {
+        border: none;
+    }
+
+    /* ── Dark: Product card hover border — accent in dark mode ── */
+    .theme-obsidian .product-card::after {
+        border-color: var(--color-accent);
+    }
+
+    /* Desktop dark mode */
+    @media (min-width: 1024px) {
+        .theme-obsidian .desktop-header {
+            background: #000;
+        }
+        .theme-obsidian .desktop-footer {
+            background: #000;
+            border-top-color: var(--color-border);
+        }
+        .theme-obsidian .desktop-header-btn .cart-badge {
+            background: var(--color-accent);
+        }
     }
 }

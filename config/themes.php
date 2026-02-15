@@ -9,9 +9,8 @@ declare(strict_types=1);
  *   slug        — Internal ID (used in DB, CSS class, URL)
  *   name        — Display name shown in dashboard
  *   description — One-line marketing description
- *   premium     — Whether this is a premium theme
  *   features    — Theme-specific feature flags
- *     category_filter — 'images' | 'pills' — which category filter UI to show
+ *     category_style  — Visual style of category navigation
  *     dark_native     — true if theme is inherently dark (no dark-mode override needed)
  */
 
@@ -19,64 +18,65 @@ return [
     'classic' => [
         'name'        => 'Classic',
         'description' => 'Clean and versatile. Works for any shop.',
-        'premium'     => false,
         'features'    => [
-            'category_filter' => 'images',
-            'dark_native'     => false,
-        ],
-    ],
-    'ivory' => [
-        'name'        => 'Ivory',
-        'description' => 'Editorial and airy. Lets your products breathe.',
-        'premium'     => false,
-        'features'    => [
-            'category_filter' => 'pills',
-            'dark_native'     => false,
-        ],
-    ],
-    'obsidian' => [
-        'name'        => 'Obsidian',
-        'description' => 'Bold and high-impact. Makes a statement.',
-        'premium'     => false,
-        'features'    => [
-            'category_filter' => 'pills',
-            'dark_native'     => false,
+            'category_style' => 'image-cards',
+            'dark_native'    => false,
         ],
     ],
     'bloom' => [
         'name'        => 'Bloom',
-        'description' => 'Vibrant and playful. Full of personality.',
-        'premium'     => false,
+        'description' => 'Warm and refined. Clean golden accents.',
         'features'    => [
-            'category_filter' => 'images',
-            'dark_native'     => false,
+            'category_style' => 'circle-thumbnails',
+            'dark_native'    => false,
         ],
     ],
     'ember' => [
         'name'        => 'Ember',
-        'description' => 'Warm and artisanal. Feels handcrafted.',
-        'premium'     => false,
+        'description' => 'Editorial lookbook. Serif typography, curated feel.',
         'features'    => [
-            'category_filter' => 'images',
-            'dark_native'     => false,
+            'category_style' => 'underline-serif',
+            'dark_native'    => false,
+        ],
+    ],
+    'ivory' => [
+        'name'        => 'Ivory',
+        'description' => 'Ultra-minimal gallery. Lets your products breathe.',
+        'features'    => [
+            'category_style' => 'outlined-pills',
+            'dark_native'    => false,
         ],
     ],
     'monaco' => [
         'name'        => 'Monaco',
-        'description' => 'Luxury gold and serif. Premium elegance.',
-        'premium'     => true,
+        'description' => 'Luxury gold and serif. Elegant sophistication.',
         'features'    => [
-            'category_filter' => 'pills',
-            'dark_native'     => false,
+            'category_style' => 'gold-circles',
+            'dark_native'    => false,
+        ],
+    ],
+    'obsidian' => [
+        'name'        => 'Obsidian',
+        'description' => 'Bold streetwear hype. Makes a statement.',
+        'features'    => [
+            'category_style' => 'filled-squares',
+            'dark_native'    => false,
         ],
     ],
     'volt' => [
         'name'        => 'Volt',
         'description' => 'Neon glow on dark. Cyberpunk energy.',
-        'premium'     => true,
         'features'    => [
-            'category_filter' => 'pills',
-            'dark_native'     => true,
+            'category_style' => 'outlined-mono',
+            'dark_native'    => true,
+        ],
+    ],
+    'halloween' => [
+        'name'        => 'Halloween',
+        'description' => 'Playful dark. Lime and purple dual accents.',
+        'features'    => [
+            'category_style' => 'rounded-colorful',
+            'dark_native'    => true,
         ],
     ],
 ];

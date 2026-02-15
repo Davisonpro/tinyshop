@@ -3,13 +3,13 @@
 {block name="content"}
 <div class="dash-topbar">
     <a href="/admin/sellers" class="dash-topbar-back" aria-label="Back to sellers">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        <i class="fa-solid fa-chevron-left icon-lg"></i>
     </a>
     <span class="dash-topbar-title">{$seller.store_name|escape|default:$seller.name|escape}</span>
     <div class="admin-actions">
         {if $seller.subdomain}
         <a href="{$scheme}://{$seller.subdomain|escape}.{$base_domain}" target="_blank" class="btn-icon" title="Visit shop">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            <i class="fa-solid fa-arrow-up-right-from-square icon-lg"></i>
         </a>
         {/if}
     </div>
@@ -75,7 +75,7 @@
 
     <div class="seller-action-buttons">
         <a href="/admin/impersonate/{$seller.id}" class="btn btn-sm btn-outline" id="impersonateBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-inline-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <i class="fa-solid fa-user-secret btn-inline-icon icon-sm"></i>
             Impersonate
         </a>
         <button type="button" class="btn btn-sm btn-danger" id="deleteSellerBtn" data-id="{$seller.id}">Delete Account</button>
@@ -148,20 +148,8 @@
 
     $('#deleteSellerBtn').on('click', function() {ldelim}
         var id = $(this).data('id');
-
-        var html = '<p class="modal-confirm-text">This will permanently delete this seller account and ALL their data (products, orders, etc.). This cannot be undone.</p>' +
-            '<div class="modal-confirm-actions">' +
-                '<button type="button" class="btn btn-sm btn-outline" id="confirmDeleteCancel">Cancel</button>' +
-                '<button type="button" class="btn btn-sm btn-danger" id="confirmDeleteYes">Delete</button>' +
-            '</div>';
-        TinyShop.openModal('Delete Account?', html);
-
-        $('#confirmDeleteCancel').on('click', function() {ldelim}
-            TinyShop.closeModal();
-        {rdelim});
-
-        $('#confirmDeleteYes').on('click', function() {ldelim}
-            $(this).prop('disabled', true).text('Deleting...');
+        TinyShop.confirm('Delete Account?', 'This will permanently delete this seller account and ALL their data (products, orders, etc.). This cannot be undone.', 'Delete', function() {ldelim}
+            $('#confirmModalOk').prop('disabled', true).text('Deleting...');
             TinyShop.api('DELETE', '/api/admin/sellers/' + id)
                 .done(function(res) {ldelim}
                     if (res.success) {ldelim}
@@ -174,7 +162,7 @@
                     TinyShop.toast(msg, 'error');
                     TinyShop.closeModal();
                 {rdelim});
-        {rdelim});
+        {rdelim}, 'danger');
     {rdelim});
 {rdelim})();
 </script>

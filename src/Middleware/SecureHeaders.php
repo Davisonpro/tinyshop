@@ -23,11 +23,11 @@ final class SecureHeaders implements MiddlewareInterface
             ->withHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
             ->withHeader('Content-Security-Policy', implode('; ', [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' https://code.jquery.com",
+                "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net",
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                 "font-src 'self' https://fonts.gstatic.com",
                 "img-src 'self' data: blob: https:",
-                "connect-src 'self'",
+                "connect-src 'self' https://www.google-analytics.com",
                 "frame-ancestors 'none'",
                 "base-uri 'self'",
                 "form-action 'self'",

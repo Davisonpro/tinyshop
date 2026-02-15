@@ -9,7 +9,8 @@ use PDO;
 
 final class Setting
 {
-    private PDO $db;
+    private readonly PDO $db;
+    private static ?array $cache = null;
 
     public function __construct(DB $database)
     {
@@ -18,21 +19,18 @@ final class Setting
 
     public function get(string $key, ?string $default = null): ?string
     {
-        $stmt = $this->db->prepare('SELECT `value` FROM `settings` WHERE `key` = ?');
-        $stmt->execute([$key]);
-        $row = $stmt->fetch();
-        return $row ? $row['value'] : $default;
+        if (self::$cache === null) {
+            self::$cache = $this->loadAll();
+        }
+        return array_key_exists($key, self::$cache) ? self::$cache[$key] : $default;
     }
 
     public function all(): array
     {
-        $stmt = $this->db->query('SELECT `key`, `value` FROM `settings` ORDER BY `key`');
-        $rows = $stmt->fetchAll();
-        $settings = [];
-        foreach ($rows as $row) {
-            $settings[$row['key']] = $row['value'];
+        if (self::$cache === null) {
+            self::$cache = $this->loadAll();
         }
-        return $settings;
+        return self::$cache;
     }
 
     public function set(string $key, ?string $value): void
@@ -42,6 +40,7 @@ final class Setting
              ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)'
         );
         $stmt->execute([$key, $value]);
+        self::$cache = null;
     }
 
     public function setMany(array $data): void
@@ -53,5 +52,17 @@ final class Setting
         foreach ($data as $key => $value) {
             $stmt->execute([$key, $value]);
         }
+        self::$cache = null;
+    }
+
+    private function loadAll(): array
+    {
+        $stmt = $this->db->query('SELECT `key`, `value` FROM `settings`');
+        $rows = $stmt->fetchAll();
+        $settings = [];
+        foreach ($rows as $row) {
+            $settings[$row['key']] = $row['value'];
+        }
+        return $settings;
     }
 }

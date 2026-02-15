@@ -10,7 +10,7 @@ return [
     'upload_dir'    => dirname(__DIR__) . '/public/uploads',
     'upload_url'    => '/public/uploads',
     'max_file_size' => 5 * 1024 * 1024,
-    'allowed_types' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+    'allowed_types' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'],
     'templates_dir' => dirname(__DIR__) . '/templates',
     'compile_dir'   => dirname(__DIR__) . '/var/compiled',
     'cache_dir'     => dirname(__DIR__) . '/var/cache',

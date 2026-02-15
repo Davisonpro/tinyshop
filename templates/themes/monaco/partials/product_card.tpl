@@ -13,6 +13,7 @@
         {/if}
     </div>
     <div class="product-card-body">
+        <div class="monaco-card-accent"></div>
         <span class="product-card-label">Collection</span>
         <h3 class="product-title">{$product.name|escape}</h3>
         <div class="product-price">

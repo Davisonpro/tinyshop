@@ -4,8 +4,8 @@
 
 {block name="head"}
     {include file="partials/head.tpl"}
-    <link rel="stylesheet" href="/public/css/dashboard.css">
-    <link rel="stylesheet" href="/public/css/admin.css">
+    <link rel="stylesheet" href="/public/css/dashboard.css?v={$asset_v}">
+    <link rel="stylesheet" href="/public/css/admin.css?v={$asset_v}">
 {/block}
 
 {block name="body"}
@@ -20,7 +20,13 @@
         {block name="content"}{/block}
     </main>
 
-    {include file="partials/admin_nav.tpl"}
+    <aside class="dash-sidebar">
+        <div class="dash-sidebar-brand">
+            <i class="fa-solid fa-lock dash-sidebar-icon" style="font-size:20px"></i>
+            <span class="dash-sidebar-name">Admin</span>
+        </div>
+        {include file="partials/admin_nav.tpl"}
+    </aside>
 </div>
 
 {* Bottom sheet modal *}
@@ -37,6 +43,6 @@
 {/block}
 
 {block name="page_scripts"}
-    <script src="/public/js/dashboard.js"></script>
+    <script src="/public/js/dashboard.js?v={$asset_v}"></script>
     {block name="extra_scripts"}{/block}
 {/block}

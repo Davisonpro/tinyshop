@@ -8,7 +8,7 @@ use PDO;
 
 final class DB
 {
-    private PDO $pdo;
+    private readonly PDO $pdo;
 
     public function __construct(array $config)
     {

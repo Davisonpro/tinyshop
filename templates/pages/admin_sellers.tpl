@@ -16,7 +16,7 @@
     {if $sellers|count == 0}
         <div class="empty-state">
             <div class="empty-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#AEAEB2" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <i class="fa-solid fa-users icon-2xl text-muted"></i>
             </div>
             <h2>{if $search}No sellers matching "{$search|escape}"{else}No sellers have signed up yet{/if}</h2>
         </div>
@@ -64,7 +64,7 @@
                         </td>
                         <td>
                             <a href="/admin/sellers/{$seller.id}" class="btn-icon" title="View details">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                                <i class="fa-solid fa-chevron-right icon-md"></i>
                             </a>
                         </td>
                     </tr>

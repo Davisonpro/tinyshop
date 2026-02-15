@@ -12,6 +12,7 @@ use TinyShop\Models\ProductImage;
 use TinyShop\Services\Auth;
 use TinyShop\Services\DB;
 use TinyShop\Services\Hooks;
+use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Upload;
 use TinyShop\Services\Validation;
 
@@ -19,14 +20,15 @@ final class ProductController
 {
     use JsonResponder;
 
-    private \PDO $db;
+    private readonly \PDO $db;
 
     public function __construct(
-        private Product $productModel,
-        private ProductImage $productImageModel,
-        private Auth $auth,
-        private Upload $upload,
-        private Validation $validation,
+        private readonly Product $productModel,
+        private readonly ProductImage $productImageModel,
+        private readonly Auth $auth,
+        private readonly Upload $upload,
+        private readonly Validation $validation,
+        private readonly PlanGuard $planGuard,
         DB $database
     ) {
         $this->db = $database->pdo();
@@ -37,10 +39,13 @@ final class ProductController
     public function list(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
-        $limit  = min((int) ($params['limit'] ?? 50), self::MAX_PAGE_SIZE);
+        $requestedLimit = (int) ($params['limit'] ?? 50);
         $offset = max(0, (int) ($params['offset'] ?? 0));
 
         $userId = $this->auth->userId();
+
+        // limit=0 means "return all products" (for client-side filtering)
+        $limit = $requestedLimit === 0 ? 10000 : min($requestedLimit, self::MAX_PAGE_SIZE);
         $products = $this->productModel->findByUser($userId, $limit, $offset);
         $total = $this->productModel->countByUser($userId);
 
@@ -58,6 +63,11 @@ final class ProductController
 
     public function create(Request $request, Response $response): Response
     {
+        // Plan limit check
+        if (!$this->planGuard->canCreateProduct($this->auth->userId())) {
+            return $this->json($response, ['error' => true, 'message' => "You've reached the product limit on your current plan. Upgrade to add more."], 403);
+        }
+
         $data = (array) $request->getParsedBody();
         $name  = trim($data['name'] ?? '');
         $price = $data['price'] ?? null;
@@ -66,29 +76,43 @@ final class ProductController
             return $this->json($response, ['error' => true, 'message' => 'Name and price are required'], 422);
         }
 
+        if (!is_numeric($price) || (float) $price < 0) {
+            return $this->json($response, ['error' => true, 'message' => 'Price must be a valid number (0 or greater)'], 422);
+        }
+
         if ($err = $this->validation->maxLength($name, 'name')) {
             return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
 
         $description = trim($data['description'] ?? '');
+        $description = $this->validation->sanitizeHtml($description);
         if ($description !== '' && ($err = $this->validation->maxLength($description, 'description'))) {
             return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
 
-        if (!empty($data['meta_title']) && ($err = $this->validation->maxLength(trim($data['meta_title']), 'meta_title'))) {
-            return $this->json($response, ['error' => true, 'message' => $err], 422);
+        if (!empty($data['meta_title'])) {
+            $data['meta_title'] = strip_tags(trim($data['meta_title']));
+            if ($err = $this->validation->maxLength($data['meta_title'], 'meta_title')) {
+                return $this->json($response, ['error' => true, 'message' => $err], 422);
+            }
         }
 
-        if (!empty($data['meta_description']) && ($err = $this->validation->maxLength(trim($data['meta_description']), 'meta_description'))) {
-            return $this->json($response, ['error' => true, 'message' => $err], 422);
+        if (!empty($data['meta_description'])) {
+            $data['meta_description'] = strip_tags(trim($data['meta_description']));
+            if ($err = $this->validation->maxLength($data['meta_description'], 'meta_description')) {
+                return $this->json($response, ['error' => true, 'message' => $err], 422);
+            }
         }
 
         $categoryId = !empty($data['category_id']) ? (int) $data['category_id'] : null;
 
         $comparePrice = isset($data['compare_price']) && $data['compare_price'] !== '' && $data['compare_price'] !== null
             ? (float) $data['compare_price'] : null;
+        if ($comparePrice !== null && (!is_numeric($data['compare_price']) || $comparePrice < 0)) {
+            return $this->json($response, ['error' => true, 'message' => 'Compare price must be a valid number'], 422);
+        }
 
-        $variations = !empty($data['variations']) ? json_encode($data['variations']) : null;
+        $variations = !empty($data['variations']) ? $this->validation->sanitizeVariations($data['variations']) : null;
 
         $slug = $this->validation->slug($name);
         $slug = $this->productModel->ensureUniqueSlug($this->auth->userId(), $slug);
@@ -98,12 +122,13 @@ final class ProductController
             'category_id'      => $categoryId,
             'name'             => $name,
             'slug'             => $slug,
-            'description'      => trim($data['description'] ?? ''),
+            'description'      => $description,
             'price'            => (float) $price,
             'compare_price'    => $comparePrice,
             'image_url'        => $data['image_url'] ?? null,
             'sort_order'       => (int) ($data['sort_order'] ?? 0),
             'is_sold'          => !empty($data['is_sold']) ? 1 : 0,
+            'stock_quantity'   => array_key_exists('stock_quantity', $data) && $data['stock_quantity'] !== null && $data['stock_quantity'] !== '' ? max(0, (int) $data['stock_quantity']) : null,
             'is_featured'      => !empty($data['is_featured']) ? 1 : 0,
             'variations'       => $variations,
             'meta_title'       => !empty($data['meta_title']) ? trim($data['meta_title']) : null,
@@ -146,36 +171,51 @@ final class ProductController
         }
         if (isset($data['description'])) {
             $desc = trim($data['description']);
+            $desc = $this->validation->sanitizeHtml($desc);
             if ($desc !== '' && ($err = $this->validation->maxLength($desc, 'description'))) {
                 return $this->json($response, ['error' => true, 'message' => $err], 422);
             }
             $updateData['description'] = $desc;
         }
-        if (isset($data['price']))       $updateData['price'] = (float) $data['price'];
+        if (isset($data['price'])) {
+            if (!is_numeric($data['price']) || (float) $data['price'] < 0) {
+                return $this->json($response, ['error' => true, 'message' => 'Price must be a valid number (0 or greater)'], 422);
+            }
+            $updateData['price'] = (float) $data['price'];
+        }
         if (array_key_exists('compare_price', $data)) {
-            $updateData['compare_price'] = ($data['compare_price'] !== '' && $data['compare_price'] !== null)
-                ? (float) $data['compare_price'] : null;
+            if ($data['compare_price'] !== '' && $data['compare_price'] !== null) {
+                if (!is_numeric($data['compare_price']) || (float) $data['compare_price'] < 0) {
+                    return $this->json($response, ['error' => true, 'message' => 'Compare price must be a valid number'], 422);
+                }
+                $updateData['compare_price'] = (float) $data['compare_price'];
+            } else {
+                $updateData['compare_price'] = null;
+            }
         }
         if (isset($data['image_url']))   $updateData['image_url'] = $data['image_url'];
         if (isset($data['sort_order']))  $updateData['sort_order'] = (int) $data['sort_order'];
         if (isset($data['is_active']))   $updateData['is_active'] = (int) $data['is_active'];
         if (array_key_exists('is_sold', $data)) $updateData['is_sold'] = !empty($data['is_sold']) ? 1 : 0;
+        if (array_key_exists('stock_quantity', $data)) {
+            $updateData['stock_quantity'] = ($data['stock_quantity'] !== null && $data['stock_quantity'] !== '') ? max(0, (int) $data['stock_quantity']) : null;
+        }
         if (array_key_exists('is_featured', $data)) $updateData['is_featured'] = !empty($data['is_featured']) ? 1 : 0;
         if (array_key_exists('variations', $data)) {
-            $updateData['variations'] = !empty($data['variations']) ? json_encode($data['variations']) : null;
+            $updateData['variations'] = !empty($data['variations']) ? $this->validation->sanitizeVariations($data['variations']) : null;
         }
         if (array_key_exists('category_id', $data)) {
             $updateData['category_id'] = !empty($data['category_id']) ? (int) $data['category_id'] : null;
         }
         if (array_key_exists('meta_title', $data)) {
-            $title = !empty($data['meta_title']) ? trim($data['meta_title']) : null;
+            $title = !empty($data['meta_title']) ? strip_tags(trim($data['meta_title'])) : null;
             if ($title !== null && ($err = $this->validation->maxLength($title, 'meta_title'))) {
                 return $this->json($response, ['error' => true, 'message' => $err], 422);
             }
             $updateData['meta_title'] = $title;
         }
         if (array_key_exists('meta_description', $data)) {
-            $metaDesc = !empty($data['meta_description']) ? trim($data['meta_description']) : null;
+            $metaDesc = !empty($data['meta_description']) ? strip_tags(trim($data['meta_description'])) : null;
             if ($metaDesc !== null && ($err = $this->validation->maxLength($metaDesc, 'meta_description'))) {
                 return $this->json($response, ['error' => true, 'message' => $err], 422);
             }
@@ -241,6 +281,49 @@ final class ProductController
         Hooks::doAction('product.deleted', $id);
 
         return $this->json($response, ['success' => true]);
+    }
+
+    public function duplicate(Request $request, Response $response, array $args): Response
+    {
+        // Plan limit check
+        if (!$this->planGuard->canCreateProduct($this->auth->userId())) {
+            return $this->json($response, ['error' => true, 'message' => "You've reached the product limit on your current plan. Upgrade to add more."], 403);
+        }
+
+        $id = (int) $args['id'];
+        $product = $this->productModel->findById($id);
+
+        if (!$product || (int) $product['user_id'] !== $this->auth->userId()) {
+            return $this->json($response, ['error' => true, 'message' => 'Product not found'], 404);
+        }
+
+        $newName = mb_strlen($product['name']) > 93
+            ? mb_substr($product['name'], 0, 93) . ' (Copy)'
+            : $product['name'] . ' (Copy)';
+
+        $slug = $this->validation->slug($newName);
+        $slug = $this->productModel->ensureUniqueSlug($this->auth->userId(), $slug);
+
+        $newId = $this->productModel->create([
+            'user_id'        => $this->auth->userId(),
+            'category_id'    => $product['category_id'],
+            'name'           => $newName,
+            'slug'           => $slug,
+            'description'    => $product['description'],
+            'price'          => (float) $product['price'],
+            'compare_price'  => $product['compare_price'] ? (float) $product['compare_price'] : null,
+            'image_url'      => null,
+            'sort_order'     => 0,
+            'is_sold'        => 0,
+            'stock_quantity'  => $product['stock_quantity'],
+            'is_featured'    => 0,
+            'variations'     => $product['variations'],
+        ]);
+
+        return $this->json($response, [
+            'success'      => true,
+            'redirect_url' => '/dashboard/products/' . $newId . '/edit',
+        ], 201);
     }
 
 }

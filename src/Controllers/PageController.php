@@ -9,17 +9,20 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use TinyShop\Services\View;
 use TinyShop\Services\Auth;
 use TinyShop\Services\OAuth;
+use TinyShop\Enums\UserRole;
+use TinyShop\Models\Plan;
 use TinyShop\Models\Setting;
 use TinyShop\Models\User;
 
 final class PageController
 {
     public function __construct(
-        private View $view,
-        private Auth $auth,
-        private OAuth $oauth,
-        private Setting $setting,
-        private User $user
+        private readonly View $view,
+        private readonly Auth $auth,
+        private readonly OAuth $oauth,
+        private readonly Plan $planModel,
+        private readonly Setting $setting,
+        private readonly User $user
     ) {}
 
     public function landing(Request $request, Response $response): Response
@@ -75,23 +78,40 @@ final class PageController
         }
 
         $oauthUser = $this->oauth->handleCallback($provider, $code, $state);
-        if (!$oauthUser) {
+        if (!$oauthUser || empty($oauthUser['id'])) {
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
-        // Try to find existing user by email first (if email provided), then by OAuth ID
-        $existing = null;
-        if (!empty($oauthUser['email'])) {
+        // 1. Try to find existing user by provider's unique ID
+        $existing = $this->user->findByOAuth($provider, $oauthUser['id']);
+
+        // 2. Fall back to email match ONLY if the provider verified the email
+        if (!$existing && !empty($oauthUser['email']) && !empty($oauthUser['email_verified'])) {
             $existing = $this->user->findByEmail($oauthUser['email']);
-        }
-        if (!$existing) {
-            $existing = $this->user->findByOAuth($provider, $oauthUser['email'] ?: $oauthUser['name']);
+
+            // Link this OAuth provider to the existing email-matched account
+            if ($existing) {
+                $this->user->updateOAuth((int) $existing['id'], $provider, $oauthUser['id']);
+            }
         }
 
         if ($existing) {
-            $this->auth->login($existing['id']);
-            $this->user->recordLogin($existing['id']);
-            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+            // 3. Check if account is suspended
+            if (isset($existing['is_active']) && (int) $existing['is_active'] === 0) {
+                return $response->withHeader('Location', '/login')->withStatus(302);
+            }
+
+            $role = UserRole::tryFrom($existing['role'] ?? '') ?? UserRole::Seller;
+            $this->auth->login((int) $existing['id'], $existing['name'], $role);
+            $this->user->recordLogin((int) $existing['id']);
+
+            $redirect = $role === UserRole::Admin ? '/admin' : '/dashboard';
+            return $response->withHeader('Location', $redirect)->withStatus(302);
+        }
+
+        // 4. Respect allow_registration setting for new accounts
+        if ($this->setting->get('allow_registration', '1') !== '1') {
+            return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
         // Create new user — generate subdomain from name
@@ -101,7 +121,6 @@ final class PageController
             $subdomain .= bin2hex(random_bytes(2));
         }
 
-        // Ensure unique subdomain
         $base = $subdomain;
         $i = 1;
         while ($this->user->subdomainExists($subdomain)) {
@@ -109,19 +128,31 @@ final class PageController
             $i++;
         }
 
+        // 5. Use provider's unique ID for oauth_id
         $userId = $this->user->create([
             'name' => $name,
             'email' => $oauthUser['email'] ?: $subdomain . '@oauth.local',
             'oauth_provider' => $provider,
-            'oauth_id' => $oauthUser['email'] ?: $oauthUser['name'],
+            'oauth_id' => $oauthUser['id'],
             'store_name' => $name . "'s Shop",
             'subdomain' => $subdomain,
         ]);
 
-        $this->auth->login($userId);
+        $this->auth->login($userId, $name, UserRole::Seller);
         $this->user->recordLogin($userId);
 
         return $response->withHeader('Location', '/dashboard')->withStatus(302);
+    }
+
+    public function pricing(Request $request, Response $response): Response
+    {
+        $plans = $this->planModel->findAll();
+
+        return $this->view->render($response, 'pages/pricing.tpl', [
+            'page_title' => 'Pricing',
+            'plans'      => $plans,
+            'logged_in'  => $this->auth->check(),
+        ]);
     }
 
     public function forgotPassword(Request $request, Response $response): Response

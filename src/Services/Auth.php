@@ -10,8 +10,23 @@ final class Auth
 {
     private const SESSION_TIMEOUT = 8 * 60 * 60; // 8 hours
 
+    /**
+     * Ensure a PHP session is active. Call before accessing $_SESSION.
+     * Safe to call multiple times — only starts once.
+     */
+    public static function ensureSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+            if (empty($_SESSION['_csrf_token'])) {
+                $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+            }
+        }
+    }
+
     public function login(int $userId, string $userName, UserRole $role = UserRole::Seller): void
     {
+        self::ensureSession();
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_regenerate_id(true);
         }

@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN shop_favicon VARCHAR(500) NULL DEFAULT NULL AFTER shop_logo;

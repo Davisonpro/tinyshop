@@ -3,7 +3,7 @@
 {block name="content"}
 <div class="dash-topbar">
     <a href="/dashboard/products" class="dash-topbar-back">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        <i class="fa-solid fa-chevron-left"></i>
     </a>
     <span class="dash-topbar-title">Categories</span>
     <span></span>
@@ -17,10 +17,10 @@
 
 {* FAB — Add Category *}
 <button type="button" class="fab" id="addCategoryFab" title="Add Category">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <i class="fa-solid fa-plus"></i>
 </button>
 
-<input type="file" id="catImageInput" accept="image/*" style="display:none">
+<input type="file" id="catImageInput" accept="image/*" class="d-none">
 {/block}
 
 {block name="extra_scripts"}
@@ -45,7 +45,7 @@ $(function() {
             return '<div class="category-row-img"><img src="' + escapeHtml(c.image_url) + '" alt=""></div>';
         }
         return '<div class="category-row-img category-row-img-empty">' +
-            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>' +
+            '<i class="fa-solid fa-folder icon-lg"></i>' +
         '</div>';
     }
 
@@ -53,9 +53,10 @@ $(function() {
         if (tree.length === 0 && _allCats.length === 0) {
             $list.html(
                 '<div class="empty-state">' +
-                    '<div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#AEAEB2" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>' +
-                    '<h2>No categories yet</h2>' +
-                    '<p>Tap + to create your first category</p>' +
+                    '<div class="empty-icon"><i class="fa-solid fa-folder icon-2xl text-muted"></i></div>' +
+                    '<h2>Organize your products</h2>' +
+                    '<p>Create categories to help customers browse your shop</p>' +
+                    '<button class="empty-state-btn" onclick="document.querySelector(\'.fab\').click()">Create category</button>' +
                 '</div>'
             );
             return;
@@ -76,7 +77,7 @@ $(function() {
             }
             html += '    </div>';
             html += '  </div>';
-            html += '  <svg class="category-row-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg>';
+            html += '  <i class="fa-solid fa-chevron-right category-row-chevron"></i>';
             html += '</div>';
 
             // Sub-categories
@@ -87,11 +88,11 @@ $(function() {
                 html += catImg(child);
                 html += '    <span class="category-row-name">' + escapeHtml(child.name) + '</span>';
                 html += '  </div>';
-                html += '  <svg class="category-row-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg>';
+                html += '  <i class="fa-solid fa-chevron-right category-row-chevron icon-sm"></i>';
                 html += '</div>';
             });
             html += '<button type="button" class="category-add-sub" data-parent-id="' + parent.id + '" data-parent-name="' + escapeHtml(parent.name) + '">' +
-                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                '<i class="fa-solid fa-plus icon-sm"></i>' +
                 ' Add sub-category' +
             '</button>';
             html += '</div>';
@@ -110,11 +111,11 @@ $(function() {
                 '<div class="cat-img-upload" id="catImgZone">' +
                     '<div class="cat-img-preview" id="catImgPreview" ' + (imgUrl ? '' : 'style="display:none"') + '>' +
                         '<img src="' + escapeHtml(imgUrl) + '" alt="" id="catImgTag">' +
-                        '<div class="cat-img-overlay"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Change</div>' +
+                        '<div class="cat-img-overlay"><i class="fa-solid fa-camera icon-lg"></i> Change</div>' +
                         '<button type="button" class="cat-img-remove" id="catImgRemove">&times;</button>' +
                     '</div>' +
                     '<div class="cat-img-empty" id="catImgPlaceholder" ' + (imgUrl ? 'style="display:none"' : '') + '>' +
-                        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
+                        '<i class="fa-solid fa-camera icon-2xl"></i>' +
                         '<span>Tap to add an image</span>' +
                     '</div>' +
                 '</div>' +
@@ -138,11 +139,11 @@ $(function() {
                     '<div class="cat-parent-picker-left">' +
                         (currentParentImg
                             ? '<img class="cat-parent-picker-img" src="' + escapeHtml(currentParentImg) + '" alt="">'
-                            : '<div class="cat-parent-picker-img cat-parent-picker-img-empty"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>'
+                            : '<div class="cat-parent-picker-img cat-parent-picker-img-empty"><i class="fa-solid fa-folder icon-md"></i></div>'
                         ) +
                         '<span id="catParentLabel">' + escapeHtml(currentParentName) + '</span>' +
                     '</div>' +
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>' +
+                    '<i class="fa-solid fa-chevron-down"></i>' +
                 '</div>' +
                 '<div class="cat-parent-list" id="catParentList" style="display:none">';
 
@@ -150,18 +151,18 @@ $(function() {
                 var isSelected = String(cat.parent_id) === String(p.id);
                 var pImg = p.image_url
                     ? '<img class="cat-parent-list-img" src="' + escapeHtml(p.image_url) + '" alt="">'
-                    : '<div class="cat-parent-list-img cat-parent-list-img-empty"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>';
+                    : '<div class="cat-parent-list-img cat-parent-list-img-empty"><i class="fa-solid fa-folder icon-sm"></i></div>';
                 html += '<div class="cat-parent-list-item' + (isSelected ? ' selected' : '') + '" data-id="' + p.id + '" data-name="' + escapeHtml(p.name) + '" data-img="' + escapeHtml(p.image_url || '') + '">' +
                     '<div class="cat-parent-list-item-left">' + pImg + '<span>' + escapeHtml(p.name) + '</span></div>' +
-                    '<span class="cat-parent-list-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>' +
+                    '<span class="cat-parent-list-check"><i class="fa-solid fa-check icon-sm"></i></span>' +
                 '</div>';
             });
 
             html += '</div></div>';
         }
 
-        html += '<button type="submit" class="btn btn-primary" id="catSaveBtn" style="width:100%;min-height:52px;font-size:1rem;font-weight:600;border-radius:14px;border:none;cursor:pointer;font-family:inherit;">' + (isEdit ? 'Save Changes' : 'Add Category') + '</button>' +
-            (isEdit ? '<button type="button" id="catDeleteBtn" style="width:100%;min-height:48px;font-size:0.9375rem;font-weight:600;border-radius:14px;background:transparent;color:#FF3B30;border:none;cursor:pointer;font-family:inherit;margin-top:12px;">Delete Category</button>' : '') +
+        html += '<button type="submit" class="btn btn-block btn-primary" id="catSaveBtn">' + (isEdit ? 'Save Changes' : 'Add Category') + '</button>' +
+            (isEdit ? '<button type="button" id="catDeleteBtn" class="btn btn-block btn-link mt-sm" style="color:#FF3B30">Delete Category</button>' : '') +
         '</form>';
 
         TinyShop.openModal(title, html);
@@ -206,7 +207,7 @@ $(function() {
             // Update button display
             var imgHtml = img
                 ? '<img class="cat-parent-picker-img" src="' + escapeHtml(img) + '" alt="">'
-                : '<div class="cat-parent-picker-img cat-parent-picker-img-empty"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>';
+                : '<div class="cat-parent-picker-img cat-parent-picker-img-empty"><i class="fa-solid fa-folder icon-md"></i></div>';
             $('#catParentBtn .cat-parent-picker-left').html(imgHtml + '<span id="catParentLabel">' + escapeHtml(name) + '</span>');
             // Update selection state
             $('#catParentList .cat-parent-list-item').removeClass('selected');

@@ -3,11 +3,21 @@
 {block name="content"}
 <div class="dash-topbar">
     <span class="dash-topbar-title">Products</span>
-    <a href="/dashboard/shop" class="dash-topbar-avatar">{if $user.shop_logo}<img src="{$user.shop_logo|escape}" alt="">{else}{$user.name|escape|substr:0:1|upper}{/if}</a>
+    <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|default:$user.name|escape|substr:0:1|upper}</a>
 </div>
 
+{if !empty($usage) && !$usage.products_unlimited}
+<div class="plan-limit-bar" id="planLimitBar">
+    <span>{$usage.product_count} of {$usage.max_products} products</span>
+    <div class="plan-limit-bar-fill{if $usage.product_count >= $usage.max_products} at-limit{elseif $usage.product_count >= $usage.max_products * 0.8} near-limit{/if}">
+        <span style="width:{$usage.product_percent}%"></span>
+    </div>
+    {if $usage.is_free}<a href="/dashboard/billing" style="font-size:0.75rem;font-weight:600;color:var(--color-accent)">Upgrade</a>{/if}
+</div>
+{/if}
+
 <div class="product-search-bar" id="productSearchBar" style="display:none">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="productSearch" placeholder="Search products..." autocomplete="off" aria-label="Search products">
 </div>
 
@@ -30,7 +40,7 @@
 
 {* FAB — Add Product *}
 <a href="/dashboard/products/add" class="fab" title="Add Product" aria-label="Add new product">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <i class="fa-solid fa-plus" aria-hidden="true"></i>
 </a>
 {/block}
 

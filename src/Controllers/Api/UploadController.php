@@ -15,7 +15,7 @@ final class UploadController
     use JsonResponder;
 
     public function __construct(
-        private Upload $upload
+        private readonly Upload $upload
     ) {}
 
     public function store(Request $request, Response $response): Response

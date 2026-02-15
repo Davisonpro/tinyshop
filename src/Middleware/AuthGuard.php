@@ -13,10 +13,12 @@ use TinyShop\Services\Auth;
 
 final class AuthGuard implements MiddlewareInterface
 {
-    public function __construct(private Auth $auth) {}
+    public function __construct(private readonly Auth $auth) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        Auth::ensureSession();
+
         if (!$this->auth->check()) {
             $path = $request->getUri()->getPath();
 

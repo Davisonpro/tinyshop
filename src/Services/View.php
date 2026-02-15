@@ -10,8 +10,8 @@ use TinyShop\Models\Setting;
 
 final class View
 {
-    private Smarty $smarty;
-    private string $baseTemplatesDir;
+    private readonly Smarty $smarty;
+    private readonly string $baseTemplatesDir;
 
     public function __construct(Config $config, Auth $auth, Setting $setting)
     {
@@ -21,6 +21,14 @@ final class View
         $this->smarty->setCompileDir($config->compileDir());
         $this->smarty->setCacheDir($config->cacheDir());
         $this->smarty->setCaching(Smarty::CACHING_OFF);
+        if (!$config->isDebug()) {
+            $this->smarty->setCompileCheck(\Smarty\Smarty::COMPILECHECK_OFF);
+        }
+
+        // Asset versioning for cache-busting
+        $cssPath = dirname($config->uploadDir()) . '/css/app.css';
+        $assetVersion = substr(md5((string) @filemtime($cssPath)), 0, 8);
+        $this->smarty->assign('asset_v', $assetVersion);
 
         // Custom modifier: format prices with commas (e.g. 1,500.00)
         $this->smarty->registerPlugin('modifier', 'format_price', function ($number, $decimals = 2) {
@@ -39,6 +47,16 @@ final class View
         $this->smarty->assign('is_impersonating', $auth->isImpersonating());
         $this->smarty->assign('allow_registration', $setting->get('allow_registration', '1') === '1');
         $this->smarty->assign('csrf_token', $_SESSION['_csrf_token'] ?? '');
+
+        // Site branding
+        $this->smarty->assign('site_logo', $setting->get('site_logo', ''));
+        $this->smarty->assign('site_favicon', $setting->get('site_favicon', ''));
+
+        // SEO & Analytics
+        $this->smarty->assign('google_verification', $setting->get('google_verification', ''));
+        $this->smarty->assign('bing_verification', $setting->get('bing_verification', ''));
+        $this->smarty->assign('google_analytics_id', $setting->get('google_analytics_id', ''));
+        $this->smarty->assign('facebook_pixel_id', $setting->get('facebook_pixel_id', ''));
     }
 
     /**

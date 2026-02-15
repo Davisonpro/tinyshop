@@ -24,6 +24,7 @@ final class CsrfGuard implements MiddlewareInterface
         $method = $request->getMethod();
 
         if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)) {
+            \TinyShop\Services\Auth::ensureSession();
             $expected = $_SESSION['_csrf_token'] ?? '';
             $token = $request->getHeaderLine('X-CSRF-Token');
 

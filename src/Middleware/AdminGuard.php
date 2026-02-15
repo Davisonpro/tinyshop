@@ -13,10 +13,12 @@ use TinyShop\Services\Auth;
 
 final class AdminGuard implements MiddlewareInterface
 {
-    public function __construct(private Auth $auth) {}
+    public function __construct(private readonly Auth $auth) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        Auth::ensureSession();
+
         if (!$this->auth->check()) {
             return (new Response())->withHeader('Location', '/login')->withStatus(302);
         }

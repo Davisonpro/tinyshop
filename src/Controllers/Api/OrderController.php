@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Enums\OrderStatus;
 use TinyShop\Models\Order;
+use TinyShop\Models\OrderItem;
 use TinyShop\Models\Product;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Validation;
@@ -17,10 +18,11 @@ final class OrderController
 {
     use JsonResponder;
     public function __construct(
-        private Order $orderModel,
-        private Product $productModel,
-        private Auth $auth,
-        private Validation $validation
+        private readonly Order $orderModel,
+        private readonly OrderItem $orderItemModel,
+        private readonly Product $productModel,
+        private readonly Auth $auth,
+        private readonly Validation $validation
     ) {}
 
     private const MAX_PAGE_SIZE = 100;
@@ -34,6 +36,19 @@ final class OrderController
         $userId = $this->auth->userId();
         $orders = $this->orderModel->findByUser($userId, $limit, $offset);
         $stats = $this->orderModel->getStats($userId);
+
+        // Attach order items to each order
+        $orderIds = array_map(fn($o) => (int) $o['id'], $orders);
+        $allItems = $this->orderItemModel->findByOrderIds($orderIds);
+        $itemsByOrder = [];
+        foreach ($allItems as $item) {
+            $itemsByOrder[(int) $item['order_id']][] = $item;
+        }
+        foreach ($orders as &$order) {
+            $order['items'] = $itemsByOrder[(int) $order['id']] ?? [];
+        }
+        unset($order);
+
         return $this->json($response, ['orders' => $orders, 'stats' => $stats]);
     }
 
@@ -43,7 +58,7 @@ final class OrderController
         $userId = $this->auth->userId();
 
         $customerName = trim($data['customer_name'] ?? '');
-        $amount = (float) ($data['amount'] ?? 0);
+        $rawAmount = $data['amount'] ?? 0;
 
         if ($customerName === '') {
             return $this->json($response, ['error' => true, 'message' => 'Customer name is required'], 422);
@@ -53,9 +68,10 @@ final class OrderController
             return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
 
-        if ($amount <= 0) {
-            return $this->json($response, ['error' => true, 'message' => 'Amount must be greater than 0'], 422);
+        if (!is_numeric($rawAmount) || (float) $rawAmount <= 0) {
+            return $this->json($response, ['error' => true, 'message' => 'Amount must be a valid number greater than 0'], 422);
         }
+        $amount = (float) $rawAmount;
 
         // Validate product belongs to this seller if provided
         $productId = !empty($data['product_id']) ? (int) $data['product_id'] : null;
@@ -66,15 +82,31 @@ final class OrderController
             }
         }
 
+        // Sanitize optional text fields
+        $customerPhone = trim($data['customer_phone'] ?? '');
+        if ($customerPhone !== '') {
+            $customerPhone = preg_replace('/[^0-9+\s\-]/', '', $customerPhone);
+        }
+        $notes = trim($data['notes'] ?? '');
+        if ($notes !== '') {
+            $notes = strip_tags($notes);
+        }
+
+        // Validate status is a valid enum value
+        $status = $data['status'] ?? OrderStatus::Pending->value;
+        if (OrderStatus::tryFrom($status) === null) {
+            $status = OrderStatus::Pending->value;
+        }
+
         $orderId = $this->orderModel->create([
             'user_id'        => $userId,
             'product_id'     => $productId,
             'customer_name'  => $customerName,
-            'customer_phone' => trim($data['customer_phone'] ?? ''),
+            'customer_phone' => $customerPhone,
             'amount'         => $amount,
-            'status'         => $data['status'] ?? OrderStatus::Pending->value,
+            'status'         => $status,
             'payment_method' => $data['payment_method'] ?? 'whatsapp',
-            'reference_id'   => trim($data['notes'] ?? '') ?: null,
+            'reference_id'   => $notes ?: null,
         ]);
 
         $order = $this->orderModel->findById($orderId);

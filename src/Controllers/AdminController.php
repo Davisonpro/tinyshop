@@ -12,11 +12,14 @@ use TinyShop\Enums\UserRole;
 use TinyShop\Models\User;
 use TinyShop\Models\Product;
 use TinyShop\Models\Order;
+use TinyShop\Models\Plan;
 use TinyShop\Models\Setting;
 use TinyShop\Models\ShopView;
+use TinyShop\Models\Subscription;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Mailer;
 use TinyShop\Services\Upload;
+use TinyShop\Services\Validation;
 use TinyShop\Services\View;
 
 final class AdminController
@@ -27,23 +30,32 @@ final class AdminController
 
     private const ALLOWED_SETTINGS = [
         'site_name', 'base_domain', 'support_email',
+        'site_logo', 'site_favicon',
         'maintenance_mode', 'default_currency',
         'max_products_per_seller', 'allow_registration',
         'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password',
         'smtp_encryption', 'mail_from_email', 'mail_from_name',
+        'google_verification', 'bing_verification',
+        'google_analytics_id', 'facebook_pixel_id',
+        'robots_extra',
+        'platform_stripe_public_key', 'platform_stripe_secret_key', 'platform_stripe_mode',
+        'platform_paypal_client_id', 'platform_paypal_secret', 'platform_paypal_mode',
     ];
 
     public function __construct(
-        private View $view,
-        private Auth $auth,
-        private User $userModel,
-        private Product $productModel,
-        private Order $orderModel,
-        private Setting $settingModel,
-        private ShopView $shopViewModel,
-        private Mailer $mailer,
-        private Upload $upload,
-        private LoggerInterface $logger
+        private readonly View $view,
+        private readonly Auth $auth,
+        private readonly User $userModel,
+        private readonly Product $productModel,
+        private readonly Order $orderModel,
+        private readonly Plan $planModel,
+        private readonly Setting $settingModel,
+        private readonly ShopView $shopViewModel,
+        private readonly Subscription $subscriptionModel,
+        private readonly Mailer $mailer,
+        private readonly Upload $upload,
+        private readonly Validation $validation,
+        private readonly LoggerInterface $logger
     ) {}
 
     // ── Pages ──
@@ -244,5 +256,225 @@ final class AdminController
         }
 
         return $this->json($response, ['success' => true, 'message' => 'Test email sent to ' . $adminEmail]);
+    }
+
+    public function pingSitemap(Request $request, Response $response): Response
+    {
+        $baseDomain = $this->settingModel->get('base_domain', '');
+        if ($baseDomain === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Base domain not configured'], 422);
+        }
+
+        $sitemapUrl = 'https://' . $baseDomain . '/sitemap.xml';
+        $results = [];
+
+        // Ping Google
+        $results['google'] = $this->httpPing(
+            'https://www.google.com/ping?sitemap=' . urlencode($sitemapUrl)
+        );
+
+        // Ping Bing / IndexNow
+        $results['bing'] = $this->httpPing(
+            'https://www.bing.com/ping?sitemap=' . urlencode($sitemapUrl)
+        );
+
+        $messages = [];
+        $messages[] = $results['google'] ? 'Google notified' : 'Google ping failed';
+        $messages[] = $results['bing'] ? 'Bing notified' : 'Bing ping failed';
+
+        $this->logger->info('admin.sitemap_ping', [
+            'admin_id' => $this->auth->userId(),
+            'results'  => $results,
+        ]);
+
+        return $this->json($response, [
+            'success' => true,
+            'message' => implode('. ', $messages),
+        ]);
+    }
+
+    // ── Plan management ──
+
+    public function plans(Request $request, Response $response): Response
+    {
+        $plans = $this->planModel->findAllAdmin();
+
+        // Attach subscriber counts
+        foreach ($plans as &$plan) {
+            $plan['subscriber_count'] = $this->planModel->countSubscribers((int) $plan['id']);
+        }
+        unset($plan);
+
+        // Expire overdue subscriptions on admin load
+        $this->subscriptionModel->expireOverdue();
+
+        return $this->view->render($response, 'pages/admin_plans.tpl', [
+            'page_title'  => 'Plans',
+            'active_page' => 'plans',
+            'plans'       => $plans,
+        ]);
+    }
+
+    public function listPlans(Request $request, Response $response): Response
+    {
+        $plans = $this->planModel->findAllAdmin();
+        foreach ($plans as &$plan) {
+            $plan['subscriber_count'] = $this->planModel->countSubscribers((int) $plan['id']);
+        }
+        unset($plan);
+
+        return $this->json($response, ['success' => true, 'plans' => $plans]);
+    }
+
+    public function createPlan(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $name = trim($data['name'] ?? '');
+
+        if ($name === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Plan name is required'], 422);
+        }
+
+        $slug = $this->validation->slug($name);
+        if ($this->planModel->slugExists($slug)) {
+            return $this->json($response, ['error' => true, 'message' => 'A plan with a similar name already exists'], 422);
+        }
+
+        $allowedThemes = null;
+        if (isset($data['allowed_themes']) && $data['allowed_themes'] !== 'all') {
+            $themes = is_array($data['allowed_themes']) ? $data['allowed_themes'] : [$data['allowed_themes']];
+            $allowedThemes = json_encode(array_values(array_filter($themes)));
+        }
+
+        $id = $this->planModel->create([
+            'name'                   => $name,
+            'slug'                   => $slug,
+            'description'            => trim($data['description'] ?? ''),
+            'price_monthly'          => (float) ($data['price_monthly'] ?? 0),
+            'price_yearly'           => (float) ($data['price_yearly'] ?? 0),
+            'currency'               => $data['currency'] ?? 'KES',
+            'max_products'           => isset($data['max_products']) && $data['max_products'] !== '' ? (int) $data['max_products'] : null,
+            'allowed_themes'         => $allowedThemes,
+            'custom_domain_allowed'  => !empty($data['custom_domain_allowed']) ? 1 : 0,
+            'coupons_allowed'        => !empty($data['coupons_allowed']) ? 1 : 0,
+            'is_default'             => !empty($data['is_default']) ? 1 : 0,
+            'is_active'              => isset($data['is_active']) ? (int) (bool) $data['is_active'] : 1,
+            'sort_order'             => (int) ($data['sort_order'] ?? 0),
+        ]);
+
+        $plan = $this->planModel->findById($id);
+
+        $this->logger->info('admin.plan_created', [
+            'admin_id' => $this->auth->userId(),
+            'plan_id'  => $id,
+            'name'     => $name,
+        ]);
+
+        return $this->json($response, ['success' => true, 'plan' => $plan], 201);
+    }
+
+    public function updatePlan(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $plan = $this->planModel->findById($id);
+
+        if (!$plan) {
+            return $this->json($response, ['error' => true, 'message' => 'Plan not found'], 404);
+        }
+
+        $data = (array) $request->getParsedBody();
+        $updates = [];
+
+        if (isset($data['name'])) {
+            $name = trim($data['name']);
+            if ($name === '') {
+                return $this->json($response, ['error' => true, 'message' => 'Plan name is required'], 422);
+            }
+            $updates['name'] = $name;
+            $newSlug = $this->validation->slug($name);
+            if ($this->planModel->slugExists($newSlug, $id)) {
+                return $this->json($response, ['error' => true, 'message' => 'A plan with a similar name already exists'], 422);
+            }
+            $updates['slug'] = $newSlug;
+        }
+
+        if (isset($data['description'])) $updates['description'] = trim($data['description']);
+        if (isset($data['price_monthly'])) $updates['price_monthly'] = (float) $data['price_monthly'];
+        if (isset($data['price_yearly'])) $updates['price_yearly'] = (float) $data['price_yearly'];
+        if (isset($data['currency'])) $updates['currency'] = $data['currency'];
+
+        if (array_key_exists('max_products', $data)) {
+            $updates['max_products'] = ($data['max_products'] !== '' && $data['max_products'] !== null) ? (int) $data['max_products'] : null;
+        }
+
+        if (isset($data['allowed_themes'])) {
+            if ($data['allowed_themes'] === 'all' || $data['allowed_themes'] === null) {
+                $updates['allowed_themes'] = null;
+            } else {
+                $themes = is_array($data['allowed_themes']) ? $data['allowed_themes'] : [$data['allowed_themes']];
+                $updates['allowed_themes'] = json_encode(array_values(array_filter($themes)));
+            }
+        }
+
+        if (isset($data['custom_domain_allowed'])) $updates['custom_domain_allowed'] = !empty($data['custom_domain_allowed']) ? 1 : 0;
+        if (isset($data['coupons_allowed'])) $updates['coupons_allowed'] = !empty($data['coupons_allowed']) ? 1 : 0;
+        if (isset($data['is_default'])) $updates['is_default'] = !empty($data['is_default']) ? 1 : 0;
+        if (isset($data['is_active'])) $updates['is_active'] = (int) (bool) $data['is_active'];
+        if (isset($data['sort_order'])) $updates['sort_order'] = (int) $data['sort_order'];
+
+        if (!empty($updates)) {
+            $this->planModel->update($id, $updates);
+        }
+
+        $plan = $this->planModel->findById($id);
+
+        $this->logger->info('admin.plan_updated', [
+            'admin_id' => $this->auth->userId(),
+            'plan_id'  => $id,
+        ]);
+
+        return $this->json($response, ['success' => true, 'plan' => $plan]);
+    }
+
+    public function deletePlan(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $plan = $this->planModel->findById($id);
+
+        if (!$plan) {
+            return $this->json($response, ['error' => true, 'message' => 'Plan not found'], 404);
+        }
+
+        if (!empty($plan['is_default'])) {
+            return $this->json($response, ['error' => true, 'message' => 'Cannot delete the default plan'], 422);
+        }
+
+        if (!$this->planModel->delete($id)) {
+            return $this->json($response, ['error' => true, 'message' => 'Cannot delete a plan with active subscribers'], 422);
+        }
+
+        $this->logger->info('admin.plan_deleted', [
+            'admin_id' => $this->auth->userId(),
+            'plan_id'  => $id,
+            'name'     => $plan['name'],
+        ]);
+
+        return $this->json($response, ['success' => true]);
+    }
+
+    private function httpPing(string $url): bool
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT      => 'TinyShop/1.0',
+        ]);
+        curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        return $code >= 200 && $code < 400;
     }
 }

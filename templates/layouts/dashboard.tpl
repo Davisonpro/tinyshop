@@ -4,7 +4,7 @@
 
 {block name="head"}
     {include file="partials/head.tpl"}
-    <link rel="stylesheet" href="/public/css/dashboard.css">
+    <link rel="stylesheet" href="/public/css/dashboard.css?v={$asset_v}">
 {/block}
 
 {block name="body"}
@@ -15,12 +15,17 @@
 </div>
 {/if}
 <div class="dashboard-layout">
-    <div class="spa-progress-track"><div class="spa-progress-bar" id="spaProgress"></div></div>
     <main class="dash-content">
         {block name="content"}{/block}
     </main>
 
-    {include file="partials/dash_nav.tpl"}
+    <aside class="dash-sidebar">
+        <div class="dash-sidebar-brand">
+            <span class="dash-sidebar-logo">{$app_name|escape|substr:0:1|upper}</span>
+            <span class="dash-sidebar-name">{$app_name|escape}</span>
+        </div>
+        {include file="partials/dash_nav.tpl"}
+    </aside>
 </div>
 
 {* Bottom sheet modal *}
@@ -37,6 +42,6 @@
 {/block}
 
 {block name="page_scripts"}
-    <script src="/public/js/dashboard.js"></script>
+    <script src="/public/js/dashboard.js?v={$asset_v}"></script>
     {block name="extra_scripts"}{/block}
 {/block}

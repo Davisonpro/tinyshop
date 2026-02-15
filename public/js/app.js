@@ -1,22 +1,20 @@
 /**
  * TinyShop — Global JS
+ * CSRF, toast, shop init, global SPA navigation.
  */
 var TinyShop = window.TinyShop || {};
 
-/**
- * CSRF protection — covers both jQuery $.ajax and native fetch().
- * Runs immediately (not in DOMReady) since scripts load at body end.
- */
+/* ============================================================
+   CSRF protection — jQuery $.ajax + native fetch
+   ============================================================ */
 (function() {
     var meta = document.querySelector('meta[name="csrf-token"]');
     var token = meta ? meta.getAttribute('content') : '';
     TinyShop.csrfToken = token;
 
     if (token) {
-        // jQuery AJAX
         $.ajaxSetup({ headers: { 'X-CSRF-Token': token } });
 
-        // Native fetch — auto-include CSRF header on same-origin requests
         var _fetch = window.fetch;
         window.fetch = function(url, opts) {
             opts = opts || {};
@@ -33,60 +31,337 @@ var TinyShop = window.TinyShop || {};
     }
 })();
 
-/**
- * Toast notification
- */
-TinyShop.toast = function(message, type) {
-    type = type || 'success';
-    var $toast = $('#toast');
-    var icons = {
+/* ============================================================
+   Toast notification — queue-based, max 3 visible
+   ============================================================ */
+(function() {
+    var MAX_TOASTS = 3;
+    var DISMISS_MS = 3000;
+    var _queue = [];
+    var _id = 0;
+    var _icons = {
         success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>',
         error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
         warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
     };
-    var icon = icons[type] || icons.success;
-    $toast.attr('class', 'toast toast-' + type).html('<span class="toast-icon">' + icon + '</span><span class="toast-msg">' + $('<span>').text(message).html() + '</span>').addClass('show');
-    clearTimeout(TinyShop._toastTimer);
-    TinyShop._toastTimer = setTimeout(function() {
-        $toast.removeClass('show');
-    }, 3000);
+
+    function getContainer() {
+        var c = document.getElementById('toast-container');
+        if (!c) {
+            c = document.createElement('div');
+            c.id = 'toast-container';
+            c.className = 'toast-container';
+            c.setAttribute('aria-live', 'polite');
+            c.setAttribute('aria-atomic', 'false');
+            document.body.appendChild(c);
+        }
+        return c;
+    }
+
+    function dismiss(id) {
+        var idx = -1;
+        for (var i = 0; i < _queue.length; i++) {
+            if (_queue[i].id === id) { idx = i; break; }
+        }
+        if (idx === -1) return;
+        var item = _queue[idx];
+        clearTimeout(item.timer);
+        item.el.classList.add('toast-out');
+        setTimeout(function() {
+            if (item.el.parentNode) item.el.parentNode.removeChild(item.el);
+        }, 250);
+        _queue.splice(idx, 1);
+    }
+
+    TinyShop.toast = function(message, type) {
+        type = type || 'success';
+        var container = getContainer();
+        var id = ++_id;
+        var icon = _icons[type] || _icons.success;
+
+        // Evict oldest if at max
+        while (_queue.length >= MAX_TOASTS) {
+            dismiss(_queue[0].id);
+        }
+
+        var el = document.createElement('div');
+        el.className = 'toast-item toast-' + type;
+        el.setAttribute('role', 'alert');
+        var safe = document.createElement('span');
+        safe.textContent = message;
+        el.innerHTML = '<span class="toast-icon">' + icon + '</span>' +
+            '<span class="toast-msg">' + safe.innerHTML + '</span>' +
+            '<button type="button" class="toast-close" aria-label="Dismiss">&times;</button>';
+        container.appendChild(el);
+
+        // Trigger entrance
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() { el.classList.add('toast-show'); });
+        });
+
+        var timer = setTimeout(function() { dismiss(id); }, DISMISS_MS);
+
+        el.querySelector('.toast-close').addEventListener('click', function() { dismiss(id); });
+
+        _queue.push({ id: id, el: el, timer: timer });
+    };
+})();
+
+/* ============================================================
+   Navigate helper — uses SPA when available, else full load
+   ============================================================ */
+TinyShop.navigate = function(url) {
+    if (TinyShop.spa && TinyShop.spa._ready) {
+        TinyShop.spa.go(url);
+    } else {
+        window.location.href = url;
+    }
 };
 
-$(function() {
-    // Smooth scroll for anchor links
-    $(document).on('click', 'a[href^="#"]', function(e) {
-        var target = $(this.getAttribute('href'));
-        if (target.length) {
-            e.preventDefault();
-            $('html, body').animate({ scrollTop: target.offset().top - 60 }, 400);
+/* ============================================================
+   Format price — matches PHP number_format(n, 2, '.', ',')
+   ============================================================ */
+TinyShop.formatPrice = function(n) {
+    var num = parseFloat(n) || 0;
+    return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
+/* ============================================================
+   Theme card helpers — shared utilities for theme renderers
+   ============================================================ */
+TinyShop.cardHelpers = {
+    badge: function(p) {
+        if (p.is_sold == 1) return { type: 'sold', text: 'Sold', pct: 0 };
+        if (p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price)) {
+            var pct = Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100);
+            return { type: 'sale', text: '-' + pct + '%', pct: pct };
         }
-    });
+        return null;
+    },
+    badgeHtml: function(p) {
+        var b = this.badge(p);
+        if (!b) return '';
+        return '<span class="product-badge product-badge-' + b.type + '">' + b.text + '</span>';
+    },
+    escapeName: function(name) {
+        return $('<span>').text(name).html();
+    },
+    imgSrc: function(p) {
+        return p.image_url || '/public/img/placeholder.svg';
+    },
+    priceHtml: function(p, currencySymbol) {
+        var compare = '';
+        if (p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) && p.is_sold != 1) {
+            compare = '<span class="price-compare">' + currencySymbol + TinyShop.formatPrice(p.compare_price) + '</span>';
+        }
+        var cls = compare ? ' class="price-sale"' : '';
+        var main = '<span' + cls + '>' + currencySymbol + TinyShop.formatPrice(p.price) + '</span>';
+        return { compare: compare, main: main, full: compare + main };
+    }
+};
 
-    // Variation option selection on product detail page
-    $(document).on('click', '.product-variation-option', function() {
-        var $group = $(this).closest('.product-variation-options');
-        $group.find('.product-variation-option').removeClass('selected');
-        $(this).addClass('selected');
-    });
+/* ============================================================
+   Render product card — delegates to theme renderer if set
+   ============================================================ */
+TinyShop.renderProductCard = function(p, currencySymbol) {
+    if (window.TinyShopTheme && typeof window.TinyShopTheme.renderProductCard === 'function') {
+        return window.TinyShopTheme.renderProductCard(p, currencySymbol);
+    }
+    return TinyShop._defaultRenderProductCard(p, currencySymbol);
+};
 
-    // Category + search filtering on storefront
+TinyShop._defaultRenderProductCard = function(p, currencySymbol) {
+    var h = TinyShop.cardHelpers;
+    var slug = p.slug || p.id;
+    var soldClass = p.is_sold == 1 ? ' product-card-sold' : '';
+    var name = h.escapeName(p.name);
+    var price = h.priceHtml(p, currencySymbol);
+
+    return '<a href="/' + slug + '" class="product-card' + soldClass + '" data-category="' + (p.category_id || '') + '">'
+        + '<div class="product-card-img">' + h.badgeHtml(p)
+        + '<img src="' + h.imgSrc(p) + '" alt="' + name + '" loading="lazy" onload="this.classList.add(\'loaded\')">'
+        + '</div>'
+        + '<div class="product-card-body">'
+        + '<h3 class="product-title">' + name + '</h3>'
+        + '<div class="product-price">' + price.full + '</div>'
+        + '</div></a>';
+};
+
+/* ============================================================
+   Render skeleton placeholders — delegates to theme if set
+   ============================================================ */
+TinyShop.renderSkeletons = function(count) {
+    if (window.TinyShopTheme && typeof window.TinyShopTheme.renderSkeletons === 'function') {
+        return window.TinyShopTheme.renderSkeletons(count);
+    }
+    return TinyShop._defaultRenderSkeletons(count);
+};
+
+TinyShop._defaultRenderSkeletons = function(count) {
+    var html = '';
+    for (var i = 0; i < count; i++) {
+        html += '<div class="product-card product-card-skeleton">'
+            + '<div class="product-card-img"></div>'
+            + '<div class="product-card-body">'
+            + '<div class="skeleton-line skeleton-line-short"></div>'
+            + '<div class="skeleton-line skeleton-line-price"></div>'
+            + '</div></div>';
+    }
+    return html;
+};
+
+/* ============================================================
+   Shop page init — re-runnable on each page:init
+   ============================================================ */
+TinyShop.initShop = function() {
+    var $catalogue = $('#catalogue');
+    if (!$catalogue.length) return;
+
+    var $shopPage = $catalogue.closest('.shop-page');
+    var subdomain = $shopPage.data('subdomain');
+    if (!subdomain) return;
+
     var $productCount = $('#productCount');
     var $searchEmpty = $('#searchEmpty');
-    var $catalogue = $('#catalogue');
-    var totalProducts = $catalogue.find('.product-card').length;
-    var activeCategory = 'all';
+    var $loadMoreWrap = $('#loadMoreWrap');
+    var $loadMoreBtn = $('#loadMoreBtn');
+    var $loadMoreCount = $('#loadMoreCount');
 
-    function updateProductCount(visible) {
-        if ($productCount.length) {
-            $productCount.text(visible + (visible === 1 ? ' product' : ' products'));
+    var limit = parseInt($shopPage.data('limit'), 10) || 24;
+    var currencySymbol = String($shopPage.data('currency') || '');
+
+    // State
+    var state = {
+        category: 'all',
+        search: '',
+        sort: 'default',
+        offset: $catalogue.find('.product-card').length,
+        total: parseInt($shopPage.data('total'), 10) || 0,
+        loading: false,
+        ajaxMode: false
+    };
+
+    // API base URL
+    var apiBase = '/products';
+
+    function buildQuery(overrides) {
+        var o = overrides || {};
+        var params = {
+            limit: o.limit || limit,
+            offset: typeof o.offset !== 'undefined' ? o.offset : 0,
+            sort: o.sort || state.sort
+        };
+        if (state.search) params.search = state.search;
+        if (state.category !== 'all') params.category = state.category;
+        return $.param(params);
+    }
+
+    function updateCount(shown, total) {
+        state.total = total;
+        if (!$productCount.length) return;
+        if (total === 0) {
+            $productCount.text('0 products');
+        } else if (shown < total) {
+            $productCount.text('Showing ' + shown + ' of ' + total + ' products');
+        } else {
+            $productCount.text(total + (total === 1 ? ' product' : ' products'));
         }
-        if (visible === 0 && totalProducts > 0) {
+    }
+
+    function updateLoadMore(shown, total) {
+        if (!$loadMoreWrap.length && shown < total) {
+            // Create load more if it doesn't exist yet
+            var html = '<div class="load-more-wrap" id="loadMoreWrap">'
+                + '<button type="button" class="load-more-btn" id="loadMoreBtn">'
+                + 'Show more products <span class="load-more-count" id="loadMoreCount"></span>'
+                + '</button></div>';
+            $catalogue.after(html);
+            $loadMoreWrap = $('#loadMoreWrap');
+            $loadMoreBtn = $('#loadMoreBtn');
+            $loadMoreCount = $('#loadMoreCount');
+        }
+
+        if ($loadMoreWrap.length) {
+            var remaining = total - shown;
+            if (remaining > 0) {
+                $loadMoreCount.text('(' + remaining + ' more)');
+                $loadMoreWrap.show();
+            } else {
+                $loadMoreWrap.hide();
+            }
+        }
+    }
+
+    function showEmpty(show) {
+        if (show) {
             $catalogue.hide();
             $searchEmpty.show();
         } else {
             $searchEmpty.hide();
             $catalogue.show();
         }
+    }
+
+    // Fetch products from API
+    function fetchProducts(opts) {
+        if (state.loading) return;
+        state.loading = true;
+        state.ajaxMode = true;
+
+        var append = opts && opts.append;
+        var query = buildQuery(opts);
+
+        if (!append) {
+            $catalogue.html(TinyShop.renderSkeletons(limit > 8 ? 8 : limit));
+            $catalogue.show();
+            $searchEmpty.hide();
+        } else {
+            $loadMoreBtn.addClass('loading').text('Loading...');
+        }
+
+        $.getJSON(apiBase + '?' + query)
+            .done(function(data) {
+                var products = data.products || [];
+                var total = data.total || 0;
+
+                if (append) {
+                    var html = '';
+                    for (var i = 0; i < products.length; i++) {
+                        html += TinyShop.renderProductCard(products[i], data.currency_symbol || currencySymbol);
+                    }
+                    $catalogue.append(html);
+                    state.offset += products.length;
+                } else {
+                    if (products.length === 0) {
+                        $catalogue.empty();
+                        showEmpty(true);
+                        state.offset = 0;
+                    } else {
+                        var html = '';
+                        for (var i = 0; i < products.length; i++) {
+                            html += TinyShop.renderProductCard(products[i], data.currency_symbol || currencySymbol);
+                        }
+                        $catalogue.html(html);
+                        showEmpty(false);
+                        state.offset = products.length;
+                    }
+                }
+
+                updateCount(state.offset, total);
+                updateLoadMore(state.offset, total);
+            })
+            .fail(function() {
+                if (!append) {
+                    $catalogue.empty();
+                    showEmpty(true);
+                }
+            })
+            .always(function() {
+                state.loading = false;
+                $loadMoreBtn.removeClass('loading').html('Show more products <span class="load-more-count" id="loadMoreCount"></span>');
+                $loadMoreCount = $('#loadMoreCount');
+                updateLoadMore(state.offset, state.total);
+            });
     }
 
     function scrollIntoCenter(el) {
@@ -97,45 +372,13 @@ $(function() {
         }
     }
 
-    function filterByCategory(category) {
-        activeCategory = category;
-        var $cards = $catalogue.find('.product-card');
-        var visible = 0;
-
-        // Clear search
-        var $si = $('#searchInput');
-        if ($si.length && $si.val()) {
-            $si.val('');
-            $('#searchClear').removeClass('visible');
-        }
-
-        if (category === 'all') {
-            $cards.show();
-            visible = totalProducts;
-        } else {
-            var ids = category.split(',');
-            $cards.each(function() {
-                var $card = $(this);
-                var cardCat = String($card.data('category'));
-                if (ids.indexOf(cardCat) !== -1) {
-                    $card.show();
-                    visible++;
-                } else {
-                    $card.hide();
-                }
-            });
-        }
-
-        updateProductCount(visible);
-
-        // Sync pill tabs
+    function syncCategoryUI(category) {
         $('#categoryTabs .category-tab').removeClass('active');
         $('#categoryTabs .category-tab').each(function() {
             if (String($(this).data('category')) === category) $(this).addClass('active');
         });
         if (category === 'all') $('#categoryTabs .category-tab').first().addClass('active');
 
-        // Sync image cards
         $('#categoryCards .category-card').removeClass('active');
         $('#categoryCards .category-card').each(function() {
             if (String($(this).data('category')) === category) $(this).addClass('active');
@@ -143,7 +386,23 @@ $(function() {
         if (category === 'all') $('#categoryCards .category-card').first().addClass('active');
     }
 
-    // Category tabs (pill filters)
+    function filterByCategory(category) {
+        state.category = category;
+        state.offset = 0;
+
+        // Clear search when switching categories
+        var $si = $('#searchInput');
+        if ($si.length && $si.val()) {
+            $si.val('');
+            $('#searchClear').removeClass('visible');
+            state.search = '';
+        }
+
+        syncCategoryUI(category);
+        fetchProducts({ offset: 0 });
+    }
+
+    // Category pill tabs
     $('#categoryTabs').on('click', '.category-tab', function() {
         scrollIntoCenter(this);
         filterByCategory(String($(this).data('category')));
@@ -155,14 +414,12 @@ $(function() {
         filterByCategory(String($(this).data('category')));
     });
 
-    // --- Search toggle (for themes that use icon-only search) ---
+    // Search toggle (for themes that use icon-only search)
     var $searchToggle = $('#searchToggle');
     var $shopSearch = $('#shopSearch');
 
     if ($searchToggle.length && $searchToggle.is(':visible')) {
-        // Theme is using toggle mode — collapse the search bar initially
         $shopSearch.addClass('search-collapsed');
-
         $searchToggle.on('click', function() {
             if ($shopSearch.hasClass('search-collapsed')) {
                 $shopSearch.removeClass('search-collapsed').addClass('search-expanded');
@@ -172,44 +429,35 @@ $(function() {
         });
     }
 
-    // --- Search ---
+    // Search input — AJAX-based
     var searchTimer;
     var $searchInput = $('#searchInput');
     var $searchClear = $('#searchClear');
 
     if ($searchInput.length) {
         $searchInput.on('input', function() {
-            var query = $.trim($(this).val()).toLowerCase();
+            var query = $.trim($(this).val());
             $searchClear.toggleClass('visible', query.length > 0);
+            // Sync desktop header search
+            var $ds = $('#bloomDesktopSearch');
+            if ($ds.length && $ds.val() !== $(this).val()) $ds.val($(this).val());
 
             clearTimeout(searchTimer);
             searchTimer = setTimeout(function() {
-                var $cards = $catalogue.find('.product-card');
-                var visible = 0;
-
-                if (!query) {
-                    filterByCategory(activeCategory);
-                    return;
-                }
-
-                $cards.each(function() {
-                    var $card = $(this);
-                    var name = ($card.find('.product-title').text() || '').toLowerCase();
-                    if (name.indexOf(query) !== -1) {
-                        $card.show();
-                        visible++;
-                    } else {
-                        $card.hide();
-                    }
-                });
-
-                updateProductCount(visible);
-            }, 150);
+                state.search = query;
+                state.offset = 0;
+                fetchProducts({ offset: 0 });
+            }, 300);
         });
 
         $searchClear.on('click', function() {
-            $searchInput.val('').trigger('input');
-            // If using toggle mode, collapse search bar back
+            $searchInput.val('');
+            $searchClear.removeClass('visible');
+            $('#bloomDesktopSearch').val('');
+            state.search = '';
+            state.offset = 0;
+            fetchProducts({ offset: 0 });
+
             if ($searchToggle.length && $shopSearch.hasClass('search-expanded')) {
                 $shopSearch.removeClass('search-expanded').addClass('search-collapsed');
                 $searchToggle.show();
@@ -219,51 +467,920 @@ $(function() {
         });
     }
 
-    // --- Share Sheet ---
-    var $backdrop = $('#shareSheetBackdrop');
-    if ($backdrop.length) {
-        // Open share sheet
-        $(document).on('click', '[data-share-trigger]', function(e) {
-            e.preventDefault();
-            var url = window.location.href;
-            var title = document.title;
-
-            $backdrop.find('[data-share-action="whatsapp"]').attr('href',
-                'https://wa.me/?text=' + encodeURIComponent(title + ' ' + url));
-            $backdrop.find('[data-share-action="facebook"]').attr('href',
-                'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url));
-            $backdrop.find('[data-share-action="twitter"]').attr('href',
-                'https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(url));
-            $backdrop.find('[data-share-action="email"]').attr('href',
-                'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(url));
-
-            $backdrop.addClass('active');
-        });
-
-        // Close share sheet (backdrop click or close button)
-        $backdrop.on('click', function(e) {
-            if (e.target === this) $backdrop.removeClass('active');
-        });
-        $backdrop.on('click', '.share-sheet-close', function() {
-            $backdrop.removeClass('active');
-        });
-
-        // Copy link action
-        $backdrop.on('click', '[data-share-action="copy"]', function() {
-            var $label = $(this).find('.share-sheet-label');
-            navigator.clipboard.writeText(window.location.href).then(function() {
-                $label.text('Copied!');
-                setTimeout(function() {
-                    $label.text('Copy Link');
-                    $backdrop.removeClass('active');
-                }, 1200);
-            });
-        });
-
-        // Close on share link click (after short delay)
-        $backdrop.on('click', 'a[data-share-action]', function() {
-            var $b = $backdrop;
-            setTimeout(function() { $b.removeClass('active'); }, 300);
+    // Desktop header search (Bloom theme) — sync with page search
+    var $desktopSearch = $('#bloomDesktopSearch');
+    if ($desktopSearch.length) {
+        $desktopSearch.on('input', function() {
+            var query = $.trim($(this).val());
+            // Mirror value to page search input
+            if ($searchInput.length) {
+                $searchInput.val(query).trigger('input');
+            } else {
+                // No page search (hidden on desktop) — search directly
+                $searchClear.toggleClass('visible', query.length > 0);
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function() {
+                    state.search = query;
+                    state.offset = 0;
+                    fetchProducts({ offset: 0 });
+                }, 300);
+            }
         });
     }
+
+    // Sort dropdown
+    var $sort = $('#productSort');
+    if ($sort.length) {
+        $sort.on('change', function() {
+            state.sort = $(this).val();
+            state.offset = 0;
+            fetchProducts({ offset: 0 });
+        });
+    }
+
+    // Load more button — delegated to handle dynamically created button
+    $(document).off('click.loadmore').on('click.loadmore', '#loadMoreBtn', function() {
+        if (state.loading) return;
+        fetchProducts({ offset: state.offset, append: true });
+    });
+
+    // Initial state
+    updateCount(state.offset, state.total);
+    updateLoadMore(state.offset, state.total);
+
+    // ── URL state management ──
+    function updateUrl() {
+        var params = new URLSearchParams();
+        if (state.search) params.set('search', state.search);
+        if (state.category !== 'all') params.set('category', state.category);
+        if (state.sort !== 'default') params.set('sort', state.sort);
+        var qs = params.toString();
+        history.replaceState(null, '', qs ? '?' + qs : location.pathname);
+    }
+
+    // Restore URL state on page load
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlSearch = urlParams.get('search');
+    var urlCategory = urlParams.get('category');
+    var urlSort = urlParams.get('sort');
+    var needsFetch = false;
+
+    if (urlSearch && $searchInput.length) {
+        $searchInput.val(urlSearch);
+        $searchClear.toggleClass('visible', urlSearch.length > 0);
+        var $ds = $('#bloomDesktopSearch');
+        if ($ds.length) $ds.val(urlSearch);
+        state.search = urlSearch;
+        needsFetch = true;
+    }
+    if (urlCategory) {
+        state.category = urlCategory;
+        syncCategoryUI(urlCategory);
+        needsFetch = true;
+    }
+    if (urlSort && $sort.length) {
+        state.sort = urlSort;
+        $sort.val(urlSort);
+        needsFetch = true;
+    }
+    if (needsFetch) {
+        state.offset = 0;
+        fetchProducts({ offset: 0 });
+    }
+
+    // Patch filter handlers to update URL
+    var _origFilterByCategory = filterByCategory;
+    filterByCategory = function(category) {
+        _origFilterByCategory(category);
+        updateUrl();
+    };
+
+    // Patch search to update URL
+    if ($searchInput.length) {
+        $searchInput.on('input.urlstate', function() {
+            clearTimeout(window._urlUpdateTimer);
+            window._urlUpdateTimer = setTimeout(updateUrl, 350);
+        });
+        $searchClear.on('click.urlstate', updateUrl);
+    }
+    if ($sort.length) {
+        $sort.on('change.urlstate', updateUrl);
+    }
+
+    // ── Scroll-to-top button ──
+    var scrollBtn = document.querySelector('.scroll-top-btn');
+    if (!scrollBtn) {
+        scrollBtn = document.createElement('button');
+        scrollBtn.className = 'scroll-top-btn';
+        scrollBtn.setAttribute('aria-label', 'Scroll to top');
+        scrollBtn.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+        document.body.appendChild(scrollBtn);
+    }
+    var scrollThrottle;
+    function checkScroll() {
+        var threshold = window.innerHeight * 2;
+        scrollBtn.classList.toggle('visible', window.scrollY > threshold);
+    }
+    window.addEventListener('scroll', function() {
+        if (!scrollThrottle) {
+            scrollThrottle = setTimeout(function() {
+                scrollThrottle = null;
+                checkScroll();
+            }, 100);
+        }
+    }, { passive: true });
+    scrollBtn.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    checkScroll();
+};
+
+/* ============================================================
+   Bloom desktop search — redirect on product pages
+   ============================================================ */
+$(function() {
+    var $bloomSearch = $('#bloomDesktopSearch');
+    if ($bloomSearch.length && !$('#catalogue').length) {
+        $bloomSearch.on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var q = $.trim($(this).val());
+                if (q) {
+                    window.location.href = '/?search=' + encodeURIComponent(q);
+                } else {
+                    window.location.href = '/';
+                }
+            }
+        });
+    }
+});
+
+/* ============================================================
+   One-time delegated handlers (survive SPA body swaps)
+   ============================================================ */
+$(function() {
+    // Anchor scrolling
+    $(document).on('click', 'a[href^="#"]', function(e) {
+        var target = $(this.getAttribute('href'));
+        if (target.length) {
+            e.preventDefault();
+            $('html, body').animate({ scrollTop: target.offset().top - 60 }, 400);
+        }
+    });
+
+    // Variation option selection
+    $(document).on('click', '.product-variation-option', function() {
+        var $group = $(this).closest('.product-variation-options');
+        $group.find('.product-variation-option').removeClass('selected');
+        $(this).addClass('selected');
+    });
+
+    // Share sheet (all delegated)
+    $(document).on('click', '[data-share-trigger]', function(e) {
+        e.preventDefault();
+        var url = window.location.href;
+        var title = document.title;
+
+        // Use native share on supported devices
+        if (navigator.share) {
+            navigator.share({ title: title, url: url }).then(function() {
+                TinyShop.toast('Thanks for sharing!');
+            }).catch(function() { /* user cancelled — no action */ });
+            return;
+        }
+
+        var $b = $('#shareSheetBackdrop');
+
+        $b.find('[data-share-action="whatsapp"]').attr('href',
+            'https://wa.me/?text=' + encodeURIComponent(title + ' ' + url));
+        $b.find('[data-share-action="facebook"]').attr('href',
+            'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url));
+        $b.find('[data-share-action="twitter"]').attr('href',
+            'https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(url));
+        $b.find('[data-share-action="email"]').attr('href',
+            'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(url));
+        $b.addClass('active');
+        document.body.style.overflow = 'hidden';
+    });
+
+    $(document).on('click', '#shareSheetBackdrop', function(e) {
+        if (e.target === this) {
+            $(this).removeClass('active');
+            document.body.style.overflow = '';
+        }
+    });
+    $(document).on('click', '#shareSheetBackdrop .share-sheet-close', function() {
+        $('#shareSheetBackdrop').removeClass('active');
+        document.body.style.overflow = '';
+    });
+    $(document).on('click', '#shareSheetBackdrop [data-share-action="copy"]', function() {
+        var $label = $(this).find('.share-sheet-label');
+        var url = window.location.href;
+        function onCopied() {
+            $label.text('Copied!');
+            setTimeout(function() {
+                $label.text('Copy Link');
+                $('#shareSheetBackdrop').removeClass('active');
+                document.body.style.overflow = '';
+            }, 800);
+            TinyShop.toast('Link copied!');
+        }
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).then(onCopied, function() {
+                TinyShop.toast('Could not copy link', 'error');
+            });
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = url;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            onCopied();
+        }
+    });
+    $(document).on('click', '#shareSheetBackdrop a[data-share-action]', function() {
+        setTimeout(function() { $('#shareSheetBackdrop').removeClass('active'); document.body.style.overflow = ''; }, 300);
+    });
+});
+
+/* ============================================================
+   Image Viewer — fullscreen lightbox for product gallery
+   ============================================================ */
+TinyShop.imageViewer = {
+    _el: null,
+    _images: [],
+    _current: 0,
+    _keyBound: false,
+
+    open: function(images, startIndex) {
+        var self = this;
+        self._images = images;
+        self._current = startIndex || 0;
+
+        // Rebuild if element was removed by SPA body swap
+        if (!self._el || !self._el.isConnected) {
+            self._el = null;
+            self._build();
+        }
+
+        self._show();
+        setTimeout(function() { self._el.classList.add('active'); }, 10);
+    },
+
+    close: function() {
+        var self = this;
+        if (!self._el) return;
+        self._el.classList.remove('active');
+    },
+
+    _build: function() {
+        var self = this;
+        var div = document.createElement('div');
+        div.className = 'image-viewer';
+        div.innerHTML =
+            '<button class="image-viewer-close" aria-label="Close">' +
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+            '</button>' +
+            '<button class="image-viewer-prev" aria-label="Previous">' +
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
+            '</button>' +
+            '<img class="image-viewer-img" src="" alt="">' +
+            '<button class="image-viewer-next" aria-label="Next">' +
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+            '</button>' +
+            '<div class="image-viewer-counter"></div>';
+        document.body.appendChild(div);
+        self._el = div;
+
+        // Close
+        div.querySelector('.image-viewer-close').addEventListener('click', function() { self.close(); });
+        div.addEventListener('click', function(e) {
+            if (e.target === div) self.close();
+        });
+
+        // Nav
+        div.querySelector('.image-viewer-prev').addEventListener('click', function(e) {
+            e.stopPropagation();
+            self._go(self._current - 1);
+        });
+        div.querySelector('.image-viewer-next').addEventListener('click', function(e) {
+            e.stopPropagation();
+            self._go(self._current + 1);
+        });
+
+        // Keyboard — bind once on document, survives rebuilds
+        if (!self._keyBound) {
+            self._keyBound = true;
+            document.addEventListener('keydown', function(e) {
+                if (!self._el || !self._el.classList.contains('active')) return;
+                if (e.key === 'Escape') self.close();
+                if (e.key === 'ArrowLeft') self._go(self._current - 1);
+                if (e.key === 'ArrowRight') self._go(self._current + 1);
+            });
+        }
+
+        // Swipe
+        var startX = 0, startY = 0, tracking = false;
+        var img = div.querySelector('.image-viewer-img');
+        img.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 1) {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                tracking = true;
+            }
+        }, { passive: true });
+        img.addEventListener('touchend', function(e) {
+            if (!tracking) return;
+            tracking = false;
+            var dx = e.changedTouches[0].clientX - startX;
+            var dy = e.changedTouches[0].clientY - startY;
+            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+                if (dx < 0) self._go(self._current + 1);
+                else self._go(self._current - 1);
+            }
+        }, { passive: true });
+
+        // Transition end — remove from DOM after close
+        div.addEventListener('transitionend', function() {
+            if (!div.classList.contains('active')) {
+                div.style.display = '';
+            }
+        });
+    },
+
+    _show: function() {
+        var self = this;
+        var img = self._el.querySelector('.image-viewer-img');
+        var counter = self._el.querySelector('.image-viewer-counter');
+        var prev = self._el.querySelector('.image-viewer-prev');
+        var next = self._el.querySelector('.image-viewer-next');
+
+        self._el.style.display = 'flex';
+        img.src = self._images[self._current];
+        counter.textContent = (self._current + 1) + ' / ' + self._images.length;
+        prev.style.display = self._images.length > 1 ? '' : 'none';
+        next.style.display = self._images.length > 1 ? '' : 'none';
+        counter.style.display = self._images.length > 1 ? '' : 'none';
+    },
+
+    _go: function(idx) {
+        var self = this;
+        if (self._images.length <= 1) return;
+        self._current = ((idx % self._images.length) + self._images.length) % self._images.length;
+        self._show();
+    }
+};
+
+/* ============================================================
+   page:init — runs on every page load + SPA navigation
+   ============================================================ */
+$(document).on('page:init', function() {
+    TinyShop.initShop();
+});
+
+// Image viewer — delegated click survives SPA navigation
+$(document).on('click', '.product-gallery-slide img', function() {
+    var gallery = document.getElementById('productGallery');
+    if (!gallery) return;
+    var slides = gallery.querySelectorAll('.product-gallery-slide img');
+    var images = [];
+    slides.forEach(function(s) { images.push(s.src); });
+    var idx = Array.prototype.indexOf.call(slides, this);
+    TinyShop.imageViewer.open(images, idx >= 0 ? idx : 0);
+});
+
+/* ============================================================
+   Global SPA — JSON fragment navigation with page cache,
+   link prefetch, instant click, and view transitions
+   ============================================================ */
+TinyShop.spa = {
+    _ready: false,
+    _loading: false,
+    _xhr: null,
+    _loadedScripts: {},
+
+    /* --- Client-side page cache (30s TTL, max 20 entries) --- */
+    _cache: {},
+    _cacheTimeout: 30000,
+
+    _cacheKey: function(url) {
+        return url.split('#')[0];
+    },
+
+    _getCached: function(url) {
+        var key = this._cacheKey(url);
+        var entry = this._cache[key];
+        if (!entry) return null;
+        if (Date.now() - entry.time > this._cacheTimeout) {
+            delete this._cache[key];
+            return null;
+        }
+        return entry.data;
+    },
+
+    _setCache: function(url, data) {
+        var key = this._cacheKey(url);
+        this._cache[key] = { data: data, time: Date.now() };
+
+        // Evict oldest entry when cache exceeds 20
+        var keys = Object.keys(this._cache);
+        if (keys.length > 20) {
+            var oldest = keys[0], oldestTime = this._cache[oldest].time;
+            for (var i = 1; i < keys.length; i++) {
+                if (this._cache[keys[i]].time < oldestTime) {
+                    oldest = keys[i];
+                    oldestTime = this._cache[keys[i]].time;
+                }
+            }
+            delete this._cache[oldest];
+        }
+    },
+
+    /* --- Link validation helper --- */
+    _isInternalLink: function(href) {
+        if (!href || href.charAt(0) === '#') return false;
+        if (href.indexOf('://') !== -1 && href.indexOf(location.origin) !== 0) return false;
+        if (/^(mailto:|tel:|javascript:|blob:)/.test(href)) return false;
+        if (/\.(pdf|zip|csv|xlsx?)$/i.test(href)) return false;
+        return true;
+    },
+
+    init: function() {
+        var self = this;
+
+        // Track scripts already loaded on the page
+        $('script[src]').each(function() {
+            self._loadedScripts[this.src] = true;
+        });
+
+        // Store initial state
+        history.replaceState({ spa: true, url: location.pathname + location.search }, '', location.pathname + location.search);
+
+        // Instant click — start prefetching on mousedown/touchstart (saves 100-200ms)
+        $(document).on('mousedown touchstart', 'a', function(e) {
+            if (e.type === 'mousedown' && e.which !== 1) return;
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            if (this.target === '_blank') return;
+
+            var href = this.getAttribute('href');
+            if (!self._isInternalLink(href)) return;
+            if (href === location.pathname + location.search) return;
+            // Don't prefetch logout — it has side effects
+            if (href === '/logout') return;
+
+            // Start prefetching immediately if not cached
+            if (!self._getCached(href) && !self._loading && window.fetch) {
+                self._pendingUrl = href;
+                self._pendingFetch = fetch(href, {
+                    headers: { 'X-SPA': '1' },
+                    credentials: 'same-origin'
+                }).then(function(res) {
+                    if (!res.ok) throw new Error(res.status);
+                    return res.text();
+                }).then(function(text) {
+                    var data = self._parseResponse(text);
+                    if (data) self._setCache(href, data);
+                    self._pendingFetch = null;
+                    self._pendingUrl = null;
+                    return data;
+                }).catch(function() {
+                    self._pendingFetch = null;
+                    self._pendingUrl = null;
+                });
+            }
+        });
+
+        // Intercept ALL internal link clicks
+        $(document).on('click', 'a', function(e) {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            if (this.target === '_blank') return;
+            if (e.isDefaultPrevented()) return;
+
+            var href = this.getAttribute('href');
+            if (!self._isInternalLink(href)) return;
+
+            e.preventDefault();
+
+            // Don't re-navigate to the same page
+            if (href === location.pathname + location.search) return;
+
+            // Remember product card for scroll-back (dashboard products)
+            var $card = $(this).closest('[data-id]');
+            if ($card.length) {
+                try { sessionStorage.setItem('spa_last_product', $card.data('id')); } catch(ex) {}
+            }
+
+            self.go(href);
+        });
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', function(e) {
+            if (e.state && e.state.spa) {
+                self.go(e.state.url, true);
+            }
+        });
+
+        // Init link prefetching
+        self._initPrefetch();
+
+        self._ready = true;
+    },
+
+    /* --- Link prefetching (hover + viewport) --- */
+    _initPrefetch: function() {
+        var self = this;
+        var prefetched = {};
+
+        function shouldPrefetch(href) {
+            if (!self._isInternalLink(href)) return false;
+            if (href === '/logout') return false;
+            if (prefetched[href]) return false;
+            if (href === location.pathname + location.search) return false;
+            if (self._getCached(href)) return false;
+            return true;
+        }
+
+        function doPrefetch(href) {
+            if (prefetched[href] || !window.fetch) return;
+            prefetched[href] = true;
+
+            fetch(href, {
+                headers: { 'X-SPA': '1' },
+                credentials: 'same-origin',
+                priority: 'low'
+            }).then(function(res) {
+                if (!res.ok) return;
+                return res.text();
+            }).then(function(text) {
+                if (text) {
+                    var data = self._parseResponse(text);
+                    if (data) self._setCache(href, data);
+                }
+            }).catch(function() {});
+        }
+
+        // Hover prefetch (desktop) — 65ms delay to avoid prefetching on quick mouse passes
+        $(document).on('mouseenter', 'a', function() {
+            var href = this.getAttribute('href');
+            if (!shouldPrefetch(href)) return;
+            var el = this;
+            el._prefetchTimer = setTimeout(function() {
+                doPrefetch(href);
+            }, 65);
+        }).on('mouseleave', 'a', function() {
+            if (this._prefetchTimer) {
+                clearTimeout(this._prefetchTimer);
+                this._prefetchTimer = null;
+            }
+        });
+
+        // Viewport prefetch (mobile) — IntersectionObserver for visible links
+        if ('IntersectionObserver' in window) {
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (!entry.isIntersecting) return;
+                    var a = entry.target.tagName === 'A' ? entry.target : entry.target.querySelector('a');
+                    if (a) {
+                        var href = a.getAttribute('href');
+                        if (shouldPrefetch(href)) doPrefetch(href);
+                    }
+                    observer.unobserve(entry.target);
+                });
+            }, { rootMargin: '200px' });
+
+            function observeLinks() {
+                var els = document.querySelectorAll('.product-card a, .dash-content a, .shop-page a, .dash-tab, .pricing-card a, .pricing-nav a, .land-nav-container a, .land-cta, .auth-footer a');
+                for (var i = 0; i < els.length; i++) {
+                    observer.observe(els[i]);
+                }
+            }
+
+            $(document).on('page:init', observeLinks);
+            observeLinks();
+        }
+    },
+
+    /* --- Parse response (JSON fragment or full HTML fallback) --- */
+    _parseResponse: function(text) {
+        // Try JSON first (SPA fragment or redirect)
+        try {
+            var data = JSON.parse(text);
+            if (data && (data.body !== undefined || data.redirect)) {
+                return data;
+            }
+        } catch(e) {}
+
+        // Fallback: full HTML — parse with DOMParser
+        try {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(text, 'text/html');
+
+            var styles = [];
+            doc.querySelectorAll('head link[rel="stylesheet"], head link[rel="preload"][as="style"]').forEach(function(l) {
+                styles.push(l.getAttribute('href'));
+            });
+
+            var inlineStyleBlocks = [];
+            doc.querySelectorAll('head style').forEach(function(s) {
+                if (s.textContent.trim()) {
+                    inlineStyleBlocks.push(s.textContent);
+                }
+            });
+
+            var scripts = [];
+            var inlineScripts = [];
+            doc.body.querySelectorAll('script').forEach(function(s) {
+                if (s.src) {
+                    scripts.push(s.src);
+                } else if (s.textContent.trim()) {
+                    if (s.textContent.indexOf('serviceWorker') !== -1) return;
+                    inlineScripts.push(s.textContent);
+                }
+                s.parentNode.removeChild(s);
+            });
+
+            return {
+                title: doc.title || '',
+                bodyClass: doc.body.className || '',
+                csrf: (function() {
+                    var m = doc.querySelector('meta[name="csrf-token"]');
+                    return m ? m.getAttribute('content') : '';
+                })(),
+                styles: styles,
+                inlineStyles: inlineStyleBlocks,
+                scripts: scripts,
+                inlineScripts: inlineScripts,
+                body: doc.body.innerHTML
+            };
+        } catch(e) {
+            return null;
+        }
+    },
+
+    go: function(url, isPopState) {
+        var self = this;
+
+        // Abort any in-flight request
+        if (self._xhr) {
+            self._xhr.abort();
+            self._xhr = null;
+        }
+
+        // Check client cache first — instant navigation
+        var cached = self._getCached(url);
+        if (cached) {
+            if (cached.redirect) {
+                self.go(cached.redirect);
+            } else {
+                self._applyPage(cached, url, isPopState);
+            }
+            return;
+        }
+
+        self._loading = true;
+        self.showProgress();
+
+        // Check if there's a pending instant-click prefetch for this URL
+        if (self._pendingUrl === url && self._pendingFetch) {
+            self._pendingFetch.then(function(data) {
+                if (data) {
+                    self._applyPage(data, url, isPopState);
+                } else {
+                    self._doFetch(url, isPopState);
+                }
+            }).catch(function() {
+                self._doFetch(url, isPopState);
+            });
+            return;
+        }
+
+        self._doFetch(url, isPopState);
+    },
+
+    _doFetch: function(url, isPopState) {
+        var self = this;
+
+        self._xhr = $.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'text',
+            headers: { 'X-SPA': '1' },
+            success: function(text, status, xhr) {
+                self._xhr = null;
+
+                var data = self._parseResponse(text);
+                if (!data) {
+                    // Unparseable — full page reload
+                    window.location.href = url;
+                    return;
+                }
+
+                // Handle SPA redirects (e.g. /logout → /login)
+                if (data.redirect) {
+                    self._cache = {}; // Clear cache on redirect (session may have changed)
+                    self.go(data.redirect);
+                    return;
+                }
+
+                self._setCache(url, data);
+                self._applyPage(data, url, isPopState);
+            },
+            error: function(xhr, status) {
+                self._xhr = null;
+                self._loading = false;
+                self.hideProgress();
+                if (status === 'abort') return;
+                window.location.href = url;
+            }
+        });
+    },
+
+    /* --- Apply page data with view transition --- */
+    _applyPage: function(data, url, isPopState) {
+        var self = this;
+
+        function doSwap() {
+            document.title = data.title || 'TinyShop';
+            document.body.className = data.bodyClass || '';
+
+            // Update CSRF token
+            if (data.csrf) {
+                var oldCsrf = document.querySelector('meta[name="csrf-token"]');
+                if (oldCsrf) oldCsrf.setAttribute('content', data.csrf);
+                TinyShop.csrfToken = data.csrf;
+                $.ajaxSetup({ headers: { 'X-CSRF-Token': data.csrf } });
+            }
+
+            // Sync stylesheets and inline styles
+            self._syncStylesFromList(data.styles || [], data.inlineStyles || []);
+
+            // Swap body content
+            document.body.innerHTML = data.body;
+
+            // Build script list for loadScripts
+            var scriptObjs = [];
+            (data.scripts || []).forEach(function(src) {
+                scriptObjs.push({ src: src, text: '', type: '' });
+            });
+            (data.inlineScripts || []).forEach(function(code) {
+                scriptObjs.push({ src: '', text: code, type: '' });
+            });
+
+            self.loadScripts(scriptObjs, function() {
+                if (!isPopState) {
+                    history.pushState({ spa: true, url: url }, '', url);
+                    window.scrollTo(0, 0);
+                }
+                self._loading = false;
+                self.hideProgress();
+            });
+        }
+
+        // Use View Transitions API if available (Chrome 111+)
+        if (document.startViewTransition) {
+            document.startViewTransition(doSwap);
+        } else {
+            // CSS fallback: brief opacity transition
+            document.body.classList.add('spa-transitioning');
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    doSwap();
+                    document.body.classList.remove('spa-transitioning');
+                    document.body.classList.add('spa-transitioned');
+                    setTimeout(function() {
+                        document.body.classList.remove('spa-transitioned');
+                    }, 100);
+                });
+            });
+        }
+    },
+
+    /* --- Sync stylesheets and inline styles --- */
+    _syncStylesFromList: function(styleHrefs, inlineStyles) {
+        // Remove previously SPA-injected styles
+        var spaStyles = document.head.querySelectorAll('[data-spa-style]');
+        for (var i = 0; i < spaStyles.length; i++) {
+            spaStyles[i].parentNode.removeChild(spaStyles[i]);
+        }
+
+        // Track permanent stylesheets (including preloaded ones)
+        var existingHrefs = {};
+        var permanent = document.head.querySelectorAll('link[rel="stylesheet"]:not([data-spa-style]), link[rel="preload"][as="style"]');
+        for (var i = 0; i < permanent.length; i++) {
+            existingHrefs[permanent[i].getAttribute('href')] = true;
+        }
+
+        // Add new stylesheet links
+        for (var i = 0; i < styleHrefs.length; i++) {
+            if (!existingHrefs[styleHrefs[i]]) {
+                var link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = styleHrefs[i];
+                link.setAttribute('data-spa-style', '');
+                document.head.appendChild(link);
+            }
+        }
+
+        // Add inline <style> blocks
+        if (inlineStyles && inlineStyles.length) {
+            for (var i = 0; i < inlineStyles.length; i++) {
+                var style = document.createElement('style');
+                style.textContent = inlineStyles[i];
+                style.setAttribute('data-spa-style', '');
+                document.head.appendChild(style);
+            }
+        }
+    },
+
+    loadScripts: function(scripts, callback) {
+        var self = this;
+        var externals = [];
+        var inlines = [];
+
+        scripts.forEach(function(s) {
+            // Skip non-JS scripts (JSON-LD, importmap, etc.)
+            var t = (s.type || '').toLowerCase();
+            if (t && t !== 'text/javascript' && t !== 'module') return;
+
+            if (s.src) {
+                // Normalize URL
+                var a = document.createElement('a');
+                a.href = s.src;
+                var fullSrc = a.href;
+                if (!self._loadedScripts[fullSrc]) {
+                    externals.push(fullSrc);
+                    self._loadedScripts[fullSrc] = true;
+                }
+            } else if (s.text && s.text.trim()) {
+                // Skip service worker registration
+                if (s.text.indexOf('serviceWorker') !== -1 && s.text.indexOf('register') !== -1) return;
+                inlines.push(s.text);
+            }
+        });
+
+        // Load externals sequentially, then run inlines
+        function loadNext(idx) {
+            if (idx >= externals.length) {
+                // Execute inline scripts
+                inlines.forEach(function(code) {
+                    var el = document.createElement('script');
+                    el.textContent = code;
+                    document.body.appendChild(el);
+                    document.body.removeChild(el);
+                });
+                if (callback) callback();
+                return;
+            }
+            var el = document.createElement('script');
+            el.src = externals[idx];
+            el.onload = function() { loadNext(idx + 1); };
+            el.onerror = function() { loadNext(idx + 1); };
+            document.body.appendChild(el);
+        }
+        loadNext(0);
+    },
+
+    _getBar: function() {
+        var bar = document.getElementById('spaProgress');
+        if (!bar) {
+            var track = document.createElement('div');
+            track.className = 'spa-progress-track';
+            track.innerHTML = '<div class="spa-progress-bar" id="spaProgress"></div>';
+            document.body.appendChild(track);
+            bar = document.getElementById('spaProgress');
+        }
+        return bar;
+    },
+
+    showProgress: function() {
+        var bar = this._getBar();
+        bar.className = 'spa-progress-bar';
+        bar.style.width = '0%';
+        bar.offsetWidth; // force reflow
+        bar.classList.add('spa-active');
+        bar.style.width = '70%';
+    },
+
+    hideProgress: function() {
+        var bar = this._getBar();
+        bar.style.width = '100%';
+        setTimeout(function() {
+            bar.classList.add('spa-done');
+            bar.classList.remove('spa-active');
+            setTimeout(function() {
+                bar.style.width = '0%';
+                bar.classList.remove('spa-done');
+            }, 200);
+        }, 150);
+    }
+};
+
+/* ============================================================
+   Init SPA on document ready
+   ============================================================ */
+$(function() {
+    TinyShop.spa.init();
 });

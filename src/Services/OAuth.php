@@ -114,10 +114,12 @@ final class OAuth
         }
 
         return [
-            'email'    => $userInfo['email'],
-            'name'     => $userInfo['name'] ?? '',
-            'avatar'   => $userInfo['picture'] ?? '',
-            'provider' => 'google',
+            'id'             => (string) ($userInfo['id'] ?? ''),
+            'email'          => $userInfo['email'],
+            'name'           => $userInfo['name'] ?? '',
+            'avatar'         => $userInfo['picture'] ?? '',
+            'provider'       => 'google',
+            'email_verified' => !empty($userInfo['verified_email']),
         ];
     }
 
@@ -162,10 +164,12 @@ final class OAuth
         }
 
         return [
-            'email'    => '', // Instagram doesn't provide email
-            'name'     => $userInfo['username'],
-            'avatar'   => '',
-            'provider' => 'instagram',
+            'id'             => (string) ($userInfo['id'] ?? $userId),
+            'email'          => '',
+            'name'           => $userInfo['username'],
+            'avatar'         => '',
+            'provider'       => 'instagram',
+            'email_verified' => false,
         ];
     }
 
@@ -210,10 +214,12 @@ final class OAuth
         }
 
         return [
-            'email'    => '', // TikTok doesn't provide email by default
-            'name'     => $data['display_name'] ?? '',
-            'avatar'   => $data['avatar_url'] ?? '',
-            'provider' => 'tiktok',
+            'id'             => (string) ($data['open_id'] ?? ''),
+            'email'          => '',
+            'name'           => $data['display_name'] ?? '',
+            'avatar'         => $data['avatar_url'] ?? '',
+            'provider'       => 'tiktok',
+            'email_verified' => false,
         ];
     }
 

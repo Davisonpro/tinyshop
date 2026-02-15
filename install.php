@@ -128,6 +128,9 @@ final class Installer
             );
             $stmt->execute([$name, $email, password_hash($password, PASSWORD_BCRYPT), 'admin']);
 
+            // Write environment config
+            $this->writeEnvConfig($dbConfig);
+
             // Write lock file
             file_put_contents($this->basePath . '/config/.installed', date('Y-m-d H:i:s'));
 
@@ -244,6 +247,43 @@ final class Installer
         return $ok !== false
             ? ['ok' => true]
             : $this->fail('Could not write config/database.php — check permissions.');
+    }
+
+    private function writeEnvConfig(array $dbConfig): void
+    {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $appUrl = $scheme . '://' . $host;
+        // Base domain: strip port if present
+        $baseDomain = explode(':', $host)[0];
+
+        $config = "<?php\n\ndeclare(strict_types=1);\n\nreturn [\n"
+            . "    'APP_NAME'        => 'TinyShop',\n"
+            . "    'APP_URL'         => " . var_export($appUrl, true) . ",\n"
+            . "    'APP_BASE_DOMAIN' => " . var_export($baseDomain, true) . ",\n"
+            . "    'APP_DEBUG'       => false,\n"
+            . "\n"
+            . "    'DB_HOST'    => " . var_export($dbConfig['host'], true) . ",\n"
+            . "    'DB_PORT'    => " . var_export((int) $dbConfig['port'], true) . ",\n"
+            . "    'DB_NAME'    => " . var_export($dbConfig['dbname'], true) . ",\n"
+            . "    'DB_USERNAME'=> " . var_export($dbConfig['username'], true) . ",\n"
+            . "    'DB_PASSWORD'=> " . var_export($dbConfig['password'], true) . ",\n"
+            . "    'DB_CHARSET' => 'utf8mb4',\n"
+            . "\n"
+            . "    'OAUTH_GOOGLE_ENABLED'       => false,\n"
+            . "    'OAUTH_GOOGLE_CLIENT_ID'     => '',\n"
+            . "    'OAUTH_GOOGLE_CLIENT_SECRET' => '',\n"
+            . "\n"
+            . "    'OAUTH_INSTAGRAM_ENABLED'       => false,\n"
+            . "    'OAUTH_INSTAGRAM_CLIENT_ID'     => '',\n"
+            . "    'OAUTH_INSTAGRAM_CLIENT_SECRET' => '',\n"
+            . "\n"
+            . "    'OAUTH_TIKTOK_ENABLED'       => false,\n"
+            . "    'OAUTH_TIKTOK_CLIENT_KEY'    => '',\n"
+            . "    'OAUTH_TIKTOK_CLIENT_SECRET' => '',\n"
+            . "];\n";
+
+        @file_put_contents($this->basePath . '/config/env.php', $config);
     }
 
     private function createTables(array $data): array

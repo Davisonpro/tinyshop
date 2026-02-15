@@ -10,7 +10,7 @@ use PDO;
 
 final class Order
 {
-    private PDO $db;
+    private readonly PDO $db;
 
     public function __construct(DB $database)
     {
@@ -20,8 +20,12 @@ final class Order
     public function findByUser(int $userId, int $limit = 50, int $offset = 0): array
     {
         $stmt = $this->db->prepare(
-            'SELECT o.* FROM orders o
-             WHERE o.user_id = ? ORDER BY o.created_at DESC LIMIT ? OFFSET ?'
+            'SELECT o.*, COALESCE(COUNT(oi.id), 0) AS item_count
+             FROM orders o
+             LEFT JOIN order_items oi ON oi.order_id = o.id
+             WHERE o.user_id = ?
+             GROUP BY o.id
+             ORDER BY o.created_at DESC LIMIT ? OFFSET ?'
         );
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $stmt->bindValue(2, $limit, PDO::PARAM_INT);
@@ -62,20 +66,73 @@ final class Order
     public function create(array $data): int
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO orders (user_id, product_id, customer_name, customer_phone, amount, status, payment_method, reference_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO orders (user_id, order_number, product_id, customer_name, customer_phone, customer_email, shipping_address, amount, subtotal, status, payment_method, payment_gateway, payment_intent_id, notes, reference_id, coupon_code, discount_amount)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $data['user_id'],
+            $data['order_number'] ?? null,
             $data['product_id'] ?? null,
             $data['customer_name'] ?? null,
             $data['customer_phone'] ?? null,
+            $data['customer_email'] ?? null,
+            isset($data['shipping_address']) ? json_encode($data['shipping_address']) : null,
             $data['amount'] ?? 0,
+            $data['subtotal'] ?? $data['amount'] ?? 0,
             $data['status'] ?? OrderStatus::Pending->value,
-            $data['payment_method'] ?? 'whatsapp',
+            $data['payment_method'] ?? 'manual',
+            $data['payment_gateway'] ?? null,
+            $data['payment_intent_id'] ?? null,
+            $data['notes'] ?? null,
             $data['reference_id'] ?? null,
+            $data['coupon_code'] ?? null,
+            $data['discount_amount'] ?? 0,
         ]);
         return (int) $this->db->lastInsertId();
+    }
+
+    public function findByOrderNumber(string $orderNumber): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM orders WHERE order_number = ?');
+        $stmt->execute([$orderNumber]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    public function findByPaymentIntent(string $intentId): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM orders WHERE payment_intent_id = ?');
+        $stmt->execute([$intentId]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    public static function generateOrderNumber(): string
+    {
+        return 'TS-' . strtoupper(bin2hex(random_bytes(4)));
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        $allowed = ['status', 'payment_intent_id', 'payment_gateway', 'notes', 'customer_email', 'customer_phone'];
+        $fields = [];
+        $values = [];
+
+        foreach ($data as $key => $value) {
+            if (in_array($key, $allowed, true)) {
+                $fields[] = "$key = ?";
+                $values[] = $value;
+            }
+        }
+
+        if (empty($fields)) {
+            return false;
+        }
+
+        $values[] = $id;
+        $sql = 'UPDATE orders SET ' . implode(', ', $fields) . ' WHERE id = ?';
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($values);
     }
 
     public function updateStatus(int $id, string $status): bool
@@ -88,6 +145,41 @@ final class Order
     {
         $stmt = $this->db->prepare('DELETE FROM orders WHERE id = ?');
         return $stmt->execute([$id]);
+    }
+
+    /**
+     * Daily sales totals for a seller over N days.
+     */
+    public function getDailySales(int $userId, int $days = 14): array
+    {
+        $days = max(1, min($days, 90));
+        $stmt = $this->db->prepare(
+            "SELECT DATE(created_at) AS day, COUNT(*) AS orders, COALESCE(SUM(amount), 0) AS revenue
+             FROM orders
+             WHERE user_id = ? AND status = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+             GROUP BY DATE(created_at)
+             ORDER BY day ASC"
+        );
+        $stmt->execute([$userId, OrderStatus::Paid->value, $days]);
+        $rows = $stmt->fetchAll();
+
+        $map = [];
+        foreach ($rows as $r) {
+            $map[$r['day']] = ['orders' => (int) $r['orders'], 'revenue' => (float) $r['revenue']];
+        }
+
+        $result = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = date('Y-m-d', strtotime("-{$i} days"));
+            $result[] = [
+                'day'     => $date,
+                'label'   => date('M j', strtotime($date)),
+                'orders'  => $map[$date]['orders'] ?? 0,
+                'revenue' => $map[$date]['revenue'] ?? 0,
+            ];
+        }
+
+        return $result;
     }
 
     // ── Admin queries ──

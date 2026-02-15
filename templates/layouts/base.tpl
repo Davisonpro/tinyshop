@@ -9,8 +9,10 @@
 
     {block name="body"}{/block}
 
+    {include file="partials/shop_cta.tpl"}
     {include file="partials/toast.tpl"}
     {include file="partials/scripts.tpl"}
     {block name="page_scripts"}{/block}
+    {literal}<script>$(document).trigger('page:init');</script>{/literal}
 </body>
 </html>

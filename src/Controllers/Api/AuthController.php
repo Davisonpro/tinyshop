@@ -22,19 +22,19 @@ final class AuthController
 {
     use JsonResponder;
 
-    private \PDO $db;
+    private readonly \PDO $db;
 
     private const LOGIN_MAX_ATTEMPTS = 5;
     private const LOGIN_LOCKOUT_SECONDS = 900; // 15 minutes
 
     public function __construct(
-        private User $userModel,
-        private Auth $auth,
-        private Mailer $mailer,
-        private Config $config,
-        private Validation $validation,
-        private Setting $setting,
-        private LoggerInterface $logger,
+        private readonly User $userModel,
+        private readonly Auth $auth,
+        private readonly Mailer $mailer,
+        private readonly Config $config,
+        private readonly Validation $validation,
+        private readonly Setting $setting,
+        private readonly LoggerInterface $logger,
         DB $database
     ) {
         $this->db = $database->pdo();
@@ -215,7 +215,7 @@ final class AuthController
 
             $resetUrl = $this->config->url() . '/reset-password?token=' . $plainToken;
 
-            $this->mailer->sendPasswordReset($email, $user['name'], $resetUrl);
+            $this->mailer->sendPasswordReset($email, $user['store_name'] ?? $user['name'], $resetUrl);
 
             $this->logger->info('auth.forgot_password', [
                 'email' => $email,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Slim\App;
 use TinyShop\Middleware\MaintenanceMode;
 use TinyShop\Middleware\SecureHeaders;
+use TinyShop\Middleware\SpaResponse;
 use TinyShop\Middleware\CustomDomain;
 
 return function (App $app): void {
@@ -13,6 +14,9 @@ return function (App $app): void {
 
     $app->addBodyParsingMiddleware();
     $app->addRoutingMiddleware();
+
+    // SPA fragment responses — converts HTML → JSON when X-SPA: 1 header is present
+    $app->add(SpaResponse::class);
 
     // Custom domain detection — rewrites URI *before* routing resolves
     $app->add(CustomDomain::class);

@@ -11,7 +11,7 @@ use PDO;
 
 final class User
 {
-    private PDO $db;
+    private readonly PDO $db;
 
     public function __construct(DB $database)
     {
@@ -90,7 +90,7 @@ final class User
 
     public function findSellers(int $limit = 50, int $offset = 0, string $search = ''): array
     {
-        $sql = 'SELECT id, name, email, store_name, subdomain, is_active, created_at, last_login_at, login_count, currency
+        $sql = 'SELECT id, name, email, store_name, subdomain, custom_domain, is_active, created_at, updated_at, last_login_at, login_count, currency
                 FROM users WHERE role = ?';
         $params = [UserRole::Seller->value];
 
@@ -198,10 +198,16 @@ final class User
 
         $allowed = [
             'name', 'email', 'store_name', 'subdomain', 'custom_domain',
-            'shop_logo', 'shop_tagline', 'contact_whatsapp', 'contact_email',
+            'shop_logo', 'shop_favicon', 'shop_tagline', 'contact_whatsapp', 'contact_email',
             'contact_phone', 'map_link', 'currency', 'is_active',
             'social_instagram', 'social_tiktok', 'social_facebook',
             'shop_theme',
+            'stripe_public_key', 'stripe_secret_key', 'stripe_mode', 'stripe_enabled',
+            'paypal_client_id', 'paypal_secret', 'paypal_mode', 'paypal_enabled',
+            'payment_mode',
+            'show_store_name', 'show_tagline', 'show_search',
+            'show_categories', 'show_sort_toolbar', 'show_desktop_footer',
+            'announcement_text',
         ];
 
         foreach ($allowed as $field) {
@@ -259,6 +265,12 @@ final class User
     {
         $stmt = $this->db->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
         return $stmt->execute([$hash, $id]);
+    }
+
+    public function updateOAuth(int $id, string $provider, string $oauthId): bool
+    {
+        $stmt = $this->db->prepare('UPDATE users SET oauth_provider = ?, oauth_id = ? WHERE id = ?');
+        return $stmt->execute([$provider, $oauthId, $id]);
     }
 
     public function updateEmail(int $id, string $email): bool

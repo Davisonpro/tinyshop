@@ -1,9 +1,11 @@
 <header class="shop-header">
     <div class="shop-header-top">
+        {if $shop.show_store_name|default:1}
         <h1 class="shop-name">{$shop.store_name|default:$shop.name}</h1>
+        {/if}
         <div class="shop-header-actions">
             <button type="button" class="shop-search-toggle" id="searchToggle" aria-label="Search products">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <i class="fa-solid fa-magnifying-glass" style="font-size:18px"></i>
             </button>
             {if $shop.shop_logo}
                 <img src="{$shop.shop_logo}" alt="{$shop.store_name}" class="shop-logo">
@@ -13,7 +15,7 @@
         </div>
     </div>
 
-    {if $shop.shop_tagline}
+    {if $shop.show_tagline|default:1 && $shop.shop_tagline}
         <p class="shop-tagline">{$shop.shop_tagline}</p>
     {/if}
 
@@ -33,23 +35,29 @@
         <button type="button" class="shop-share-btn" data-share-trigger aria-label="Share this shop">
             <span>Share</span>
         </button>
+        {if !empty($has_payments)}
+            <button type="button" class="cart-trigger" aria-label="Shopping cart">
+                <i class="fa-solid fa-cart-shopping" style="font-size:16px"></i>
+                <span class="cart-badge" style="display:none">0</span>
+            </button>
+        {/if}
     </nav>
 
     {if $shop.social_instagram || $shop.social_tiktok || $shop.social_facebook}
     <nav class="shop-social">
         {if $shop.social_instagram}
             <a href="https://instagram.com/{$shop.social_instagram|escape}" target="_blank" rel="noopener" title="Instagram">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                <i class="fa-brands fa-instagram" style="font-size:16px"></i>
             </a>
         {/if}
         {if $shop.social_tiktok}
             <a href="https://tiktok.com/@{$shop.social_tiktok|escape}" target="_blank" rel="noopener" title="TikTok">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78 2.92 2.92 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.57 6.33 6.33 0 0 0 9.37 22a6.33 6.33 0 0 0 6.37-6.22V9.4a8.16 8.16 0 0 0 3.85.96V7.04a4.85 4.85 0 0 1-0-.35z"/></svg>
+                <i class="fa-brands fa-tiktok" style="font-size:16px"></i>
             </a>
         {/if}
         {if $shop.social_facebook}
             <a href="https://facebook.com/{$shop.social_facebook|escape}" target="_blank" rel="noopener" title="Facebook">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                <i class="fa-brands fa-facebook-f" style="font-size:16px"></i>
             </a>
         {/if}
     </nav>

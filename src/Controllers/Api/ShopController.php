@@ -11,6 +11,7 @@ use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Models\User;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Hooks;
+use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Upload;
 use TinyShop\Services\Validation;
 
@@ -18,11 +19,12 @@ final class ShopController
 {
     use JsonResponder;
     public function __construct(
-        private User $userModel,
-        private Auth $auth,
-        private Validation $validation,
-        private Upload $upload,
-        private LoggerInterface $logger
+        private readonly User $userModel,
+        private readonly Auth $auth,
+        private readonly Validation $validation,
+        private readonly Upload $upload,
+        private readonly PlanGuard $planGuard,
+        private readonly LoggerInterface $logger
     ) {}
 
     public function get(Request $request, Response $response): Response
@@ -53,6 +55,45 @@ final class ShopController
         // Validate theme if being changed
         if (isset($data['shop_theme']) && !in_array($data['shop_theme'], Validation::VALID_THEMES, true)) {
             return $this->json($response, ['error' => true, 'message' => 'Invalid theme'], 422);
+        }
+
+        // Plan: theme restriction
+        if (isset($data['shop_theme']) && !$this->planGuard->canUseTheme($userId, $data['shop_theme'])) {
+            return $this->json($response, ['error' => true, 'message' => 'This theme is only available on paid plans.'], 403);
+        }
+
+        // Validate payment modes (per-gateway)
+        foreach (['payment_mode', 'stripe_mode', 'paypal_mode'] as $modeField) {
+            if (isset($data[$modeField]) && !in_array($data[$modeField], ['test', 'live'], true)) {
+                $data[$modeField] = 'test';
+            }
+        }
+
+        // Sanitize gateway enabled flags
+        foreach (['stripe_enabled', 'paypal_enabled'] as $enabledField) {
+            if (isset($data[$enabledField])) {
+                $data[$enabledField] = $data[$enabledField] ? 1 : 0;
+            }
+        }
+
+        // Sanitize design toggle flags
+        foreach (['show_store_name', 'show_tagline', 'show_search', 'show_categories', 'show_sort_toolbar', 'show_desktop_footer'] as $toggleField) {
+            if (isset($data[$toggleField])) {
+                $data[$toggleField] = $data[$toggleField] ? 1 : 0;
+            }
+        }
+
+        // Sanitize announcement text
+        if (isset($data['announcement_text'])) {
+            $text = trim($data['announcement_text']);
+            $data['announcement_text'] = $text === '' ? null : mb_substr($text, 0, 500);
+        }
+
+        // Trim payment credential fields
+        foreach (['stripe_public_key', 'stripe_secret_key', 'paypal_client_id', 'paypal_secret'] as $payField) {
+            if (isset($data[$payField])) {
+                $data[$payField] = trim($data[$payField]) ?: null;
+            }
         }
 
         // Sanitize phone numbers
@@ -92,8 +133,13 @@ final class ShopController
         // Validate custom domain if being changed
         if (array_key_exists('custom_domain', $data)) {
             $domain = trim($data['custom_domain'] ?? '');
+            $currentUser = $this->userModel->findById($userId);
+            $currentDomain = $currentUser['custom_domain'] ?? null;
+
             if ($domain === '') {
                 $data['custom_domain'] = null;
+            } else if ($domain !== $currentDomain && !$this->planGuard->canUseCustomDomain($userId)) {
+                return $this->json($response, ['error' => true, 'message' => 'Custom domains are available on paid plans.'], 403);
             } else {
                 // Normalize: lowercase, strip protocol/trailing slashes
                 $domain = strtolower($domain);

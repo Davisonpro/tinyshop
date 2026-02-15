@@ -31,12 +31,16 @@ final class CustomDomain implements MiddlewareInterface
         '/public/',
         '/install',
         '/~shop/',
+        '/checkout/',
+        '/webhook/',
+        '/health',
     ];
 
-    private string $baseDomain;
+    private static array $domainCache = [];
+    private readonly string $baseDomain;
 
     public function __construct(
-        private User $userModel,
+        private readonly User $userModel,
         Config $config
     ) {
         $this->baseDomain = strtolower($config->baseDomain());
@@ -91,12 +95,17 @@ final class CustomDomain implements MiddlewareInterface
             }
         }
 
-        // Custom domain: myshop.com → DB lookup
+        // Custom domain: myshop.com → DB lookup (with in-memory cache)
         if ($host !== $base && $host !== 'www.' . $base) {
-            $shop = $this->userModel->findByCustomDomain($host);
-            if ($shop !== null) {
-                return $shop['subdomain'];
+            if (array_key_exists($host, self::$domainCache)) {
+                return self::$domainCache[$host];
             }
+
+            $shop = $this->userModel->findByCustomDomain($host);
+            $subdomain = $shop['subdomain'] ?? null;
+            self::$domainCache[$host] = $subdomain;
+
+            return $subdomain;
         }
 
         return null;

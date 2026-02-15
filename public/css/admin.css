@@ -4,11 +4,6 @@
    Only admin-specific overrides here.
    ============================================================ */
 
-/* Remove sidebar margin — admin uses bottom tabs like seller */
-.page-admin .dash-content {
-    margin-left: 0;
-}
-
 /* Admin avatar */
 .admin-avatar {
     background: linear-gradient(135deg, #FEF2F2, #FEE2E2);
@@ -310,35 +305,27 @@ a.seller-cell:hover strong {
     color: #16A34A;
 }
 
-/* Button extras */
-.btn-sm {
+/* Button extras — admin-specific overrides */
+.page-admin .btn-sm {
     padding: 6px 14px;
     font-size: 0.8125rem;
     border-radius: var(--radius-md);
 }
-.btn-outline {
+/* Admin overrides — .btn base provides display, cursor, transition, font-family */
+.page-admin .btn-outline {
     border: 1px solid var(--color-border);
     background: none;
     color: var(--color-text);
     text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.15s;
 }
-.btn-outline:hover {
+.page-admin .btn-outline:hover {
     background: var(--color-bg-alt);
 }
-.btn-danger {
+.page-admin .btn-danger {
     background: #DC2626;
     color: #fff;
-    border: none;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.15s;
 }
-.btn-danger:hover {
+.page-admin .btn-danger:hover {
     background: #B91C1C;
 }
 
@@ -493,6 +480,25 @@ a.seller-cell:hover strong {
     cursor: not-allowed;
 }
 
+/* Admin copy button — tighter for desktop admin UI (.settings-copy-row base in dashboard.css) */
+.page-admin .btn-copy {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.page-admin .btn-copy:hover {
+    color: var(--color-text);
+    border-color: var(--color-text-muted);
+}
+
 /* Spinner for async buttons */
 .btn-spinner {
     display: inline-block;
@@ -561,5 +567,303 @@ a.seller-cell:hover strong {
 
     .toggle-track {
         background: #3A3A3C;
+    }
+
+    .gateway-status-badge {
+        background: rgba(5, 150, 105, 0.15);
+        color: #34D399;
+    }
+
+    /* Plan cards dark mode */
+    .plan-feature i {
+        background: rgba(64, 156, 255, 0.15);
+        color: #409CFF;
+    }
+    .plan-badge-default {
+        background: var(--color-primary);
+    }
+    .plan-badge-inactive {
+        background: #3A3A3C;
+        border-color: #48484A;
+    }
+    .plan-card-edit {
+        background: #3A3A3C;
+    }
+
+    /* Plan form chips dark mode */
+    .plan-checkbox:has(input:checked) {
+        border-color: #409CFF;
+        background: rgba(64, 156, 255, 0.12);
+    }
+    .plan-radio:has(input:checked) {
+        background: #3A3A3C;
+    }
+}
+
+/* Gateway status badge (Connected pill on payment rows) */
+.gateway-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: #ECFDF5;
+    color: #059669;
+    border-radius: 6px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+/* Gateway modal header (Stripe/PayPal setup modals) */
+.gateway-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.gateway-modal-header .gateway-brand-name {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+/* ============================================================
+   Plans Page
+   ============================================================ */
+.plan-card {
+    background: var(--color-bg);
+    border-radius: 16px;
+    padding: 0;
+    margin-bottom: 14px;
+    border: 1.5px solid var(--color-border);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.plan-card:active {
+    border-color: var(--color-text-muted);
+}
+.plan-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px 0;
+}
+.plan-card-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.plan-card-name {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    margin: 0;
+}
+.plan-badge {
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+.plan-badge-default {
+    background: var(--color-primary);
+    color: #fff;
+}
+.plan-badge-inactive {
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+}
+.plan-card-edit {
+    background: var(--color-bg-alt);
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+.plan-card-edit:active {
+    background: var(--color-border);
+    color: var(--color-text);
+    transform: scale(0.92);
+}
+.plan-card-pricing {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 8px 18px 4px;
+}
+.plan-card-price {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+.plan-card-cycle {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+.plan-card-yearly {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+.plan-card-desc {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin: 0;
+    padding: 0 18px 10px;
+    line-height: 1.4;
+}
+.plan-card-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: 6px 18px 12px;
+}
+.plan-feature {
+    font-size: 0.75rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 50%;
+    padding: 5px 0;
+}
+.plan-feature i {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 10px;
+    background: rgba(0, 122, 255, 0.08);
+    color: #007AFF;
+}
+.plan-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    padding: 10px 18px;
+    background: var(--color-bg-alt);
+    border-top: 1px solid var(--color-border);
+}
+
+/* Plan form inside modal — segmented control for radios */
+.plan-themes-toggle {
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    background: var(--color-bg-alt);
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 4px;
+}
+.plan-radio {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    text-align: center;
+}
+.plan-radio:has(input:checked) {
+    background: var(--color-bg);
+    color: var(--color-text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.plan-radio input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+/* Plan form — selectable chips for checkboxes */
+.plan-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1.5px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.plan-checkbox:active {
+    transform: scale(0.96);
+}
+.plan-checkbox:has(input:checked) {
+    border-color: var(--color-primary);
+    background: rgba(0, 102, 255, 0.06);
+    color: var(--color-text);
+}
+.plan-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+#themeCheckboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.plan-form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+}
+/* Form section title inside modal */
+.form-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ============================================================
+   Desktop App Window — Admin (1024px+)
+   ============================================================ */
+@media (min-width: 1024px) {
+    /* Admin sidebar: red accent branding */
+    .page-admin .dash-sidebar-brand svg {
+        color: #EF4444;
+    }
+
+    .page-admin .dash-tab.active {
+        background: rgba(239, 68, 68, 0.1);
+        color: #EF4444;
+    }
+
+    .seller-meta {
+        grid-template-columns: repeat(4, 1fr);
     }
 }

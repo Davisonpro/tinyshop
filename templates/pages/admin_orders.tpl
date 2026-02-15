@@ -58,7 +58,7 @@
                         <td>
                             <div class="admin-actions">
                                 <a href="/admin/sellers/{$order.user_id}" class="btn-icon" title="View seller">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <i class="fa-solid fa-eye icon-md"></i>
                                 </a>
                             </div>
                         </td>

@@ -56,11 +56,11 @@
                             <div class="admin-actions">
                                 {if $product.subdomain}
                                 <a href="{$scheme}://{$product.subdomain|escape}.{$base_domain}/{$product.slug|default:$product.id}" target="_blank" class="btn-icon" title="View in shop">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                    <i class="fa-solid fa-arrow-up-right-from-square icon-md"></i>
                                 </a>
                                 {/if}
                                 <button type="button" class="btn-icon btn-icon-danger admin-delete-product" data-id="{$product.id}" title="Delete product">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                    <i class="fa-solid fa-trash icon-md"></i>
                                 </button>
                             </div>
                         </td>
@@ -90,19 +90,23 @@
 document.querySelectorAll('.admin-delete-product').forEach(function(btn) {
     btn.addEventListener('click', function() {
         var id = this.dataset.id;
-        if (!confirm('Delete this product? This cannot be undone.')) return;
         var row = this.closest('tr');
-        fetch('/api/admin/products/' + id, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(res) {
-            if (res.success) {
-                row.remove();
-                TinyShop.toast('Product deleted', 'success');
-            }
-        });
+        TinyShop.confirm('Delete Product?', 'This will permanently delete this product. This cannot be undone.', 'Delete', function() {
+            document.getElementById('confirmModalOk').disabled = true;
+            document.getElementById('confirmModalOk').textContent = 'Deleting...';
+            fetch('/api/admin/products/' + id, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.success) {
+                    row.remove();
+                    TinyShop.toast('Product deleted', 'success');
+                    TinyShop.closeModal();
+                }
+            });
+        }, 'danger');
     });
 });
 </script>

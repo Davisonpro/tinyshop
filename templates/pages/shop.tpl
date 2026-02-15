@@ -3,127 +3,97 @@
 {block name="body_class"}page-shop{/block}
 
 {block name="body"}
-<div class="shop-page">
+{include file="partials/desktop_header.tpl"}
+<div class="shop-page" data-subdomain="{$shop.subdomain|escape}" data-total="{$total_products}" data-limit="{$products_limit}" data-currency="{$currency_symbol|escape}">
     <div class="container">
+        {include file="partials/announcement_bar.tpl"}
         {include file="partials/shop_header.tpl"}
 
-        {if $products|@count > 0}
+        {block name="shop_hero"}{/block}
+
+        {if $total_products > 0 && $shop.show_search|default:1}
+        {block name="shop_search"}
         <div class="shop-search" id="shopSearch">
-            <svg class="shop-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" class="shop-search-input" id="searchInput" placeholder="Search products..." autocomplete="off">
+            <i class="fa-solid fa-magnifying-glass shop-search-icon" style="font-size:18px"></i>
+            <input type="text" class="shop-search-input" id="searchInput" placeholder="{block name='search_placeholder'}Search products...{/block}" autocomplete="off">
             <button type="button" class="shop-search-clear" id="searchClear" aria-label="Clear search">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <i class="fa-solid fa-xmark" style="font-size:16px"></i>
             </button>
         </div>
+        {/block}
         {/if}
 
-        {if $category_tree|@count > 0}
-        {* Check if any category has an image *}
-        {assign var="has_cat_images" value=false}
-        {foreach $category_tree as $cat}
-            {if $cat.image_url}{assign var="has_cat_images" value=true}{/if}
-        {/foreach}
+        {if $shop.show_categories|default:1}
+        {block name="shop_categories"}
+        {include file="partials/shop_categories.tpl"}
+        {/block}
+        {/if}
 
-        {* Always render pill tabs — some themes use these *}
-        <nav class="category-tabs{if !$has_cat_images} category-tabs-only{/if}" id="categoryTabs">
-            <button class="category-tab active" data-category="all">All</button>
-            {foreach $category_tree as $parent}
-                {assign var="childIds" value=$parent.id}
-                {if !empty($parent.children)}
-                    {foreach $parent.children as $child}
-                        {assign var="childIds" value="`$childIds`,`$child.id`"}
-                    {/foreach}
-                {/if}
-                <button class="category-tab" data-category="{$childIds}">{$parent.name|escape}</button>
-            {/foreach}
-        </nav>
-
-        {* Also render image cards if images exist — themes choose which to show *}
-        {if $has_cat_images}
-        <div class="category-cards-scroll" id="categoryCards">
-            <button class="category-card active" data-category="all">
-                <div class="category-card-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                </div>
-                <span class="category-card-name">All</span>
-            </button>
-            {foreach $category_tree as $parent}
-                {assign var="childIds" value=$parent.id}
-                {if !empty($parent.children)}
-                    {foreach $parent.children as $child}
-                        {assign var="childIds" value="`$childIds`,`$child.id`"}
-                    {/foreach}
-                {/if}
-                <button class="category-card" data-category="{$childIds}">
-                    {if $parent.image_url}
-                        <img src="{$parent.image_url|escape}" alt="{$parent.name|escape}" loading="lazy" onload="this.classList.add('loaded')">
+        {if $total_products > 0 && $shop.show_sort_toolbar|default:1}
+            <div class="product-toolbar" id="productToolbar">
+                <div class="product-count" id="productCount">
+                    {if $total_products > $products_limit}
+                        Showing {$products|@count} of {$total_products} products
                     {else}
-                        <div class="category-card-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
-                        </div>
+                        {$total_products} {if $total_products == 1}product{else}products{/if}
                     {/if}
-                    <span class="category-card-name">{$parent.name|escape}</span>
-                </button>
-            {/foreach}
-        </div>
-        {/if}
-        {/if}
-
-        {if $products|@count > 0}
-            <div class="product-toolbar">
-                <div class="product-count" id="productCount">{$products|@count} {if $products|@count == 1}product{else}products{/if}</div>
+                </div>
+                <select class="product-sort" id="productSort" aria-label="Sort products">
+                    <option value="default">Featured</option>
+                    <option value="newest">Newest</option>
+                    <option value="price_asc">Price: Low to High</option>
+                    <option value="price_desc">Price: High to Low</option>
+                    <option value="name_asc">Name: A &ndash; Z</option>
+                </select>
             </div>
         {/if}
 
+        {block name="pre_grid"}{/block}
+
+        {block name="search_empty"}
         <div class="search-empty" id="searchEmpty" style="display:none">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3; margin-bottom:12px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <i class="fa-solid fa-magnifying-glass" style="font-size:48px;color:var(--color-text-muted);opacity:0.3;margin-bottom:12px"></i>
             <p class="search-empty-title">No results found</p>
             <p class="search-empty-hint">Try a different search term</p>
         </div>
+        {/block}
 
-        <section class="product-grid" id="catalogue">
+        <section class="product-grid {block name='grid_class'}{/block}" id="catalogue">
             {foreach $products as $product}
                 {include file="partials/product_card.tpl" product=$product currency_symbol=$currency_symbol}
             {foreachelse}
+                {block name="empty_state"}
                 <div class="empty-state">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4; margin-bottom:16px">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-                    </svg>
-                    <p><strong>No products yet</strong></p>
-                    <p style="font-size:0.8125rem">This shop is setting up — check back soon!</p>
+                    <i class="fa-solid fa-bag-shopping" style="font-size:64px;color:var(--color-text-muted);opacity:0.4;margin-bottom:16px"></i>
+                    <p><strong>Coming soon</strong></p>
+                    <p style="font-size:0.8125rem">This shop is getting ready — check back soon!</p>
                 </div>
+                {/block}
             {/foreach}
         </section>
 
+        {if $total_products > $products_limit}
+        <div class="load-more-wrap" id="loadMoreWrap">
+            <button type="button" class="load-more-btn" id="loadMoreBtn">
+                Show more products
+                <span class="load-more-count" id="loadMoreCount">({$total_products - $products|@count} more)</span>
+            </button>
+        </div>
+        {/if}
+
+        {block name="shop_footer"}
         <footer class="shop-footer">
-            Powered by <a href="{$base_url}">{$app_name}</a>
+            &copy; {$shop.store_name|escape}
         </footer>
+        {/block}
     </div>
 
-    {* Sticky CTA — WhatsApp or generic contact *}
-    {if $shop.contact_whatsapp}
-        <div class="sticky-cta">
-            <a href="https://wa.me/{$shop.contact_whatsapp}?text=Hi! I'm interested in your products" class="btn btn-accent" target="_blank" rel="noopener">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 0 1-4.243-1.214l-.293-.175-3.04.797.81-2.957-.192-.304A7.963 7.963 0 0 1 4 12a8 8 0 1 1 16 0 8 8 0 0 1-8 8z"/></svg>
-                Chat on WhatsApp
-            </a>
-        </div>
-    {elseif $shop.contact_phone}
-        <div class="sticky-cta">
-            <a href="tel:{$shop.contact_phone}" class="btn btn-accent">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                Contact Seller
-            </a>
-        </div>
-    {elseif $shop.contact_email}
-        <div class="sticky-cta">
-            <a href="mailto:{$shop.contact_email}" class="btn btn-accent">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></svg>
-                Email Seller
-            </a>
-        </div>
-    {/if}
-
     {include file="partials/share_sheet.tpl"}
+    {include file="partials/cart_drawer.tpl"}
 </div>
+{include file="partials/desktop_footer.tpl"}
+
+{block name="theme_scripts"}{/block}
+
+{include file="partials/shop_jsonld.tpl"}
 {/block}

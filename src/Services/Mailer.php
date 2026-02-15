@@ -13,10 +13,10 @@ final class Mailer
 {
     private const DEFAULT_SMTP_PORT = 587;
 
-    private string $appName;
-    private string $appUrl;
-    private Smarty $smarty;
-    private Setting $settings;
+    private readonly string $appName;
+    private readonly string $appUrl;
+    private readonly Smarty $smarty;
+    private readonly Setting $settings;
 
     public function __construct(Config $config, Setting $settings)
     {
@@ -41,6 +41,58 @@ final class Mailer
         $html = $this->smarty->fetch('emails/password_reset.tpl');
 
         return $this->send($email, $this->appName . ' - Reset Your Password', $html) === null;
+    }
+
+    public function sendOrderConfirmation(
+        string $customerEmail,
+        string $customerName,
+        array $order,
+        array $items,
+        array $shop
+    ): bool {
+        if (empty($customerEmail) || !filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $storeName = $shop['store_name'] ?? 'Shop';
+        $currency = $shop['currency'] ?? 'USD';
+
+        $this->smarty->assign('store_name', $storeName);
+        $this->smarty->assign('customer_name', $customerName);
+        $this->smarty->assign('order', $order);
+        $this->smarty->assign('items', $items);
+        $this->smarty->assign('currency', $currency);
+
+        $html = $this->smarty->fetch('emails/order_confirmation.tpl');
+        $subject = 'Order Confirmed — #' . ($order['order_number'] ?? '');
+
+        return $this->send($customerEmail, $subject, $html) === null;
+    }
+
+    public function sendNewOrderNotification(
+        string $sellerEmail,
+        string $sellerName,
+        array $order,
+        array $items,
+        array $shop
+    ): bool {
+        if (empty($sellerEmail) || !filter_var($sellerEmail, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $currency = $shop['currency'] ?? 'USD';
+
+        $this->smarty->assign('app_name', $this->appName);
+        $this->smarty->assign('seller_name', $sellerName);
+        $this->smarty->assign('order', $order);
+        $this->smarty->assign('items', $items);
+        $this->smarty->assign('currency', $currency);
+        $this->smarty->assign('dashboard_url', $this->appUrl . '/dashboard/orders');
+
+        $html = $this->smarty->fetch('emails/new_order.tpl');
+        $subject = 'New Order #' . ($order['order_number'] ?? '') . ' — ' . $currency . ' ' . number_format((float) ($order['amount'] ?? 0), 2);
+
+        return $this->send($sellerEmail, $subject, $html) === null;
     }
 
     /**

@@ -1,1 +1,1 @@
-<div id="toast" class="toast" role="alert" aria-live="polite" aria-atomic="true"></div>
+{* Toast container is created dynamically by TinyShop.toast() in app.js *}

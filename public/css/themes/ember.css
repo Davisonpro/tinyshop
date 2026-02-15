@@ -1,48 +1,43 @@
 /* ============================================================
-   EMBER — Warm artisanal craft. Handmade. Intimate. Soulful.
-   Think: Kinfolk magazine, Toast clothing, Le Labo fragrances,
-   Etsy handmade, Aesop stores.
-   Perfect for: handmade crafts, ceramics, candles, artisanal food,
-   plant shops, bakeries.
+   EMBER — Kinfolk / Cereal Editorial Magazine Lookbook.
+   Warm. Curated. Generous whitespace.
 
-   Design: Georgia/serif headings, warm earth palette, rounded (10px),
-   gentle warm-tinted shadows, arrow indicator on product cards.
-   Layout: Single-column full-width cards with portrait 3:4 images,
-   arrow navigation on cards, warm earth tones throughout.
-   Template overrides: shop_header.tpl, product_card.tpl
+   UNIQUE STRUCTURE:
+   - Warm beige/taupe page background (#e8e4dc)
+   - Cream product cards with white bottom bar
+   - Arrow indicator on every product card
+   - Sage olive accent color (#a8b090)
+   - Serif text-link categories with underline (not filled pills)
+   - Georgia serif for headings and categories
+   - Staggered editorial grid — first product is hero
+   - Dark warm footer (#3a3830) on desktop
+   - No shadows — flat, editorial design
    ============================================================ */
 
 
 /* ==========================================================
-   1. THEME VARIABLES — Full warm earth palette
+   1. VARIABLES — Warm taupe catalog palette
    ========================================================== */
 .theme-ember {
-    --color-accent: #9B6B2F;
-    --color-accent-hover: #83591F;
-    --color-accent-light: rgba(155, 107, 47, 0.1);
-    --color-accent-glow: rgba(155, 107, 47, 0.18);
-    --color-bg: #FDFAF5;
-    --color-bg-alt: #F5EFE4;
-    --color-bg-secondary: #EDE4D3;
-    --color-bg-elevated: #FDFAF5;
-    --color-border: #DDD4C0;
-    --color-border-hover: #C9BD9F;
-    --color-text: #2C2418;
-    --color-text-secondary: #5C4E3A;
-    --color-text-muted: #8C7E68;
+    --color-accent: #a8b090;
+    --color-accent-hover: #96a07e;
+    --color-bg: #e8e4dc;
+    --color-bg-alt: #f2f0ea;
+    --color-bg-secondary: #d8d4ca;
+    --color-bg-elevated: #ffffff;
+    --color-border: #c8c2b8;
+    --color-border-hover: #b0a898;
+    --color-text: #1a1a1a;
+    --color-text-secondary: #555555;
+    --color-text-muted: #999999;
     --color-white: #FFFFFF;
-    --shadow-sm: 0 1px 3px rgba(139, 105, 20, 0.06);
-    --shadow-md: 0 4px 12px rgba(139, 105, 20, 0.08);
-    --shadow-lg: 0 8px 24px rgba(139, 105, 20, 0.1);
-    --shadow-accent: 0 4px 16px rgba(155, 107, 47, 0.2);
-    --transition-fast: 0.15s ease;
-    --transition-base: 0.2s ease;
-    --transition-slow: 0.3s ease;
+    --shadow-sm: none;
+    --shadow-md: none;
 }
 
 
 /* ==========================================================
-   2. PAGE BACKGROUNDS — Warm cream canvas
+   2. PAGE — Warm taupe canvas
    ========================================================== */
 .theme-ember .shop-page,
 .theme-ember .product-page {
@@ -51,15 +46,12 @@
 
 
 /* ==========================================================
-   3. SHOP HEADER — Left-aligned, literary serif feel
-   Structure: .shop-header-top (logo + .shop-header-actions)
-              > h1.shop-name > .shop-tagline
-              > .shop-social > .shop-contact
+   3. HEADER — Left-aligned, clean editorial
    ========================================================== */
 .theme-ember .shop-header {
-    padding-bottom: var(--spacing-lg);
-    border-bottom: 1px solid var(--color-border);
-    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md) 0 var(--spacing-sm);
+    border-bottom: none;
+    margin-bottom: var(--spacing-sm);
     text-align: left;
 }
 
@@ -72,129 +64,109 @@
 
 .theme-ember .shop-header-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
 }
 
-/* Shop name: Georgia serif, literary warmth */
 .theme-ember .shop-name {
-    font-family: 'Georgia', 'Times New Roman', serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-weight: 700;
-    font-size: 1.75rem;
-    letter-spacing: -0.02em;
+    font-style: italic;
+    font-size: 1.625rem;
+    letter-spacing: -0.5px;
     color: var(--color-text);
     line-height: 1.15;
     margin-bottom: 4px;
 }
 
-/* Tagline: italic literary feel */
 .theme-ember .shop-tagline {
-    font-style: italic;
     color: var(--color-text-muted);
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     line-height: 1.5;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
 }
 
 
 /* ==========================================================
-   4. LOGO — 52px, warm border, warm shadow, serif placeholder
+   4. LOGO — Rounded square, subtle border
    ========================================================== */
 .theme-ember .shop-logo {
-    width: 52px;
-    height: 52px;
-    border: 2px solid var(--color-border);
-    box-shadow: 0 2px 8px rgba(139, 105, 20, 0.06);
-    border-radius: var(--radius-md);
+    max-height: 48px;
+    width: auto;
+    margin: 0;
     flex-shrink: 0;
-    transition: border-color var(--transition-base), box-shadow var(--transition-base);
-}
-
-.theme-ember .shop-logo:hover {
-    border-color: var(--color-border-hover);
-    box-shadow: 0 2px 12px rgba(139, 105, 20, 0.1);
+    object-fit: contain;
 }
 
 .theme-ember .shop-logo-placeholder {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
+    margin: 0;
     background: var(--color-bg-alt);
-    color: var(--color-accent);
-    font-family: 'Georgia', serif;
+    color: var(--color-text-secondary);
+    font-family: Georgia, serif;
     font-weight: 700;
-    font-size: 1.375rem;
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-md);
+    font-style: italic;
+    font-size: 1.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: background var(--transition-base), border-color var(--transition-base);
-}
-
-.theme-ember .shop-logo-placeholder:hover {
-    background: var(--color-bg-secondary);
-    border-color: var(--color-border-hover);
 }
 
 
 /* ==========================================================
-   5. CONTACT & SOCIAL — Filled warm pills with icons
+   5. ACCENT LINE — No longer used (removed from template)
    ========================================================== */
+.theme-ember .ember-accent-line {
+    display: none;
+}
 
-/* Contact links: warm filled pills, icons + text spans */
+
+/* ==========================================================
+   6. CONTACT — Outlined pills (not filled)
+   ========================================================== */
 .theme-ember .shop-contact {
     justify-content: flex-start;
     gap: 8px;
 }
 
 .theme-ember .shop-contact a {
-    background: var(--color-bg-alt);
-    color: var(--color-text-muted);
-    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--color-text-secondary);
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
     font-size: 0.8125rem;
-    padding: 6px 14px;
+    padding: 7px 16px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: background var(--transition-base), color var(--transition-base),
-                box-shadow var(--transition-base);
 }
 
-.theme-ember .shop-contact a svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    opacity: 0.7;
-    transition: opacity var(--transition-base);
-}
-
-.theme-ember .shop-contact a:hover {
+.theme-ember .shop-contact a:active {
     background: var(--color-accent);
+    border-color: var(--color-accent);
     color: var(--color-white);
-    box-shadow: var(--shadow-accent);
 }
 
-.theme-ember .shop-contact a:hover svg {
-    opacity: 1;
+.theme-ember .shop-contact a i {
+    font-size: 12px;
+    opacity: 0.6;
 }
 
-/* Share button: warm pill, matches contact links */
 .theme-ember .shop-share-btn {
-    background: var(--color-bg-alt);
-    color: var(--color-text-muted);
-    border-radius: var(--radius-full);
-    transition: background var(--transition-base), color var(--transition-base),
-                box-shadow var(--transition-base);
+    background: transparent;
+    color: var(--color-text-secondary);
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
 }
 
-.theme-ember .shop-share-btn:hover {
+.theme-ember .shop-share-btn:active {
     background: var(--color-accent);
+    border-color: var(--color-accent);
     color: var(--color-white);
-    box-shadow: var(--shadow-accent);
 }
 
-/* Social: left-aligned, warm background, subtle hover */
 .theme-ember .shop-social {
     justify-content: flex-start;
     margin-bottom: var(--spacing-sm);
@@ -202,22 +174,36 @@
 }
 
 .theme-ember .shop-social a {
-    background: var(--color-bg-alt);
+    background: transparent;
     color: var(--color-text-muted);
-    border-radius: var(--radius-full);
-    transition: background var(--transition-base), color var(--transition-base),
-                transform var(--transition-base);
+    border: 1.5px solid var(--color-border);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
 }
 
-.theme-ember .shop-social a:hover {
-    background: var(--color-bg-secondary);
+.theme-ember .shop-social a:active {
     color: var(--color-accent);
-    transform: translateY(-1px);
+    border-color: var(--color-accent);
 }
 
 
 /* ==========================================================
-   6. SEARCH TOGGLE — In header actions, round pill, warm bg
+   6b. ANNOUNCEMENT BAR
+   ========================================================== */
+.theme-ember .announcement-bar {
+    background: var(--color-accent);
+    color: #fff;
+    border-radius: 8px;
+    margin: 0 0 12px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 500;
+}
+
+
+/* ==========================================================
+   7. SEARCH TOGGLE
    ========================================================== */
 .theme-ember .shop-search-toggle {
     display: flex;
@@ -225,35 +211,28 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    background: var(--color-bg-alt);
-    border-radius: var(--radius-full);
+    background: transparent;
+    border: 1.5px solid var(--color-border);
+    border-radius: 50%;
     color: var(--color-text-muted);
-    transition: background var(--transition-base), color var(--transition-base),
-                box-shadow var(--transition-base);
-}
-
-.theme-ember .shop-search-toggle:hover {
-    background: var(--color-bg-secondary);
-    color: var(--color-accent);
-    box-shadow: 0 2px 8px rgba(139, 105, 20, 0.08);
 }
 
 .theme-ember .shop-search-toggle:active {
-    background: var(--color-accent);
-    color: var(--color-white);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
 }
 
 
 /* ==========================================================
-   7. SEARCH INPUT — Round pill, warm bg, accent focus ring
+   8. SEARCH INPUT — Underline style
    ========================================================== */
 .theme-ember .shop-search-input {
-    background: var(--color-bg-alt);
-    border-radius: var(--radius-full);
-    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
     color: var(--color-text);
-    transition: background var(--transition-base), border-color var(--transition-base),
-                box-shadow var(--transition-base);
+    padding-left: 36px;
 }
 
 .theme-ember .shop-search-input::placeholder {
@@ -262,9 +241,10 @@
 }
 
 .theme-ember .shop-search-input:focus {
-    background: var(--color-bg);
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px rgba(155, 107, 47, 0.12), 0 2px 8px rgba(139, 105, 20, 0.08);
+    background: transparent;
+    border-color: var(--color-text);
+    box-shadow: none;
+    border-radius: 0;
 }
 
 .theme-ember .shop-search-icon {
@@ -275,252 +255,251 @@
     color: var(--color-text-muted);
 }
 
-.theme-ember .shop-search-clear:hover {
-    color: var(--color-accent);
-}
-
 
 /* ==========================================================
-   8. CATEGORIES — Image cards with warm active glow
-      Tab fallback: filled warm pills, round, active = accent
+   9. CATEGORIES — Serif text links with underline (editorial)
    ========================================================== */
 
-/* Category image cards */
-.theme-ember .category-card {
-    transition: transform var(--transition-base);
+/* Show text tabs, hide image cards — Ember uses editorial text links */
+.theme-ember .category-tabs {
+    display: flex !important;
+    gap: 16px;
+    border-bottom: none;
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
 }
 
-.theme-ember .category-card:hover {
-    transform: translateY(-1px);
+.theme-ember .category-cards-scroll {
+    display: none !important;
 }
 
+.theme-ember .category-tab {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    border: none;
+    background: none;
+    border-radius: 0;
+    padding: 8px 4px;
+    border-bottom: 2px solid transparent;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+}
+
+.theme-ember .category-tab:hover {
+    color: var(--color-text);
+    border-bottom-color: var(--color-border);
+}
+
+.theme-ember .category-tab.active {
+    color: var(--color-text);
+    border-bottom: 2px solid var(--color-accent);
+    font-weight: 600;
+    background: none;
+    box-shadow: none;
+}
+
+/* Category image cards (hidden in Ember, kept for fallback) */
 .theme-ember .category-card img {
-    border-radius: var(--radius-md);
-    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    border-radius: 10px;
 }
 
 .theme-ember .category-card.active img {
     border-color: var(--color-accent);
-    box-shadow: 0 2px 8px rgba(155, 107, 47, 0.15), 0 0 0 2px rgba(155, 107, 47, 0.1);
 }
 
 .theme-ember .category-card-icon {
     background: var(--color-bg-alt);
     color: var(--color-text-muted);
-    border-radius: var(--radius-md);
-    transition: background var(--transition-base), color var(--transition-base),
-                box-shadow var(--transition-base);
+    border: 1.5px solid var(--color-border);
+    border-radius: 10px;
 }
 
 .theme-ember .category-card.active .category-card-icon {
     background: var(--color-accent);
     color: var(--color-white);
-    box-shadow: 0 2px 10px rgba(155, 107, 47, 0.25);
+    border-color: var(--color-accent);
 }
 
 .theme-ember .category-card-name {
     color: var(--color-text-muted);
     font-size: 0.75rem;
-    transition: color var(--transition-base), font-weight var(--transition-fast);
 }
 
 .theme-ember .category-card.active .category-card-name {
-    color: var(--color-accent);
+    color: var(--color-text);
     font-weight: 600;
-}
-
-/* Category tabs (fallback when no images) */
-.theme-ember .category-tab {
-    border: none;
-    background: var(--color-bg-alt);
-    color: var(--color-text-muted);
-    border-radius: var(--radius-full);
-    font-size: 0.8125rem;
-    font-weight: 500;
-    padding: 8px 16px;
-    transition: background var(--transition-base), color var(--transition-base),
-                box-shadow var(--transition-base);
-}
-
-.theme-ember .category-tab:hover {
-    background: var(--color-bg-secondary);
-    color: var(--color-accent);
-}
-
-.theme-ember .category-tab.active {
-    background: var(--color-accent);
-    color: var(--color-white);
-    box-shadow: 0 2px 8px rgba(155, 107, 47, 0.2);
 }
 
 
 /* ==========================================================
-   9. PRODUCT COUNT — Warm muted, understated
+   10. PRODUCT COUNT
    ========================================================== */
 .theme-ember .product-count {
     color: var(--color-text-muted);
     font-size: 0.8125rem;
-    font-style: italic;
+    font-weight: 400;
+}
+
+.theme-ember .product-sort {
+    border-color: var(--color-border);
+    background: transparent;
+    border-radius: 20px;
+    color: var(--color-text-secondary);
 }
 
 
 /* ==========================================================
-   10. PRODUCT GRID — 16px gap, breathing room
+   11. PRODUCT GRID
    ========================================================== */
 .theme-ember .product-grid {
     gap: 16px;
 }
 
-
-/* ==========================================================
-   11. PRODUCT CARDS — Warm border, accent hover, 3:4 portrait,
-       flex row body, arrow indicator
-       Structure: .product-card > .product-card-img (3:4)
-                  > .product-card-body (.product-card-info
-                    + .product-card-arrow)
-   ========================================================== */
-.theme-ember .product-card {
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-    transition: box-shadow var(--transition-base), border-color var(--transition-base),
-                transform var(--transition-base);
+/* Staggered editorial grid: first card hero, generous spacing */
+.theme-ember .ember-grid-staggered {
+    gap: 16px;
 }
 
-.theme-ember .product-card:hover {
-    box-shadow: var(--shadow-md);
-    border-color: var(--color-accent);
-    transform: translateY(-1px);
+.theme-ember .ember-grid-staggered .product-card:first-child {
+    grid-column: 1 / -1;
+}
+
+.theme-ember .ember-grid-staggered .product-card:first-child .product-card-img {
+    aspect-ratio: 16 / 9;
+}
+
+
+/* ==========================================================
+   12. PRODUCT CARDS — Cream bg, white bottom bar, arrow
+   ========================================================== */
+.theme-ember .product-card {
+    border: none;
+    background: var(--color-bg-alt);
+    border-radius: 16px;
+    box-shadow: none;
+    overflow: hidden;
 }
 
 .theme-ember .product-card:active {
-    transform: translateY(0);
-    box-shadow: var(--shadow-sm);
+    box-shadow: none;
+    transform: scale(0.98);
 }
 
-/* Portrait 3:4 image ratio */
 .theme-ember .product-card-img {
     aspect-ratio: 3 / 4;
-    background: var(--color-bg-alt);
+    background: var(--color-bg-secondary);
     border-radius: 0;
     overflow: hidden;
-    position: relative;
 }
 
 .theme-ember .product-card-img img {
     object-fit: cover;
     width: 100%;
     height: 100%;
-    transition: transform var(--transition-slow);
 }
 
-.theme-ember .product-card:hover .product-card-img img {
-    transform: scale(1.03);
-}
-
-/* Card body: flex row — info left, arrow right */
+/* Card body: white bottom bar — info left, arrow right */
 .theme-ember .product-card-body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 14px;
+    padding: 10px 14px;
     gap: 10px;
+    background: var(--color-white);
+    border-radius: 0 0 16px 16px;
 }
 
-/* Card info block */
 .theme-ember .product-card-info {
     flex: 1;
     min-width: 0;
 }
 
-/* Product title: Georgia serif, understated */
 .theme-ember .product-title {
-    font-family: 'Georgia', serif;
-    font-weight: 400;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 600;
     font-size: 0.8125rem;
     color: var(--color-text);
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     line-height: 1.35;
+    letter-spacing: 0.3px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* Product price: accent color, bold */
 .theme-ember .product-price {
-    color: var(--color-accent);
-    font-weight: 700;
-    font-size: 0.875rem;
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: 0.8125rem;
     line-height: 1.3;
 }
 
-.theme-ember .product-price .price-original {
+.theme-ember .product-price .price-compare {
     color: var(--color-text-muted);
     font-weight: 400;
     text-decoration: line-through;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
 }
 
-/* Arrow indicator: warm circle with right arrow */
+.theme-ember .product-price .price-sale {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+/* Arrow indicator: thin circle with arrow */
 .theme-ember .product-card-arrow {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-full);
-    background: var(--color-bg-alt);
+    border-radius: 50%;
+    background: transparent;
+    border: 1.5px solid var(--color-border);
     color: var(--color-text-muted);
-    font-size: 0.875rem;
-    transition: background var(--transition-base), color var(--transition-base),
-                transform var(--transition-base), box-shadow var(--transition-base);
 }
 
-.theme-ember .product-card:hover .product-card-arrow {
-    background: var(--color-accent);
-    color: var(--color-white);
-    transform: translateX(3px);
-    box-shadow: 0 2px 8px rgba(155, 107, 47, 0.25);
+.theme-ember .product-card-arrow i {
+    font-size: 10px;
 }
 
 .theme-ember .product-card:active .product-card-arrow {
-    transform: translateX(1px);
+    background: var(--color-text);
+    border-color: var(--color-text);
+    color: var(--color-white);
+    transform: translateX(2px);
 }
 
 
 /* ==========================================================
-   12. BADGES — Warm accent background, rounded
+   13. BADGES — Sage olive pill
    ========================================================== */
 .theme-ember .product-badge {
-    border-radius: var(--radius-sm);
+    border-radius: 10px;
     background: var(--color-accent);
     color: var(--color-white);
-    font-size: 0.6875rem;
+    font-size: 0.5625rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
-}
-
-.theme-ember .product-badge-sale {
-    background: var(--color-accent);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 12px;
 }
 
 .theme-ember .product-badge-sold {
-    background: var(--color-text-muted);
-}
-
-.theme-ember .product-badge-featured {
-    background: var(--color-accent);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
 }
 
 .theme-ember .product-detail-badge {
-    border-radius: var(--radius-sm);
+    border-radius: 10px;
 }
 
 .theme-ember .badge-sold {
-    background: var(--color-text-muted);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
     color: var(--color-white);
 }
 
@@ -531,112 +510,114 @@
 
 
 /* ==========================================================
-   13. PRODUCT DETAIL GALLERY — Warm dots, rounded nav buttons
+   14. PRODUCT DETAIL GALLERY
    ========================================================== */
 .theme-ember .product-gallery {
-    background: var(--color-bg-alt);
-    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+    border-radius: 0;
     overflow: hidden;
 }
 
-.theme-ember .gallery-dot {
-    transition: background var(--transition-base), transform var(--transition-base);
-}
-
 .theme-ember .gallery-dot.active {
-    background: var(--color-accent);
-    box-shadow: 0 0 6px rgba(155, 107, 47, 0.35);
+    background: var(--color-text);
 }
 
 .theme-ember .product-nav-btn {
-    border-radius: var(--radius-md);
-    background: rgba(253, 250, 245, 0.85);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
     backdrop-filter: blur(8px);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    transition: background var(--transition-base), color var(--transition-base),
-                box-shadow var(--transition-base);
-}
-
-.theme-ember .product-nav-btn:hover {
-    background: var(--color-bg);
-    color: var(--color-accent);
-    box-shadow: var(--shadow-md);
+    color: #fff;
+    border: none;
 }
 
 
 /* ==========================================================
-   14. PRODUCT INFO — Georgia serif name, accent price
+   15. PRODUCT INFO — Georgia serif, muted pricing
    ========================================================== */
 .theme-ember .product-info-name {
-    font-family: 'Georgia', 'Times New Roman', serif;
-    font-size: 1.625rem;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.5rem;
     font-weight: 400;
-    letter-spacing: -0.01em;
-    line-height: 1.25;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
     color: var(--color-text);
 }
 
-.theme-ember .product-info-price .price-current {
-    color: var(--color-accent);
-    font-weight: 700;
-    font-size: 1.25rem;
+.theme-ember .product-info-category {
+    color: var(--color-text-muted);
+    font-size: 0.6875rem;
+    letter-spacing: 1px;
 }
 
-.theme-ember .product-info-price .price-original {
+.theme-ember .product-info-price .price-current {
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.theme-ember .product-info-price .price-original,
+.theme-ember .product-info-price .price-compare {
     color: var(--color-text-muted);
     text-decoration: line-through;
 }
 
 .theme-ember .product-info-price .price-sale {
-    color: var(--color-accent);
-    font-weight: 700;
+    color: var(--color-text);
+    font-weight: 600;
 }
 
 
 /* ==========================================================
-   15. VARIATIONS — Warm border, rounded, selected = accent
+   16. STORY BLOCK — Subtle left border
+   ========================================================== */
+.theme-ember .ember-story-block {
+    border-left: 2px solid var(--color-border);
+    padding-left: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+}
+
+
+/* ==========================================================
+   17. VARIATIONS — Rounded outline options
    ========================================================== */
 .theme-ember .product-variations {
     border-top-color: var(--color-border);
 }
 
-.theme-ember .product-variation-option {
-    border-color: var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--color-text);
-    background: var(--color-bg);
-    transition: border-color var(--transition-base), background var(--transition-base),
-                color var(--transition-base), box-shadow var(--transition-base);
+.theme-ember .product-variation-label {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
 }
 
-.theme-ember .product-variation-option:hover {
-    border-color: var(--color-border-hover);
-    background: var(--color-bg-alt);
+.theme-ember .product-variation-option {
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    color: var(--color-text-secondary);
+    background: transparent;
 }
 
 .theme-ember .product-variation-option.selected {
-    border-color: var(--color-accent);
-    background: var(--color-accent);
+    border-color: var(--color-text);
+    background: var(--color-text);
     color: var(--color-white);
-    box-shadow: 0 2px 8px rgba(155, 107, 47, 0.2);
 }
 
 
 /* ==========================================================
-   16. DISCOUNT BADGE — Accent bg, rounded
+   18. DISCOUNT BADGE
    ========================================================== */
 .theme-ember .price-discount-badge {
     background: var(--color-accent);
     color: var(--color-white);
-    border-radius: var(--radius-sm);
+    border-radius: 10px;
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
 }
 
 
 /* ==========================================================
-   17. DESCRIPTION — Readable sizing, warm gradient fade
+   19. DESCRIPTION
    ========================================================== */
 .theme-ember .product-info-desc {
     font-size: 0.9375rem;
@@ -645,28 +626,20 @@
 }
 
 .theme-ember .product-info-desc:not(.expanded)::after {
-    background: linear-gradient(
-        to bottom,
-        rgba(253, 250, 245, 0) 0%,
-        rgba(253, 250, 245, 0.85) 60%,
-        rgba(253, 250, 245, 1) 100%
-    );
+    background: linear-gradient(transparent, var(--color-bg));
 }
 
 .theme-ember .product-desc-toggle {
-    color: var(--color-accent);
+    color: var(--color-text);
     font-weight: 500;
-    font-size: 0.875rem;
-    transition: color var(--transition-base);
-}
-
-.theme-ember .product-desc-toggle:hover {
-    color: var(--color-accent-hover);
+    font-size: 0.8125rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 
 /* ==========================================================
-   18. CTA — Accent bg, rounded (radius-md), warm gradient
+   20. CTA — Dark button
    ========================================================== */
 .theme-ember .sticky-cta {
     background: var(--color-bg);
@@ -675,101 +648,88 @@
 .theme-ember .sticky-cta::before {
     background: linear-gradient(
         to bottom,
-        rgba(253, 250, 245, 0) 0%,
-        rgba(253, 250, 245, 1) 100%
+        rgba(232, 228, 220, 0) 0%,
+        rgba(232, 228, 220, 1) 100%
     );
 }
 
 .theme-ember .sticky-cta .btn {
-    background: var(--color-accent);
+    background: var(--color-text);
     color: var(--color-white);
-    border-radius: var(--radius-md);
+    border-radius: 20px;
     font-weight: 600;
     font-size: 1rem;
-    letter-spacing: 0.01em;
-    box-shadow: 0 4px 12px rgba(155, 107, 47, 0.2);
-    transition: background var(--transition-base), box-shadow var(--transition-base),
-                transform var(--transition-base);
-}
-
-.theme-ember .sticky-cta .btn:hover {
-    background: var(--color-accent-hover);
-    box-shadow: 0 6px 18px rgba(155, 107, 47, 0.28);
-    transform: translateY(-1px);
+    box-shadow: none;
 }
 
 .theme-ember .sticky-cta .btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(155, 107, 47, 0.2);
+    opacity: 0.85;
 }
+.theme-ember .sticky-cta .btn-whatsapp { background: #25D366; color: #fff; }
 
 
 /* ==========================================================
-   19. MORE PRODUCTS — Georgia serif, accent price
+   21. MORE PRODUCTS
    ========================================================== */
+.theme-ember .more-products {
+    border-top-color: var(--color-border);
+}
+
 .theme-ember .more-products-title {
-    font-family: 'Georgia', serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-weight: 400;
-    font-size: 1rem;
-    letter-spacing: 0;
+    font-size: 1.125rem;
     color: var(--color-text);
+    letter-spacing: 0.5px;
 }
 
 .theme-ember .more-product-img {
-    border-radius: var(--radius-md);
+    border-radius: 12px;
     background: var(--color-bg-alt);
     overflow: hidden;
 }
 
 .theme-ember .more-product-name {
-    font-family: 'Georgia', serif;
-    font-weight: 400;
+    font-weight: 600;
     font-size: 0.8125rem;
     color: var(--color-text);
 }
 
 .theme-ember .more-product-price {
-    color: var(--color-accent);
-    font-weight: 600;
-}
-
-.theme-ember .more-product-item {
-    border-bottom-color: var(--color-border);
+    color: var(--color-text-muted);
+    font-weight: 400;
+    font-size: 0.8125rem;
 }
 
 
 /* ==========================================================
-   20. FOOTER — Italic, warm muted
+   22. FOOTER — Italic serif
    ========================================================== */
 .theme-ember .shop-footer {
     font-style: italic;
     color: var(--color-text-muted);
     font-size: 0.8125rem;
-    line-height: 1.6;
 }
 
 .theme-ember .shop-footer a {
     color: var(--color-text-muted);
-    transition: color var(--transition-base);
 }
 
-.theme-ember .shop-footer a:hover {
-    color: var(--color-accent);
+.theme-ember .shop-footer a:active {
+    color: var(--color-text);
 }
 
 
 /* ==========================================================
-   21. SHARE SHEET — Warm elevated background
+   23. SHARE SHEET
    ========================================================== */
 .theme-ember .share-sheet {
-    background: var(--color-bg-elevated);
-    border-top: 1px solid var(--color-border);
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    box-shadow: var(--shadow-lg);
+    background: var(--color-white);
+    border-radius: 16px 16px 0 0;
 }
 
 .theme-ember .share-sheet-overlay {
-    background: rgba(44, 36, 24, 0.3);
+    background: rgba(26, 26, 26, 0.3);
 }
 
 .theme-ember .share-sheet-handle {
@@ -778,21 +738,16 @@
 
 .theme-ember .share-sheet-title {
     color: var(--color-text);
-    font-family: 'Georgia', serif;
+    font-family: Georgia, serif;
 }
 
 .theme-ember .share-sheet-option {
     color: var(--color-text);
-    border-radius: var(--radius-md);
-    transition: background var(--transition-base);
+    border-radius: 12px;
 }
 
-.theme-ember .share-sheet-option:hover {
+.theme-ember .share-sheet-option:active {
     background: var(--color-bg-alt);
-}
-
-.theme-ember .share-sheet-option svg {
-    color: var(--color-text-muted);
 }
 
 .theme-ember .share-sheet-cancel {
@@ -802,15 +757,14 @@
 
 
 /* ==========================================================
-   22. TOAST — Accent background, warm feel
+   24. TOAST
    ========================================================== */
 .theme-ember .toast {
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
+    border-radius: 12px;
 }
 
 .theme-ember .toast-success {
-    background: var(--color-accent);
+    background: var(--color-text);
     color: var(--color-white);
 }
 
@@ -821,114 +775,331 @@
 
 
 /* ==========================================================
-   23. EMPTY STATE — Warm text, gentle tone
+   25. EMPTY STATE
    ========================================================== */
 .theme-ember .empty-state {
     color: var(--color-text-muted);
-    font-style: italic;
 }
 
-.theme-ember .empty-state-icon {
-    color: var(--color-border);
-}
-
-.theme-ember .empty-state-title {
+.theme-ember .search-empty-title {
     color: var(--color-text-secondary);
-    font-family: 'Georgia', serif;
 }
 
-.theme-ember .empty-state-text {
-    color: var(--color-text-muted);
-    font-size: 0.9375rem;
-    line-height: 1.6;
+
+/* ── Mobile cart FAB — dark bg for visibility on white images ── */
+.theme-ember .mobile-cart-fab {
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    border-radius: 50%;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 
 /* ==========================================================
-   24. BUTTON OVERRIDES — Warm accent primary
+   26. BUTTONS
    ========================================================== */
 .theme-ember .btn-primary {
-    background: var(--color-accent);
+    background: var(--color-text);
     color: var(--color-white);
-    border-radius: var(--radius-md);
+    border-radius: 20px;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(155, 107, 47, 0.15);
-    transition: background var(--transition-base), box-shadow var(--transition-base),
-                transform var(--transition-base);
-}
-
-.theme-ember .btn-primary:hover:not(:disabled) {
-    background: var(--color-accent-hover);
-    box-shadow: var(--shadow-accent);
-    transform: translateY(-1px);
+    box-shadow: none;
 }
 
 .theme-ember .btn-primary:active:not(:disabled) {
-    transform: translateY(0);
+    opacity: 0.85;
 }
 
 .theme-ember .btn-primary:disabled {
     background: var(--color-bg-secondary);
     color: var(--color-text-muted);
-    box-shadow: none;
+}
+
+.theme-ember .btn-accent {
+    background: var(--color-text);
+    color: var(--color-white);
+    border-radius: 20px;
 }
 
 .theme-ember .btn-secondary {
-    background: var(--color-bg-alt);
+    background: transparent;
     color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
 }
 
-.theme-ember .btn-secondary:hover:not(:disabled) {
-    background: var(--color-bg-secondary);
-    border-color: var(--color-border-hover);
+.theme-ember .btn-outline {
+    border-color: var(--color-border);
+    border-radius: 20px;
 }
 
 
 /* ==========================================================
-   25. DARK MODE — Full @media block
-   Warm dark tones: deep browns, golden accent, cream text
+   27. CART
+   ========================================================== */
+.theme-ember .cart-qty-selector {
+    border-radius: 20px;
+    border-color: var(--color-border);
+}
+.theme-ember .cart-checkout-btn {
+    border-radius: 8px;
+    font-family: Georgia, 'Times New Roman', serif;
+}
+.theme-ember .cart-drawer {
+    border-radius: 16px 16px 0 0;
+}
+
+
+/* ==========================================================
+   28. LOAD MORE
+   ========================================================== */
+.theme-ember .load-more-btn {
+    border-color: var(--color-border);
+    border-radius: 20px;
+    color: var(--color-text-secondary);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+}
+
+/* ── Floating Contact CTA ─────────────────────────────────── */
+.theme-ember .floating-contact-cta .btn {
+    border-radius: 8px;
+    font-family: Georgia, 'Times New Roman', serif;
+}
+
+
+/* ==========================================================
+   29. DESKTOP HEADER & FOOTER
+   ========================================================== */
+@media (min-width: 1024px) {
+
+    /* ─── Desktop Header: luxf editorial bar ─── */
+    .theme-ember .desktop-header {
+        background: var(--color-bg);
+        box-shadow: none;
+        border-bottom: none;
+    }
+    .theme-ember .desktop-header-inner {
+        height: auto;
+        padding: 22px 40px;
+        gap: 24px;
+    }
+
+    /* Brand: text-only italic serif — no logo image */
+    .theme-ember .ember-brand-text {
+        gap: 0;
+    }
+    .theme-ember .ember-brand-text .desktop-header-name {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-weight: 700;
+        font-style: italic;
+        font-size: 1.375rem;
+        letter-spacing: -0.5px;
+        color: var(--color-text);
+    }
+
+    /* Nav links: plain text, 13px, muted — active gets underline */
+    .theme-ember .desktop-header-nav {
+        gap: 24px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .theme-ember .desktop-header-link {
+        position: relative;
+        border-radius: 0;
+        font-size: 0.8125rem;
+        font-weight: 400;
+        letter-spacing: 0;
+        text-transform: none;
+        color: #666;
+        background: transparent;
+        padding: 4px 0;
+    }
+    .theme-ember .desktop-header-link:hover {
+        color: var(--color-text);
+        background: transparent;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    /* Icon buttons: 36px circular outline — matches luxf exactly */
+    .theme-ember .desktop-header-actions {
+        gap: 10px;
+        margin-left: 0;
+    }
+    .theme-ember .desktop-header-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1.5px solid #ccc;
+        color: #666;
+        background: transparent;
+        font-size: 14px;
+    }
+    .theme-ember .desktop-header-btn:hover {
+        color: var(--color-text);
+        border-color: var(--color-text);
+        background: transparent;
+    }
+    /* Show share + social buttons on Ember */
+    .theme-ember .desktop-header-btn[data-share-trigger] {
+        display: flex;
+    }
+    .theme-ember .desktop-header-cart {
+        border-radius: 50%;
+        border: 1.5px solid #ccc;
+        background: transparent;
+        color: #666;
+    }
+    .theme-ember .desktop-header-cart:hover {
+        border-color: var(--color-text);
+        color: var(--color-text);
+        background: transparent;
+    }
+    .theme-ember .desktop-header-btn .cart-badge {
+        background: var(--color-accent);
+    }
+
+    /* ─── Desktop Footer: luxf dark warm brown ─── */
+    .theme-ember .desktop-footer.ember-footer {
+        background: #3a3830;
+        border-top: none;
+        margin-top: auto;
+    }
+
+    /* Custom Ember footer inner layout — replaces default 3-col grid */
+    .theme-ember .ember-footer-inner {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 28px 40px 20px;
+    }
+
+    /* Top row: brand name left, social circles right */
+    .theme-ember .ember-footer-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+    }
+    .theme-ember .ember-footer-brand {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 1.25rem;
+        font-weight: 700;
+        font-style: italic;
+        color: #fff;
+        letter-spacing: -0.5px;
+        text-decoration: none;
+    }
+    .theme-ember .ember-footer-brand:hover {
+        opacity: 0.85;
+    }
+
+    /* Social circles: small dark filled circles */
+    .theme-ember .ember-footer-social {
+        display: flex;
+        gap: 8px;
+    }
+    .theme-ember .ember-footer-social a {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #555;
+        color: #999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        text-decoration: none;
+        transition: all 0.15s;
+    }
+    .theme-ember .ember-footer-social a:hover {
+        color: #fff;
+        background: #666;
+    }
+
+    /* Divider */
+    .theme-ember .ember-footer-divider {
+        height: 1px;
+        background: #4a4840;
+        margin-bottom: 14px;
+    }
+
+    /* Bottom row: nav links left, copyright right */
+    .theme-ember .ember-footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: none;
+        padding: 0;
+        max-width: none;
+        margin: 0;
+    }
+    .theme-ember .ember-footer-links {
+        display: flex;
+        gap: 20px;
+    }
+    .theme-ember .ember-footer-links a {
+        font-size: 0.71875rem;
+        color: #999;
+        text-decoration: none;
+        transition: color 0.15s;
+    }
+    .theme-ember .ember-footer-links a:hover {
+        color: #fff;
+    }
+    .theme-ember .ember-footer-copy {
+        font-size: 0.6875rem;
+        color: #888;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        font-weight: 500;
+    }
+
+    /* Desktop product grid: subtle hover */
+    .theme-ember .product-card:hover {
+        transform: translateY(-2px);
+    }
+    .theme-ember .product-card:hover .product-card-arrow {
+        border-color: var(--color-text);
+        color: var(--color-text);
+    }
+}
+
+
+/* ==========================================================
+   30. DARK MODE
    ========================================================== */
 @media (prefers-color-scheme: dark) {
 
-    /* ── Dark Variables ── */
     .theme-ember {
-        --color-accent: #D4A54C;
-        --color-accent-hover: #C09838;
-        --color-accent-light: rgba(212, 165, 76, 0.1);
-        --color-accent-glow: rgba(212, 165, 76, 0.18);
-        --color-bg: #1C1914;
+        --color-accent: #c0c8a8;
+        --color-accent-hover: #a8b090;
+        --color-bg: #1c1914;
         --color-bg-alt: #282218;
-        --color-bg-secondary: #30291E;
+        --color-bg-secondary: #30291e;
         --color-bg-elevated: #282218;
-        --color-border: #3D3428;
-        --color-border-hover: #50442F;
-        --color-text: #E8E0D0;
-        --color-text-secondary: #C4B898;
-        --color-text-muted: #A89878;
+        --color-border: #3d3428;
+        --color-border-hover: #50442f;
+        --color-text: #ece4d4;
+        --color-text-secondary: #d0c4a6;
+        --color-text-muted: #8a8070;
         --color-white: #FFFFFF;
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-        --shadow-accent: 0 4px 16px rgba(212, 165, 76, 0.15);
+        --shadow-sm: none;
+        --shadow-md: none;
     }
 
-    /* ── Dark Page Backgrounds ── */
     .theme-ember .shop-page,
     .theme-ember .product-page {
         background: var(--color-bg);
     }
 
-    /* ── Dark Product Cards ── */
     .theme-ember .product-card {
         background: var(--color-bg-alt);
-        border-color: var(--color-border);
     }
 
-    .theme-ember .product-card:hover {
-        border-color: var(--color-accent);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(212, 165, 76, 0.08);
+    .theme-ember .product-card-body {
+        background: var(--color-bg-secondary);
     }
 
     .theme-ember .product-card-img {
@@ -936,38 +1107,116 @@
     }
 
     .theme-ember .product-card-arrow {
+        border-color: var(--color-border);
+        color: var(--color-text-muted);
+    }
+
+    .theme-ember .product-card:active .product-card-arrow {
+        background: var(--color-text);
+        border-color: var(--color-text);
+        color: var(--color-bg);
+    }
+
+    .theme-ember .shop-logo-placeholder {
         background: var(--color-bg-secondary);
         color: var(--color-text-muted);
     }
 
-    .theme-ember .product-card:hover .product-card-arrow {
+    .theme-ember .shop-contact a {
+        background: transparent;
+        color: var(--color-text-muted);
+        border-color: var(--color-border);
+    }
+
+    .theme-ember .shop-contact a:active {
         background: var(--color-accent);
+        border-color: var(--color-accent);
         color: var(--color-bg);
     }
 
-    /* ── Dark Logo Placeholder ── */
-    .theme-ember .shop-logo-placeholder {
-        background: var(--color-bg-secondary);
+    .theme-ember .shop-share-btn {
+        background: transparent;
+        color: var(--color-text-muted);
+        border-color: var(--color-border);
+    }
+
+    .theme-ember .shop-share-btn:active {
+        background: var(--color-accent);
+        border-color: var(--color-accent);
+        color: var(--color-bg);
+    }
+
+    .theme-ember .shop-social a {
+        background: transparent;
+        color: var(--color-text-muted);
+        border-color: var(--color-border);
+    }
+
+    .theme-ember .shop-social a:active {
+        border-color: var(--color-accent);
         color: var(--color-accent);
+    }
+
+    .theme-ember .category-tab {
+        background: none;
+        color: var(--color-text-muted);
+        border: none;
+        border-bottom: 2px solid transparent;
+    }
+
+    .theme-ember .category-tab:hover {
+        color: var(--color-text);
+        border-bottom-color: var(--color-border);
+    }
+
+    .theme-ember .category-tab.active {
+        background: none;
+        color: var(--color-text);
+        border: none;
+        border-bottom: 2px solid var(--color-accent);
+    }
+
+    .theme-ember .category-card.active .category-card-icon {
+        background: var(--color-accent);
+        color: var(--color-bg);
+        border-color: var(--color-accent);
+    }
+
+    .theme-ember .category-card-icon {
+        background: var(--color-bg-alt);
         border-color: var(--color-border);
     }
 
-    .theme-ember .shop-logo {
-        border-color: var(--color-border);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    .theme-ember .product-gallery {
+        background: var(--color-bg-alt);
     }
 
-    /* ── Dark Description Fade ── */
+    .theme-ember .gallery-dot.active {
+        background: var(--color-text);
+    }
+
+    .theme-ember .product-nav-btn {
+        background: rgba(40, 34, 24, 0.85);
+        color: var(--color-text);
+        border: none;
+    }
+
     .theme-ember .product-info-desc:not(.expanded)::after {
-        background: linear-gradient(
-            to bottom,
-            rgba(28, 25, 20, 0) 0%,
-            rgba(28, 25, 20, 0.85) 60%,
-            rgba(28, 25, 20, 1) 100%
-        );
+        background: linear-gradient(transparent, var(--color-bg));
     }
 
-    /* ── Dark CTA Fade ── */
+    .theme-ember .product-variation-option {
+        background: transparent;
+        border-color: var(--color-border);
+        color: var(--color-text-muted);
+    }
+
+    .theme-ember .product-variation-option.selected {
+        background: var(--color-text);
+        border-color: var(--color-text);
+        color: var(--color-bg);
+    }
+
     .theme-ember .sticky-cta {
         background: var(--color-bg);
     }
@@ -981,21 +1230,13 @@
     }
 
     .theme-ember .sticky-cta .btn {
-        background: var(--color-accent);
+        background: var(--color-text);
         color: var(--color-bg);
-        box-shadow: 0 4px 12px rgba(212, 165, 76, 0.2);
     }
+    .theme-ember .sticky-cta .btn-whatsapp { background: #25D366; color: #fff; }
 
-    .theme-ember .sticky-cta .btn:hover {
-        background: var(--color-accent-hover);
-        box-shadow: 0 6px 18px rgba(212, 165, 76, 0.28);
-    }
-
-    /* ── Dark Share Sheet ── */
     .theme-ember .share-sheet {
         background: var(--color-bg-elevated);
-        border-top-color: var(--color-border);
-        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
     }
 
     .theme-ember .share-sheet-overlay {
@@ -1006,157 +1247,35 @@
         background: var(--color-border);
     }
 
-    .theme-ember .share-sheet-option:hover {
-        background: var(--color-bg-secondary);
-    }
-
     .theme-ember .share-sheet-cancel {
         border-top-color: var(--color-border);
     }
 
-    /* ── Dark Toast ── */
     .theme-ember .toast-success {
         background: var(--color-accent);
         color: var(--color-bg);
-    }
-
-    /* ── Dark Category Card Active Shadow ── */
-    .theme-ember .category-card.active img {
-        border-color: var(--color-accent);
-        box-shadow: 0 2px 12px rgba(212, 165, 76, 0.2), 0 0 0 2px rgba(212, 165, 76, 0.1);
-    }
-
-    .theme-ember .category-card.active .category-card-icon {
-        background: var(--color-accent);
-        color: var(--color-bg);
-        box-shadow: 0 2px 10px rgba(212, 165, 76, 0.25);
-    }
-
-    .theme-ember .category-tab {
-        background: var(--color-bg-alt);
-        color: var(--color-text-muted);
-    }
-
-    .theme-ember .category-tab:hover {
-        background: var(--color-bg-secondary);
-    }
-
-    .theme-ember .category-tab.active {
-        background: var(--color-accent);
-        color: var(--color-bg);
-        box-shadow: 0 2px 8px rgba(212, 165, 76, 0.2);
-    }
-
-    /* ── Dark Gallery ── */
-    .theme-ember .product-gallery {
-        background: var(--color-bg-alt);
-    }
-
-    .theme-ember .gallery-dot.active {
-        background: var(--color-accent);
-        box-shadow: 0 0 6px rgba(212, 165, 76, 0.35);
-    }
-
-    .theme-ember .product-nav-btn {
-        background: rgba(40, 34, 24, 0.85);
-        border-color: var(--color-border);
-        color: var(--color-text);
-    }
-
-    .theme-ember .product-nav-btn:hover {
-        background: var(--color-bg-alt);
-        color: var(--color-accent);
-    }
-
-    /* ── Dark Variations ── */
-    .theme-ember .product-variation-option {
-        background: var(--color-bg-alt);
-        border-color: var(--color-border);
-        color: var(--color-text);
-    }
-
-    .theme-ember .product-variation-option:hover {
-        border-color: var(--color-border-hover);
-        background: var(--color-bg-secondary);
-    }
-
-    .theme-ember .product-variation-option.selected {
-        background: var(--color-accent);
-        border-color: var(--color-accent);
-        color: var(--color-bg);
-    }
-
-    /* ── Dark Contact & Social ── */
-    .theme-ember .shop-contact a {
-        background: var(--color-bg-alt);
-        color: var(--color-text-muted);
-    }
-
-    .theme-ember .shop-contact a:hover {
-        background: var(--color-accent);
-        color: var(--color-bg);
-    }
-
-    .theme-ember .shop-share-btn {
-        background: var(--color-bg-alt);
-        color: var(--color-text-muted);
-    }
-
-    .theme-ember .shop-share-btn:hover {
-        background: var(--color-accent);
-        color: var(--color-bg);
-    }
-
-    .theme-ember .shop-social a {
-        background: var(--color-bg-alt);
-        color: var(--color-text-muted);
-    }
-
-    .theme-ember .shop-social a:hover {
-        background: var(--color-bg-secondary);
-        color: var(--color-accent);
-    }
-
-    /* ── Dark Search ── */
-    .theme-ember .shop-search-toggle {
-        background: var(--color-bg-alt);
-        color: var(--color-text-muted);
-    }
-
-    .theme-ember .shop-search-toggle:hover {
-        background: var(--color-bg-secondary);
-        color: var(--color-accent);
-    }
-
-    .theme-ember .shop-search-input {
-        background: var(--color-bg-alt);
-        color: var(--color-text);
-    }
-
-    .theme-ember .shop-search-input:focus {
-        background: var(--color-bg);
-        border-color: var(--color-accent);
-        box-shadow: 0 0 0 3px rgba(212, 165, 76, 0.12), 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    /* ── Dark More Products ── */
-    .theme-ember .more-product-item {
-        border-bottom-color: var(--color-border);
     }
 
     .theme-ember .more-product-img {
         background: var(--color-bg-secondary);
     }
 
-    .theme-ember .more-product-name {
+    .theme-ember .btn-primary {
+        background: var(--color-text);
+        color: var(--color-bg);
+    }
+
+    .theme-ember .btn-accent {
+        background: var(--color-text);
+        color: var(--color-bg);
+    }
+
+    .theme-ember .btn-secondary {
+        background: transparent;
         color: var(--color-text);
+        border-color: var(--color-border);
     }
 
-    .theme-ember .more-product-price {
-        color: var(--color-accent);
-    }
-
-    /* ── Dark Badges ── */
     .theme-ember .product-badge {
         background: var(--color-accent);
         color: var(--color-bg);
@@ -1167,51 +1286,84 @@
         color: var(--color-bg);
     }
 
-    /* ── Dark Buttons ── */
-    .theme-ember .btn-primary {
-        background: var(--color-accent);
-        color: var(--color-bg);
-    }
-
-    .theme-ember .btn-primary:hover:not(:disabled) {
-        background: var(--color-accent-hover);
-    }
-
-    .theme-ember .btn-primary:disabled {
-        background: var(--color-bg-secondary);
+    .theme-ember .load-more-btn {
+        border-color: var(--color-border);
         color: var(--color-text-muted);
     }
 
-    .theme-ember .btn-secondary {
-        background: var(--color-bg-alt);
+    .theme-ember .product-sort {
+        border-color: var(--color-border);
+        color: var(--color-text-muted);
+        background: transparent;
+    }
+
+    .theme-ember .shop-search-input {
         color: var(--color-text);
+        border-bottom-color: var(--color-border);
+    }
+
+    .theme-ember .shop-search-input:focus {
+        border-bottom-color: var(--color-text);
+    }
+
+    .theme-ember .shop-search-toggle {
+        border-color: var(--color-border);
+        color: var(--color-text-muted);
+    }
+
+    .theme-ember .cart-qty-selector {
         border-color: var(--color-border);
     }
 
-    .theme-ember .btn-secondary:hover:not(:disabled) {
-        background: var(--color-bg-secondary);
-        border-color: var(--color-border-hover);
+    .theme-ember .ember-story-block {
+        border-left-color: var(--color-border);
     }
 
-    /* ── Dark Empty State ── */
-    .theme-ember .empty-state-icon {
-        color: var(--color-border);
-    }
-
-    .theme-ember .empty-state-title {
-        color: var(--color-text);
-    }
-
-    /* ── Dark Footer ── */
-    .theme-ember .shop-footer {
-        color: var(--color-text-muted);
-    }
-
-    .theme-ember .shop-footer a {
-        color: var(--color-text-muted);
-    }
-
-    .theme-ember .shop-footer a:hover {
-        color: var(--color-accent);
+    /* Desktop dark mode */
+    @media (min-width: 1024px) {
+        .theme-ember .desktop-header-btn {
+            border-color: var(--color-border);
+            color: var(--color-text-muted);
+        }
+        .theme-ember .desktop-header-btn:hover {
+            border-color: var(--color-text);
+            color: var(--color-text);
+        }
+        .theme-ember .desktop-header-cart {
+            border-color: var(--color-border);
+        }
+        .theme-ember .desktop-header-link {
+            color: var(--color-text-muted);
+        }
+        .theme-ember .desktop-header-link:hover {
+            color: var(--color-text);
+        }
+        /* Ember custom footer dark mode */
+        .theme-ember .desktop-footer.ember-footer {
+            background: #0e0d0b;
+        }
+        .theme-ember .ember-footer-brand {
+            color: #ccc;
+        }
+        .theme-ember .ember-footer-social a {
+            background: #1a1816;
+            color: #555;
+        }
+        .theme-ember .ember-footer-social a:hover {
+            background: #2a2820;
+            color: #aaa;
+        }
+        .theme-ember .ember-footer-divider {
+            background: #1a1816;
+        }
+        .theme-ember .ember-footer-links a {
+            color: #555;
+        }
+        .theme-ember .ember-footer-links a:hover {
+            color: #aaa;
+        }
+        .theme-ember .ember-footer-copy {
+            color: #444;
+        }
     }
 }

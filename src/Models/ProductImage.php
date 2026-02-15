@@ -9,7 +9,7 @@ use PDO;
 
 final class ProductImage
 {
-    private PDO $db;
+    private readonly PDO $db;
 
     public function __construct(DB $database)
     {

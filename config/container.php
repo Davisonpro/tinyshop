@@ -11,8 +11,13 @@ use TinyShop\Services\Auth;
 use TinyShop\Services\Upload;
 use TinyShop\Services\OAuth;
 use TinyShop\Services\Mailer;
+use TinyShop\Services\Payment;
 use TinyShop\Services\Validation;
+use TinyShop\Services\PlanGuard;
 use TinyShop\Models\Setting;
+use TinyShop\Models\Plan;
+use TinyShop\Models\Product;
+use TinyShop\Models\User;
 
 return function (Config $config, array $dbConfig): array {
     $oauthConfig = require __DIR__ . '/oauth.php';
@@ -46,6 +51,18 @@ return function (Config $config, array $dbConfig): array {
 
         Validation::class => function () {
             return new Validation();
+        },
+
+        Payment::class => function () {
+            return new Payment();
+        },
+
+        PlanGuard::class => function ($container) {
+            return new PlanGuard(
+                $container->get(Plan::class),
+                $container->get(Product::class),
+                $container->get(User::class)
+            );
         },
 
         LoggerInterface::class => function () use ($config) {

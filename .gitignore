@@ -10,6 +10,7 @@
 
 # Environment / secrets
 .env
+/config/env.php
 
 # Install lock
 /config/.installed
@@ -32,3 +33,5 @@ Thumbs.db
 
 # Claude local project files
 .claude/
+linktree/
+import_minimog2.php
