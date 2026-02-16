@@ -319,6 +319,41 @@
         </div>
     </div>
 </div>
+
+{* --- File Storage (S3) --- *}
+<input type="hidden" id="s3Bucket" value="{$settings.s3_bucket|escape}">
+<input type="hidden" id="s3Region" value="{$settings.s3_region|default:'us-east-1'|escape}">
+<input type="hidden" id="s3AccessKey" value="{$settings.s3_access_key|escape}">
+<input type="hidden" id="s3SecretKey" value="{$settings.s3_secret_key|escape}">
+<input type="hidden" id="s3Endpoint" value="{$settings.s3_endpoint|escape}">
+<input type="hidden" id="s3CdnUrl" value="{$settings.s3_cdn_url|escape}">
+
+<div class="dash-form" style="padding-top:0">
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fa-solid fa-cloud-arrow-up icon-sm"></i>
+            File Storage
+        </div>
+        <p class="form-hint mb-md">Where uploaded images are stored. Leave empty to keep files on this server.</p>
+        <div class="account-row" id="setupS3Btn">
+            <div class="account-row-left">
+                <i class="fa-brands fa-aws icon-lg" style="color:#FF9900"></i>
+                <div>
+                    <div class="account-row-label">Amazon S3</div>
+                    <div class="account-row-value" id="s3StatusDisplay">{if $settings.s3_bucket}Connected &mdash; {$settings.s3_bucket|escape}{else}Not connected (using local storage){/if}</div>
+                </div>
+            </div>
+            {if $settings.s3_bucket}
+            <span class="gateway-status-badge">
+                <i class="fa-solid fa-check icon-xs"></i>
+                Active
+            </span>
+            {else}
+            <i class="fa-solid fa-chevron-right account-row-chevron"></i>
+            {/if}
+        </div>
+    </div>
+</div>
 {/block}
 
 {block name="extra_scripts"}
@@ -714,6 +749,159 @@ function togglePw(btn) {ldelim}
                     $('#platformMpesaMode').val('test');
                     $('#platformMpesaStatusDisplay').text('Not connected');
                     TinyShop.toast('M-Pesa disconnected');
+                    TinyShop.closeModal();
+                    setTimeout(function() {ldelim} location.reload(); {rdelim}, 400);
+                {rdelim}).fail(function() {ldelim}
+                    TinyShop.toast('Failed to disconnect', 'error');
+                    TinyShop.closeModal();
+                {rdelim});
+            {rdelim}, 'danger');
+        {rdelim});
+    {rdelim});
+
+    // --- S3 File Storage setup (modal) ---
+    $('#setupS3Btn').on('click', function() {ldelim}
+        var currentBucket = $('#s3Bucket').val();
+        var currentRegion = $('#s3Region').val() || 'us-east-1';
+        var currentAccessKey = $('#s3AccessKey').val();
+        var currentSecretKey = $('#s3SecretKey').val();
+        var currentEndpoint = $('#s3Endpoint').val();
+        var currentCdnUrl = $('#s3CdnUrl').val();
+        var isConnected = currentBucket !== '';
+
+        var regions = [
+            ['us-east-1', 'US East (N. Virginia)'],
+            ['us-east-2', 'US East (Ohio)'],
+            ['us-west-1', 'US West (N. California)'],
+            ['us-west-2', 'US West (Oregon)'],
+            ['af-south-1', 'Africa (Cape Town)'],
+            ['ap-south-1', 'Asia Pacific (Mumbai)'],
+            ['ap-southeast-1', 'Asia Pacific (Singapore)'],
+            ['ap-northeast-1', 'Asia Pacific (Tokyo)'],
+            ['eu-west-1', 'Europe (Ireland)'],
+            ['eu-west-2', 'Europe (London)'],
+            ['eu-central-1', 'Europe (Frankfurt)'],
+            ['me-south-1', 'Middle East (Bahrain)'],
+            ['sa-east-1', 'South America (S\u00e3o Paulo)']
+        ];
+        var regionOpts = '';
+        for (var i = 0; i < regions.length; i++) {ldelim}
+            regionOpts += '<option value="' + regions[i][0] + '"' + (currentRegion === regions[i][0] ? ' selected' : '') + '>' + regions[i][1] + '</option>';
+        {rdelim}
+
+        var html = '<form id="s3Form" autocomplete="off">' +
+            '<div class="gateway-modal-header">' +
+                '<i class="fa-brands fa-aws icon-lg" style="color:#FF9900"></i>' +
+                '<span class="gateway-brand-name">Amazon S3</span>' +
+                (isConnected ? '<span class="gateway-status-badge"><i class="fa-solid fa-check icon-xs"></i> Connected</span>' : '') +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalS3Bucket">Bucket Name</label>' +
+                '<input type="text" class="form-control" id="modalS3Bucket" value="' + escapeHtml(currentBucket) + '" placeholder="e.g. my-shop-uploads" autocomplete="off">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalS3Region">Region</label>' +
+                '<select class="form-control" id="modalS3Region">' + regionOpts + '</select>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalS3AccessKey">Access Key</label>' +
+                '<input type="text" class="form-control" id="modalS3AccessKey" value="' + escapeHtml(currentAccessKey) + '" placeholder="AKIA..." autocomplete="off">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalS3SecretKey">Secret Key</label>' +
+                '<div class="password-field"><input type="password" class="form-control" id="modalS3SecretKey" value="' + escapeHtml(currentSecretKey) + '" placeholder="Your secret key" autocomplete="off">' +
+                '<button type="button" class="password-toggle" onclick="togglePw(this)" aria-label="Show password"><i class="fa-solid fa-eye eye-open"></i><i class="fa-solid fa-eye-slash eye-closed d-none"></i></button></div>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalS3Endpoint">Custom Endpoint <span style="color:var(--color-text-muted);font-weight:400">(optional)</span></label>' +
+                '<input type="text" class="form-control" id="modalS3Endpoint" value="' + escapeHtml(currentEndpoint) + '" placeholder="e.g. https://nyc3.digitaloceanspaces.com" autocomplete="off">' +
+                '<p class="form-hint">For DigitalOcean Spaces, MinIO, or other S3-compatible services</p>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalS3CdnUrl">CDN URL <span style="color:var(--color-text-muted);font-weight:400">(optional)</span></label>' +
+                '<input type="text" class="form-control" id="modalS3CdnUrl" value="' + escapeHtml(currentCdnUrl) + '" placeholder="e.g. https://cdn.example.com" autocomplete="off">' +
+                '<p class="form-hint">If you use CloudFront or another CDN in front of your bucket</p>' +
+            '</div>' +
+            '<button type="submit" class="btn-block btn-primary" id="saveS3Btn">Save S3 Settings</button>' +
+            '<button type="button" class="btn-block btn-test-email mt-sm" id="testS3Btn"><i class="fa-solid fa-plug icon-sm"></i> Test Connection</button>' +
+            (isConnected ? '<button type="button" class="btn-block btn-link mt-sm" id="disconnectS3Btn">Disconnect S3</button>' : '') +
+        '</form>';
+        TinyShop.openModal('File Storage', html);
+
+        // Save S3 settings
+        $('#s3Form').on('submit', function(e) {ldelim}
+            e.preventDefault();
+            var bucket = $('#modalS3Bucket').val().trim();
+            var region = $('#modalS3Region').val();
+            var accessKey = $('#modalS3AccessKey').val().trim();
+            var secretKey = $('#modalS3SecretKey').val().trim();
+            var endpoint = $('#modalS3Endpoint').val().trim();
+            var cdnUrl = $('#modalS3CdnUrl').val().trim();
+            if (!bucket || !accessKey || !secretKey) {ldelim}
+                TinyShop.toast('Bucket name, access key, and secret key are required', 'error');
+                return;
+            {rdelim}
+            var $btn = $('#saveS3Btn').prop('disabled', true).text('Saving...');
+            TinyShop.api('PUT', '/api/admin/settings', {ldelim}
+                s3_bucket: bucket,
+                s3_region: region,
+                s3_access_key: accessKey,
+                s3_secret_key: secretKey,
+                s3_endpoint: endpoint,
+                s3_cdn_url: cdnUrl
+            {rdelim}).done(function() {ldelim}
+                $('#s3Bucket').val(bucket);
+                $('#s3Region').val(region);
+                $('#s3AccessKey').val(accessKey);
+                $('#s3SecretKey').val(secretKey);
+                $('#s3Endpoint').val(endpoint);
+                $('#s3CdnUrl').val(cdnUrl);
+                $('#s3StatusDisplay').text('Connected \u2014 ' + bucket);
+                TinyShop.toast('S3 settings saved!');
+                TinyShop.closeModal();
+                setTimeout(function() {ldelim} location.reload(); {rdelim}, 400);
+            {rdelim}).fail(function(xhr) {ldelim}
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to save';
+                TinyShop.toast(msg, 'error');
+                $btn.prop('disabled', false).text('Save S3 Settings');
+            {rdelim});
+        {rdelim});
+
+        // Test S3 connection
+        $('#testS3Btn').on('click', function() {ldelim}
+            var $btn = $(this).prop('disabled', true);
+            var originalHtml = $btn.html();
+            $btn.html('<span class="btn-spinner"></span> Testing...');
+            TinyShop.api('POST', '/api/admin/test-s3', {ldelim}{rdelim}).done(function(res) {ldelim}
+                TinyShop.toast(res.message || 'Connection successful!', 'success');
+            {rdelim}).fail(function(xhr) {ldelim}
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Connection failed';
+                TinyShop.toast(msg, 'error');
+            {rdelim}).always(function() {ldelim}
+                $btn.prop('disabled', false).html(originalHtml);
+            {rdelim});
+        {rdelim});
+
+        // Disconnect S3
+        $('#disconnectS3Btn').on('click', function() {ldelim}
+            TinyShop.confirm('Disconnect S3?', 'New uploads will be saved on this server. Existing S3 files will remain in your bucket.', 'Disconnect', function() {ldelim}
+                $('#confirmModalOk').prop('disabled', true).text('Disconnecting...');
+                TinyShop.api('PUT', '/api/admin/settings', {ldelim}
+                    s3_bucket: '',
+                    s3_region: 'us-east-1',
+                    s3_access_key: '',
+                    s3_secret_key: '',
+                    s3_endpoint: '',
+                    s3_cdn_url: ''
+                {rdelim}).done(function() {ldelim}
+                    $('#s3Bucket').val('');
+                    $('#s3Region').val('us-east-1');
+                    $('#s3AccessKey').val('');
+                    $('#s3SecretKey').val('');
+                    $('#s3Endpoint').val('');
+                    $('#s3CdnUrl').val('');
+                    $('#s3StatusDisplay').text('Not connected (using local storage)');
+                    TinyShop.toast('S3 disconnected');
                     TinyShop.closeModal();
                     setTimeout(function() {ldelim} location.reload(); {rdelim}, 400);
                 {rdelim}).fail(function() {ldelim}

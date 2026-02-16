@@ -37,8 +37,8 @@ return function (Config $config, array $dbConfig): array {
             return new View($config, $container->get(Auth::class), $container->get(Setting::class));
         },
 
-        Upload::class => function () use ($config) {
-            return new Upload($config);
+        Upload::class => function ($container) use ($config) {
+            return new Upload($config, $container->get(Setting::class));
         },
 
         OAuth::class => function () use ($oauthConfig, $config) {

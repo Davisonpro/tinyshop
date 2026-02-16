@@ -44,6 +44,7 @@ final class AdminController
         'platform_paypal_client_id', 'platform_paypal_secret', 'platform_paypal_mode',
         'platform_mpesa_shortcode', 'platform_mpesa_consumer_key',
         'platform_mpesa_consumer_secret', 'platform_mpesa_passkey', 'platform_mpesa_mode',
+        's3_bucket', 's3_region', 's3_access_key', 's3_secret_key', 's3_endpoint', 's3_cdn_url',
     ];
 
     public function __construct(
@@ -313,6 +314,65 @@ final class AdminController
         }
 
         return $this->json($response, ['success' => true, 'message' => 'Test email sent to ' . $adminEmail]);
+    }
+
+    public function testS3(Request $request, Response $response): Response
+    {
+        $bucket    = trim($this->settingModel->get('s3_bucket', '') ?? '');
+        $region    = trim($this->settingModel->get('s3_region', '') ?? '') ?: 'us-east-1';
+        $accessKey = trim($this->settingModel->get('s3_access_key', '') ?? '');
+        $secretKey = trim($this->settingModel->get('s3_secret_key', '') ?? '');
+
+        if ($bucket === '' || $accessKey === '' || $secretKey === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Please save your S3 settings first'], 422);
+        }
+
+        $config = [
+            'version'     => 'latest',
+            'region'      => $region,
+            'credentials' => [
+                'key'    => $accessKey,
+                'secret' => $secretKey,
+            ],
+        ];
+
+        $endpoint = trim($this->settingModel->get('s3_endpoint', '') ?? '');
+        if ($endpoint !== '') {
+            $config['endpoint'] = $endpoint;
+            $config['use_path_style_endpoint'] = true;
+        }
+
+        try {
+            $client = new \Aws\S3\S3Client($config);
+
+            $testKey = '_tinyshop_test_' . bin2hex(random_bytes(8)) . '.txt';
+            $client->putObject([
+                'Bucket'      => $bucket,
+                'Key'         => $testKey,
+                'Body'        => 'TinyShop S3 connection test',
+                'ContentType' => 'text/plain',
+                'ACL'         => 'public-read',
+            ]);
+            $client->deleteObject([
+                'Bucket' => $bucket,
+                'Key'    => $testKey,
+            ]);
+
+            return $this->json($response, ['success' => true, 'message' => 'Connected to bucket "' . $bucket . '" successfully']);
+        } catch (\Throwable $e) {
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'InvalidAccessKeyId')) {
+                $msg = 'The access key is not valid. Please check and try again.';
+            } elseif (str_contains($msg, 'SignatureDoesNotMatch')) {
+                $msg = 'The secret key does not match. Please check and try again.';
+            } elseif (str_contains($msg, 'NoSuchBucket')) {
+                $msg = 'Bucket "' . $bucket . '" was not found. Please check the bucket name.';
+            } elseif (str_contains($msg, 'AccessDenied')) {
+                $msg = 'Access denied. Make sure your credentials have permission to upload to this bucket.';
+            }
+
+            return $this->json($response, ['error' => true, 'message' => 'S3 Error: ' . $msg], 500);
+        }
     }
 
     public function pingSitemap(Request $request, Response $response): Response

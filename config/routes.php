@@ -194,6 +194,7 @@ return function (App $app): void {
             $admin->delete('/sellers/{id}', [AdminController::class, 'deleteSeller']);
             $admin->put('/settings', [AdminController::class, 'updateSettings']);
             $admin->post('/test-email', [AdminController::class, 'testEmail']);
+            $admin->post('/test-s3', [AdminController::class, 'testS3']);
             $admin->post('/ping-sitemap', [AdminController::class, 'pingSitemap']);
 
             $admin->get('/plans', [AdminController::class, 'listPlans']);
