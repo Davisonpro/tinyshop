@@ -1068,6 +1068,9 @@ TinyShop.spa = {
     _xhr: null,
     _loadedScripts: {},
 
+    /* --- Inflight fetch dedup map (url → Promise<data|null>) --- */
+    _fetchMap: {},
+
     /* --- Client-side page cache (5min TTL, max 20 entries) --- */
     _cache: {},
     _cacheTimeout: 300000,
@@ -1126,6 +1129,7 @@ TinyShop.spa = {
         history.replaceState({ spa: true, url: location.pathname + location.search }, '', location.pathname + location.search);
 
         // Instant click — start prefetching on mousedown/touchstart (saves 100-200ms)
+        // Reuses inflight hover prefetch via shared _fetchMap — no duplicate requests
         $(document).on('mousedown touchstart', 'a', function(e) {
             if (e.type === 'mousedown' && e.which !== 1) return;
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -1134,13 +1138,11 @@ TinyShop.spa = {
             var href = this.getAttribute('href');
             if (!self._isInternalLink(href)) return;
             if (href === location.pathname + location.search) return;
-            // Don't prefetch logout — it has side effects
             if (href === '/logout') return;
 
-            // Start prefetching immediately if not cached
-            if (!self._getCached(href) && !self._loading && window.fetch) {
-                self._pendingUrl = href;
-                self._pendingFetch = fetch(href, {
+            // Start prefetching if not cached and no inflight fetch for this URL
+            if (!self._getCached(href) && !self._loading && window.fetch && !self._fetchMap[href]) {
+                self._fetchMap[href] = fetch(href, {
                     headers: { 'X-SPA': '1' },
                     credentials: 'same-origin'
                 }).then(function(res) {
@@ -1152,12 +1154,12 @@ TinyShop.spa = {
                         self._setCache(href, data);
                         self._preloadStyles(data.styles);
                     }
-                    self._pendingFetch = null;
-                    self._pendingUrl = null;
                     return data;
                 }).catch(function() {
-                    self._pendingFetch = null;
-                    self._pendingUrl = null;
+                    return null;
+                }).then(function(data) {
+                    delete self._fetchMap[href];
+                    return data;
                 });
             }
         });
@@ -1233,28 +1235,32 @@ TinyShop.spa = {
         function doPrefetch(href) {
             if (prefetched[href] || !window.fetch) return;
             if (_inflight >= MAX_INFLIGHT || _budget <= 0) return;
+            if (self._fetchMap[href]) return; // already inflight
 
             prefetched[href] = true;
             _inflight++;
             _budget--;
 
-            fetch(href, {
+            self._fetchMap[href] = fetch(href, {
                 headers: { 'X-SPA': '1' },
                 credentials: 'same-origin',
                 priority: 'low'
             }).then(function(res) {
-                if (!res.ok) return;
+                if (!res.ok) throw new Error(res.status);
                 return res.text();
             }).then(function(text) {
-                if (text) {
-                    var data = self._parseResponse(text);
-                    if (data && !data.redirect) {
-                        self._setCache(href, data);
-                        self._preloadStyles(data.styles);
-                    }
+                var data = self._parseResponse(text);
+                if (data && !data.redirect) {
+                    self._setCache(href, data);
+                    self._preloadStyles(data.styles);
                 }
-            }).catch(function() {}).then(function() {
+                return data;
+            }).catch(function() {
+                return null;
+            }).then(function(data) {
                 _inflight--;
+                delete self._fetchMap[href];
+                return data;
             });
         }
 
@@ -1406,9 +1412,9 @@ TinyShop.spa = {
         self._loading = true;
         self.showProgress();
 
-        // Check if there's a pending instant-click prefetch for this URL
-        if (self._pendingUrl === url && self._pendingFetch) {
-            self._pendingFetch.then(function(data) {
+        // Reuse inflight prefetch/instant-click fetch if one exists
+        if (self._fetchMap[url]) {
+            self._fetchMap[url].then(function(data) {
                 if (!data) {
                     self._doFetch(url, isPopState);
                 } else if (data.redirect) {
