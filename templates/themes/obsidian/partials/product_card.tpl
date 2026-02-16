@@ -7,9 +7,9 @@
             <span class="product-badge product-badge-sale">{$discount_pct}% OFF</span>
         {/if}
         {if $product.image_url}
-            <img src="{$product.image_url|escape}" alt="{$product.name|escape}" loading="lazy" onload="this.classList.add('loaded')">
+            <img src="{$product.image_url|escape}" alt="{$product.name|escape}" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
         {else}
-            <img src="/public/img/placeholder.svg" alt="{$product.name|escape}" loading="lazy" onload="this.classList.add('loaded')">
+            <img src="/public/img/placeholder.svg" alt="{$product.name|escape}" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
         {/if}
         <div class="obsidian-price-overlay">
             {if $product.compare_price && $product.compare_price > $product.price && !$product.is_sold}

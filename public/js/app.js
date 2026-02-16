@@ -5,6 +5,19 @@
 var TinyShop = window.TinyShop || {};
 
 /* ============================================================
+   Network quality — connection-aware prefetch & loading
+   ============================================================ */
+TinyShop._networkQuality = function() {
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return 'fast';
+    if (conn.saveData) return 'save-data';
+    var ect = conn.effectiveType || '';
+    if (ect === 'slow-2g' || ect === '2g') return 'slow';
+    if (ect === '3g') return 'medium';
+    return 'fast';
+};
+
+/* ============================================================
    CSRF protection — jQuery $.ajax + native fetch
    ============================================================ */
 (function() {
@@ -334,7 +347,7 @@ TinyShop._defaultRenderProductCard = function(p, currencySymbol) {
 
     return '<a href="/' + slug + '" class="product-card' + soldClass + '" data-category="' + (p.category_id || '') + '">'
         + '<div class="product-card-img">' + h.badgeHtml(p)
-        + '<img src="' + h.imgSrc(p) + '" alt="' + name + '" loading="lazy" onload="this.classList.add(\'loaded\')">'
+        + '<img src="' + h.imgSrc(p) + '" alt="' + name + '" loading="lazy" decoding="async" onload="this.classList.add(\'loaded\')">'
         + '</div>'
         + '<div class="product-card-body">'
         + '<h3 class="product-title">' + name + '</h3>'
@@ -769,14 +782,19 @@ TinyShop.initShop = function() {
         var threshold = window.innerHeight * 2;
         scrollBtn.classList.toggle('visible', window.scrollY > threshold);
     }
-    window.addEventListener('scroll', function() {
+    // Remove previous scroll handler from prior SPA navigations
+    if (TinyShop._shopScrollHandler) {
+        window.removeEventListener('scroll', TinyShop._shopScrollHandler);
+    }
+    TinyShop._shopScrollHandler = function() {
         if (!scrollThrottle) {
             scrollThrottle = setTimeout(function() {
                 scrollThrottle = null;
                 checkScroll();
             }, 100);
         }
-    }, { passive: true });
+    };
+    window.addEventListener('scroll', TinyShop._shopScrollHandler, { passive: true });
     scrollBtn.addEventListener('click', function() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -1181,9 +1199,27 @@ TinyShop.spa = {
     },
 
     /* --- Link prefetching (hover + viewport) --- */
+    /*
+     * Strategy (optimised for slow / metered connections):
+     *
+     *  Connection   | Viewport prefetch  | Hover prefetch | Instant-click
+     *  -------------|--------------------|-----------------|--------------
+     *  save-data    | No                 | No              | Yes
+     *  slow (2G)    | No                 | No              | Yes
+     *  medium (3G)  | Nav links only     | Yes (65ms)      | Yes
+     *  fast (4G+)   | Nav links only     | Yes (65ms)      | Yes
+     *
+     * Product card links are NEVER viewport-prefetched — there are too many
+     * and user intent is unpredictable.  Hover / instant-click still work.
+     *
+     * Concurrency: max 3 inflight prefetches, max 8 per page load.
+     */
     _initPrefetch: function() {
         var self = this;
         var prefetched = {};
+        var _inflight = 0;
+        var MAX_INFLIGHT = 3;
+        var _budget = 8;
 
         function shouldPrefetch(href) {
             if (!self._isInternalLink(href)) return false;
@@ -1196,7 +1232,11 @@ TinyShop.spa = {
 
         function doPrefetch(href) {
             if (prefetched[href] || !window.fetch) return;
+            if (_inflight >= MAX_INFLIGHT || _budget <= 0) return;
+
             prefetched[href] = true;
+            _inflight++;
+            _budget--;
 
             fetch(href, {
                 headers: { 'X-SPA': '1' },
@@ -1213,11 +1253,16 @@ TinyShop.spa = {
                         self._preloadStyles(data.styles);
                     }
                 }
-            }).catch(function() {});
+            }).catch(function() {}).then(function() {
+                _inflight--;
+            });
         }
 
-        // Hover prefetch (desktop) — 65ms delay to avoid prefetching on quick mouse passes
+        // Hover prefetch (desktop) — 65ms delay, skipped on slow / save-data
         $(document).on('mouseenter', 'a', function() {
+            var quality = TinyShop._networkQuality();
+            if (quality === 'slow' || quality === 'save-data') return;
+
             var href = this.getAttribute('href');
             if (!shouldPrefetch(href)) return;
             var el = this;
@@ -1231,8 +1276,11 @@ TinyShop.spa = {
             }
         });
 
-        // Viewport prefetch — IntersectionObserver for visible links, deferred until idle
+        // Viewport prefetch — nav links only, connection-aware, deferred until idle
+        // Product cards excluded — too many, unpredictable; hover/touch handles them
         if ('IntersectionObserver' in window) {
+            var NAV_SELECTORS = '.dash-tab, .dash-sidebar a, .pricing-card a, .pricing-nav a, .land-nav-container a, .land-cta, .auth-footer a, .mk-nav-link';
+
             var observer = new IntersectionObserver(function(entries) {
                 entries.forEach(function(entry) {
                     if (!entry.isIntersecting) return;
@@ -1247,15 +1295,18 @@ TinyShop.spa = {
 
             var _observeTimer = null;
             function observeLinks() {
-                // Reset prefetch flags so expired cache entries get re-prefetched
                 prefetched = {};
-                // Disconnect old observations to release detached DOM nodes
+                _budget = 8;
                 observer.disconnect();
-                // Defer observation so prefetches don't compete with current page load
+
+                // Skip viewport prefetch entirely on slow / save-data connections
+                var quality = TinyShop._networkQuality();
+                if (quality === 'slow' || quality === 'save-data') return;
+
                 if (_observeTimer) clearTimeout(_observeTimer);
                 var idle = window.requestIdleCallback || function(cb) { setTimeout(cb, 200); };
                 idle(function() {
-                    var els = document.querySelectorAll('.product-card a, .dash-content a, .shop-page a, .dash-tab, .pricing-card a, .pricing-nav a, .land-nav-container a, .land-cta, .auth-footer a');
+                    var els = document.querySelectorAll(NAV_SELECTORS);
                     for (var i = 0; i < els.length; i++) {
                         observer.observe(els[i]);
                     }

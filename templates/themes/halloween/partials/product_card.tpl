@@ -9,9 +9,9 @@
             <span class="product-badge product-badge-featured">Featured</span>
         {/if}
         {if $product.image_url}
-            <img src="{$product.image_url|escape}" alt="{$product.name|escape}" loading="lazy" onload="this.classList.add('loaded')">
+            <img src="{$product.image_url|escape}" alt="{$product.name|escape}" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
         {else}
-            <img src="/public/img/placeholder.svg" alt="{$product.name|escape}" loading="lazy" onload="this.classList.add('loaded')">
+            <img src="/public/img/placeholder.svg" alt="{$product.name|escape}" loading="lazy" decoding="async" onload="this.classList.add('loaded')">
         {/if}
     </div>
     <div class="product-card-body">

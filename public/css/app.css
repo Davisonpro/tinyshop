@@ -1303,6 +1303,9 @@ textarea.form-control {
     box-shadow: none;
     border: none;
     transition: transform 0.15s ease, opacity 0.25s;
+    /* Skip rendering off-screen cards — saves paint on large catalogs */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 280px;
 }
 .product-card:hover {
     box-shadow: none;
