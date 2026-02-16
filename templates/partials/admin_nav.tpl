@@ -11,6 +11,10 @@
         <i class="fa-solid fa-crown" aria-hidden="true"></i>
         <span>Plans</span>
     </a>
+    <a href="/admin/help" class="dash-tab{if $active_page == 'help'} active{/if}" data-label="Help">
+        <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+        <span>Help</span>
+    </a>
     <a href="/admin/settings" class="dash-tab{if $active_page == 'settings'} active{/if}" data-label="Settings">
         <i class="fa-solid fa-gear" aria-hidden="true"></i>
         <span>Settings</span>

@@ -11,7 +11,7 @@
                 <span class="desktop-header-logo desktop-header-logo-placeholder">{$shop.store_name|truncate:1:''|upper}</span>
             {/if}
             {if $shop.show_store_name|default:1}
-                <span class="desktop-header-name">{$shop.store_name|default:$shop.name|escape}</span>
+                <span class="desktop-header-name">{$shop.store_name|escape}</span>
             {/if}
         </a>
 

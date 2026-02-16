@@ -9,7 +9,7 @@
         {* Gallery *}
         <div class="product-gallery" id="productGallery">
             <div class="product-gallery-nav">
-                <a href="/" class="product-nav-btn" aria-label="Back to {$shop.store_name|default:$shop.name|escape}">
+                <a href="/" class="product-nav-btn" aria-label="Back to {$shop.store_name|escape}">
                     <i class="fa-solid fa-chevron-left" style="font-size:20px"></i>
                 </a>
                 <button type="button" class="product-nav-btn" data-share-trigger aria-label="Share">
@@ -202,7 +202,7 @@
             {if $product.category_name},"category": "{$product.category_name|escape:'javascript'}"{/if}
             ,"brand": {ldelim}
                 "@type": "Organization",
-                "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}"
+                "name": "{$shop.store_name|escape:'javascript'}"
             {rdelim}
             ,"image": [{if $images|@count > 0}{foreach $images as $img}"{$img.image_url|escape:'javascript'}"{if !$img@last},{/if}{/foreach}{elseif $product.image_url}"{$product.image_url|escape:'javascript'}"{/if}]
             ,"offers": {ldelim}
@@ -214,7 +214,7 @@
                 "itemCondition": "https://schema.org/NewCondition",
                 "seller": {ldelim}
                     "@type": "Organization",
-                    "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}"
+                    "name": "{$shop.store_name|escape:'javascript'}"
                 {rdelim}
                 {if $product.compare_price && $product.compare_price > $product.price}
                 ,"priceValidUntil": "{$smarty.now|date_format:'%Y-12-31'}"
@@ -227,7 +227,7 @@
                 {ldelim}
                     "@type": "ListItem",
                     "position": 1,
-                    "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}",
+                    "name": "{$shop.store_name|escape:'javascript'}",
                     "item": "{$base_url}/"
                 {rdelim}
                 {if $product.category_name}

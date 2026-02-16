@@ -50,7 +50,8 @@ final class DashboardController
             ['key' => 'logo', 'label' => 'Upload a logo', 'done' => !empty($user['shop_logo']), 'link' => '/dashboard/shop'],
             ['key' => 'product', 'label' => 'Add your first product', 'done' => $productCount > 0, 'link' => '/dashboard/products/add'],
             ['key' => 'contact', 'label' => 'Add contact info', 'done' => !empty($user['contact_whatsapp']) || !empty($user['contact_email']) || !empty($user['contact_phone']), 'link' => '/dashboard/shop'],
-            ['key' => 'payments', 'label' => 'Set up payments', 'done' => !empty($user['stripe_enabled']) || !empty($user['paypal_enabled']), 'link' => '/dashboard/shop'],
+            ['key' => 'payments', 'label' => 'Set up payments', 'done' => !empty($user['stripe_enabled']) || !empty($user['paypal_enabled']) || !empty($user['cod_enabled']) || !empty($user['mpesa_enabled']), 'link' => '/dashboard/shop'],
+            ['key' => 'homescreen', 'label' => 'Add to homescreen', 'done' => false, 'link' => '#add-to-homescreen'],
         ];
 
         $usage = $this->planGuard->getUsageSummary($userId);
@@ -89,11 +90,19 @@ final class DashboardController
         $user = $this->userModel->findById($userId);
         $usage = $this->planGuard->getUsageSummary($userId);
 
+        // Build per-theme unlock map for template
+        $allThemesList = ['classic', 'ivory', 'obsidian', 'bloom', 'ember', 'monaco', 'volt', 'halloween'];
+        $unlockedThemes = [];
+        foreach ($allThemesList as $t) {
+            $unlockedThemes[$t] = $usage['all_themes'] || ($usage['allowed_themes'] !== null && in_array($t, $usage['allowed_themes'], true));
+        }
+
         return $this->view->render($response, 'pages/dash_shop.tpl', [
-            'page_title'  => 'Shop Settings',
-            'user'        => $user,
-            'active_page' => 'shop',
-            'usage'       => $usage,
+            'page_title'       => 'Shop Settings',
+            'user'             => $user,
+            'active_page'      => 'shop',
+            'usage'            => $usage,
+            'unlocked_themes'  => $unlockedThemes,
         ]);
     }
 
@@ -144,14 +153,19 @@ final class DashboardController
         $viewStats = $this->shopViewModel->getStats($userId);
 
         $params = $request->getQueryParams();
-        $days = (int) ($params['days'] ?? 14);
-        $days = in_array($days, [7, 14, 30], true) ? $days : 14;
+        $allowed = [7, 14, 30];
 
-        $dailyViews = $this->shopViewModel->getDailyViews($userId, $days);
+        $viewDays = (int) ($params['view_days'] ?? $params['days'] ?? 14);
+        $viewDays = in_array($viewDays, $allowed, true) ? $viewDays : 14;
+
+        $salesDays = (int) ($params['sales_days'] ?? $params['days'] ?? 14);
+        $salesDays = in_array($salesDays, $allowed, true) ? $salesDays : 14;
+
+        $dailyViews = $this->shopViewModel->getDailyViews($userId, $viewDays);
         $topProducts = $this->shopViewModel->getTopProducts($userId, 5);
 
         $orderStats = $this->orderModel->getStats($userId);
-        $dailySales = $this->orderModel->getDailySales($userId, $days);
+        $dailySales = $this->orderModel->getDailySales($userId, $salesDays);
         $currency = $user['currency'] ?? 'KES';
 
         return $this->view->render($response, 'pages/dash_analytics.tpl', [
@@ -164,7 +178,8 @@ final class DashboardController
             'order_stats'   => $orderStats,
             'daily_sales'   => $dailySales,
             'currency'      => $currency,
-            'selected_days' => $days,
+            'view_days'     => $viewDays,
+            'sales_days'    => $salesDays,
             'subdomain'     => $user['subdomain'] ?? '',
         ]);
     }
@@ -194,6 +209,9 @@ final class DashboardController
         }
         if (!empty($settings['platform_paypal_client_id']) && !empty($settings['platform_paypal_secret'])) {
             $gateways[] = 'paypal';
+        }
+        if (!empty($settings['platform_mpesa_shortcode']) && !empty($settings['platform_mpesa_consumer_key'])) {
+            $gateways[] = 'mpesa';
         }
 
         return $this->view->render($response, 'pages/dash_billing.tpl', [

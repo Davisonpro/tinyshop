@@ -7,6 +7,7 @@ namespace TinyShop\Controllers\Api;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use TinyShop\Controllers\Traits\JsonResponder;
+use TinyShop\Models\AuditLog;
 use TinyShop\Models\Product;
 use TinyShop\Models\ProductImage;
 use TinyShop\Services\Auth;
@@ -29,6 +30,7 @@ final class ProductController
         private readonly Upload $upload,
         private readonly Validation $validation,
         private readonly PlanGuard $planGuard,
+        private readonly AuditLog $auditLog,
         DB $database
     ) {
         $this->db = $database->pdo();
@@ -145,6 +147,8 @@ final class ProductController
         $product['images'] = $this->productImageModel->findByProduct($id);
         Hooks::doAction('product.created', $product);
 
+        $this->auditLog->log('product.create', $this->auth->userId(), 'product', $id, ['name' => $name]);
+
         return $this->json($response, ['success' => true, 'product' => $product], 201);
     }
 
@@ -244,6 +248,8 @@ final class ProductController
 
         Hooks::doAction('product.updated', $product);
 
+        $this->auditLog->log('product.update', $this->auth->userId(), 'product', $id, ['fields' => array_keys($updateData)]);
+
         return $this->json($response, ['success' => true, 'product' => $product]);
     }
 
@@ -279,6 +285,8 @@ final class ProductController
         }
 
         Hooks::doAction('product.deleted', $id);
+
+        $this->auditLog->log('product.delete', $this->auth->userId(), 'product', $id, ['name' => $product['name']]);
 
         return $this->json($response, ['success' => true]);
     }

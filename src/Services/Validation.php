@@ -125,16 +125,32 @@ final class Validation
      */
     public function sanitizeHtml(string $html): string
     {
+        if (trim($html) === '') {
+            return '';
+        }
+
         $html = strip_tags($html, '<p><br><b><strong><i><em><ul><ol><li><h2><h3><a>');
 
-        // Remove event handler attributes (onclick, onerror, onload, etc.)
+        // Remove all event handler attributes (onclick, onerror, onload, etc.)
         $html = preg_replace('/\s+on\w+\s*=\s*["\'][^"\']*["\']/i', '', $html);
-        $html = preg_replace('/\s+on\w+\s*=\s*\S+/i', '', $html);
+        $html = preg_replace('/\s+on\w+\s*=\s*[^\s>]*/i', '', $html);
 
-        // Remove javascript:, vbscript:, data: URIs from href/src attributes
+        // Remove style attributes (prevents expression() and CSS injection)
+        $html = preg_replace('/\s+style\s*=\s*["\'][^"\']*["\']/i', '', $html);
+        $html = preg_replace('/\s+style\s*=\s*[^\s>]*/i', '', $html);
+
+        // Only allow href with http:// or https:// — strips javascript:, data:, vbscript:
+        // Also catches HTML-entity-encoded variants (&#106;avascript:)
         $html = preg_replace_callback(
-            '/(<a\s[^>]*?)href\s*=\s*["\']?\s*(javascript|vbscript|data)\s*:[^"\'>\s]*/i',
-            fn($m) => $m[1] . 'href="#"',
+            '/(href\s*=\s*["\'])([^"\']*?)(["\'])/i',
+            function ($m) {
+                $url = html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $url = trim($url);
+                if ($url === '' || preg_match('#^https?://#i', $url) || str_starts_with($url, '/') || str_starts_with($url, '#')) {
+                    return $m[0]; // safe
+                }
+                return $m[1] . '#' . $m[3]; // replace dangerous URLs
+            },
             $html
         );
 

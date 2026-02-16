@@ -31,6 +31,9 @@ final class Auth
             session_regenerate_id(true);
         }
 
+        // Rotate CSRF token on login to prevent login CSRF attacks
+        $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+
         $_SESSION['user_id']   = $userId;
         $_SESSION['user_name'] = $userName;
         $_SESSION['user_role'] = $role->value;
@@ -54,10 +57,8 @@ final class Auth
             return false;
         }
 
-        if (($_SESSION['ip'] ?? '') !== ($_SERVER['REMOTE_ADDR'] ?? '')) {
-            $this->logout();
-            return false;
-        }
+        // Note: Strict IP check removed — mobile users switch between
+        // WiFi and cellular, causing IP changes that would destroy sessions.
 
         if (time() - ($_SESSION['created'] ?? 0) > self::SESSION_TIMEOUT) {
             $this->logout();

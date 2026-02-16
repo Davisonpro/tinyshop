@@ -19,7 +19,7 @@
     </div>
 
     {if $shop.show_store_name|default:1}
-    <h1 class="shop-name">{$shop.store_name|default:$shop.name}</h1>
+    <h1 class="shop-name">{$shop.store_name}</h1>
     {/if}
     {if $shop.show_tagline|default:1 && $shop.shop_tagline}
         <p class="shop-tagline">{$shop.shop_tagline}</p>

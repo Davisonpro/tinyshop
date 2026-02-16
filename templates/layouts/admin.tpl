@@ -4,8 +4,8 @@
 
 {block name="head"}
     {include file="partials/head.tpl"}
-    <link rel="stylesheet" href="/public/css/dashboard.css?v={$asset_v}">
-    <link rel="stylesheet" href="/public/css/admin.css?v={$asset_v}">
+    <link rel="stylesheet" href="/public/css/dashboard{$min}.css?v={$asset_v}">
+    <link rel="stylesheet" href="/public/css/admin{$min}.css?v={$asset_v}">
 {/block}
 
 {block name="body"}
@@ -43,6 +43,6 @@
 {/block}
 
 {block name="page_scripts"}
-    <script src="/public/js/dashboard.js?v={$asset_v}"></script>
+    <script src="/public/js/dashboard{$min}.js?v={$asset_v}"></script>
     {block name="extra_scripts"}{/block}
 {/block}

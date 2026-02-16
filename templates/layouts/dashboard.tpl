@@ -4,7 +4,7 @@
 
 {block name="head"}
     {include file="partials/head.tpl"}
-    <link rel="stylesheet" href="/public/css/dashboard.css?v={$asset_v}">
+    <link rel="stylesheet" href="/public/css/dashboard{$min}.css?v={$asset_v}">
 {/block}
 
 {block name="body"}
@@ -15,7 +15,7 @@
 </div>
 {/if}
 <div class="dashboard-layout">
-    <main class="dash-content">
+    <main class="dash-content" id="main-content">
         {block name="content"}{/block}
     </main>
 
@@ -42,6 +42,6 @@
 {/block}
 
 {block name="page_scripts"}
-    <script src="/public/js/dashboard.js?v={$asset_v}"></script>
+    <script src="/public/js/dashboard{$min}.js?v={$asset_v}"></script>
     {block name="extra_scripts"}{/block}
 {/block}

@@ -9,7 +9,7 @@
             {/if}
             <div class="desktop-header-brand-text">
                 {if $shop.show_store_name|default:1}
-                    <span class="desktop-header-name">{$shop.store_name|default:$shop.name|escape}</span>
+                    <span class="desktop-header-name">{$shop.store_name|escape}</span>
                 {/if}
                 {if $shop.show_tagline|default:1 && $shop.shop_tagline}
                     <span class="desktop-header-tagline">{$shop.shop_tagline|escape}</span>

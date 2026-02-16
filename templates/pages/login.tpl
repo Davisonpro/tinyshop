@@ -23,19 +23,21 @@
     <button type="submit" class="btn btn-primary" id="loginBtn">Sign In</button>
 </form>
 
+{if $oauth_google || $oauth_instagram || $oauth_tiktok}
 <div class="auth-divider"><span>or continue with</span></div>
 
 <div class="social-logins social-logins-row">
-    <a href="/auth/google" class="btn-social-icon" title="Google" aria-label="Sign in with Google">
+    {if $oauth_google}<a href="/auth/google" class="btn-social-icon" title="Google" aria-label="Sign in with Google">
         <i class="fa-brands fa-google" style="font-size:20px"></i>
-    </a>
-    <a href="/auth/instagram" class="btn-social-icon" title="Instagram" aria-label="Sign in with Instagram">
+    </a>{/if}
+    {if $oauth_instagram}<a href="/auth/instagram" class="btn-social-icon" title="Instagram" aria-label="Sign in with Instagram">
         <i class="fa-brands fa-instagram" style="font-size:20px"></i>
-    </a>
-    <a href="/auth/tiktok" class="btn-social-icon" title="TikTok" aria-label="Sign in with TikTok">
+    </a>{/if}
+    {if $oauth_tiktok}<a href="/auth/tiktok" class="btn-social-icon" title="TikTok" aria-label="Sign in with TikTok">
         <i class="fa-brands fa-tiktok" style="font-size:20px"></i>
-    </a>
+    </a>{/if}
 </div>
+{/if}
 
 {if $allow_registration}
 <div class="auth-footer">
@@ -45,5 +47,5 @@
 {/block}
 
 {block name="page_scripts"}
-<script src="/public/js/auth.js?v={$asset_v}"></script>
+<script src="/public/js/auth{$min}.js?v={$asset_v}"></script>
 {/block}

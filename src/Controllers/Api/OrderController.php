@@ -8,9 +8,12 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Enums\OrderStatus;
+use TinyShop\Models\AuditLog;
+use TinyShop\Models\Coupon;
 use TinyShop\Models\Order;
 use TinyShop\Models\OrderItem;
 use TinyShop\Models\Product;
+use TinyShop\Models\ProductImage;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Validation;
 
@@ -21,8 +24,11 @@ final class OrderController
         private readonly Order $orderModel,
         private readonly OrderItem $orderItemModel,
         private readonly Product $productModel,
+        private readonly ProductImage $productImageModel,
+        private readonly Coupon $couponModel,
         private readonly Auth $auth,
-        private readonly Validation $validation
+        private readonly Validation $validation,
+        private readonly AuditLog $auditLog
     ) {}
 
     private const MAX_PAGE_SIZE = 100;
@@ -100,6 +106,7 @@ final class OrderController
 
         $orderId = $this->orderModel->create([
             'user_id'        => $userId,
+            'order_number'   => Order::generateOrderNumber(),
             'product_id'     => $productId,
             'customer_name'  => $customerName,
             'customer_phone' => $customerPhone,
@@ -109,7 +116,48 @@ final class OrderController
             'reference_id'   => $notes ?: null,
         ]);
 
+        // Create order items if provided
+        $items = $data['items'] ?? [];
+        if (!empty($items) && is_array($items)) {
+            $orderItems = [];
+            foreach ($items as $item) {
+                $itemProductId = (int) ($item['product_id'] ?? 0);
+                if ($itemProductId <= 0) {
+                    continue;
+                }
+                $itemProduct = $this->productModel->findById($itemProductId);
+                if (!$itemProduct || (int) $itemProduct['user_id'] !== $userId) {
+                    continue;
+                }
+                $qty = max(1, (int) ($item['quantity'] ?? 1));
+                $unitPrice = (float) $itemProduct['price'];
+                $image = $itemProduct['image_url'] ?? null;
+                if ($image === null) {
+                    $images = $this->productImageModel->findByProduct($itemProductId);
+                    $image = !empty($images) ? $images[0]['image_url'] : null;
+                }
+                $orderItems[] = [
+                    'product_id'    => $itemProductId,
+                    'product_name'  => $itemProduct['name'],
+                    'product_image' => $image,
+                    'variation'     => null,
+                    'quantity'      => $qty,
+                    'unit_price'    => $unitPrice,
+                    'total'         => $unitPrice * $qty,
+                ];
+            }
+            if (!empty($orderItems)) {
+                $this->orderItemModel->createBatch($orderId, $orderItems);
+            }
+        }
+
         $order = $this->orderModel->findById($orderId);
+        $order['items'] = $this->orderItemModel->findByOrder($orderId);
+
+        $this->auditLog->log('order.create', $userId, 'order', $orderId, [
+            'customer_name' => $customerName,
+            'amount' => $amount,
+        ]);
 
         return $this->json($response, ['success' => true, 'order' => $order], 201);
     }
@@ -130,8 +178,27 @@ final class OrderController
             return $this->json($response, ['error' => true, 'message' => 'Invalid status'], 422);
         }
 
+        $oldStatus = $order['status'];
         $this->orderModel->updateStatus($orderId, $newStatus);
+
+        // Decrement coupon usage when order is cancelled/refunded
+        $cancelStatuses = [OrderStatus::Cancelled->value, OrderStatus::Refunded->value];
+        if (in_array($newStatus, $cancelStatuses, true) && !in_array($oldStatus, $cancelStatuses, true)) {
+            $couponCode = $order['coupon_code'] ?? '';
+            if ($couponCode !== '') {
+                $coupon = $this->couponModel->findByUserAndCode($userId, $couponCode);
+                if ($coupon) {
+                    $this->couponModel->decrementUsage((int) $coupon['id']);
+                }
+            }
+        }
+
         $order = $this->orderModel->findById($orderId);
+
+        $this->auditLog->log('order.status_change', $userId, 'order', $orderId, [
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+        ]);
 
         return $this->json($response, ['success' => true, 'order' => $order]);
     }
@@ -147,6 +214,10 @@ final class OrderController
         }
 
         $this->orderModel->delete($orderId);
+
+        $this->auditLog->log('order.delete', $userId, 'order', $orderId, [
+            'customer_name' => $order['customer_name'] ?? null,
+        ]);
 
         return $this->json($response, ['success' => true]);
     }

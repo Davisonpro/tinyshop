@@ -6,7 +6,7 @@
             <div class="shop-logo shop-logo-placeholder">{$shop.store_name|truncate:1:''|upper}</div>
         {/if}
         {if $shop.show_store_name|default:1}
-        <h1 class="shop-name">{$shop.store_name|default:$shop.name}</h1>
+        <h1 class="shop-name">{$shop.store_name}</h1>
         {/if}
         <div class="shop-header-actions">
             <button type="button" class="shop-share-btn" data-share-trigger aria-label="Share this shop">

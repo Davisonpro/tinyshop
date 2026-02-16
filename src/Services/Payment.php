@@ -196,6 +196,194 @@ final class Payment
         return null;
     }
 
+    // ── M-Pesa (Daraja API) ──
+
+    public function getMpesaToken(string $consumerKey, string $consumerSecret, bool $sandbox = true): string
+    {
+        $baseUrl = $sandbox
+            ? 'https://sandbox.safaricom.co.ke'
+            : 'https://api.safaricom.co.ke';
+
+        $credentials = base64_encode($consumerKey . ':' . $consumerSecret);
+
+        $ch = curl_init($baseUrl . '/oauth/v1/generate?grant_type=client_credentials');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Basic ' . $credentials,
+            ],
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \RuntimeException('M-Pesa auth failed: ' . $error);
+        }
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            $body = is_string($response) ? $response : '';
+            throw new \RuntimeException('M-Pesa auth failed (HTTP ' . $httpCode . '): ' . $body);
+        }
+
+        $data = json_decode($response, true);
+        if (empty($data['access_token'])) {
+            throw new \RuntimeException('M-Pesa auth returned no token: ' . ($response ?: 'empty response'));
+        }
+
+        return $data['access_token'];
+    }
+
+    public function initiateStkPush(
+        string $consumerKey,
+        string $consumerSecret,
+        string $shortcode,
+        string $passkey,
+        string $phoneNumber,
+        float $amount,
+        string $callbackUrl,
+        string $accountReference,
+        string $transactionDesc = 'Payment',
+        bool $sandbox = true
+    ): array {
+        $baseUrl = $sandbox
+            ? 'https://sandbox.safaricom.co.ke'
+            : 'https://api.safaricom.co.ke';
+
+        $token = $this->getMpesaToken($consumerKey, $consumerSecret, $sandbox);
+        $timestamp = date('YmdHis');
+        $password = base64_encode($shortcode . $passkey . $timestamp);
+
+        $payload = [
+            'BusinessShortCode' => $shortcode,
+            'Password' => $password,
+            'Timestamp' => $timestamp,
+            'TransactionType' => 'CustomerPayBillOnline',
+            'Amount' => (int) ceil($amount),
+            'PartyA' => $phoneNumber,
+            'PartyB' => $shortcode,
+            'PhoneNumber' => $phoneNumber,
+            'CallBackURL' => $callbackUrl,
+            'AccountReference' => substr($accountReference, 0, 12),
+            'TransactionDesc' => substr($transactionDesc, 0, 13),
+        ];
+
+        $ch = curl_init($baseUrl . '/mpesa/stkpush/v1/processrequest');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $token,
+            ],
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \RuntimeException('M-Pesa STK push failed: ' . $error);
+        }
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $data = json_decode($response, true);
+
+        if ($httpCode !== 200 || ($data['ResponseCode'] ?? '') !== '0') {
+            $desc = $data['errorMessage'] ?? $data['ResponseDescription'] ?? ($response ?: 'Unknown error');
+            throw new \RuntimeException('M-Pesa STK push failed (HTTP ' . $httpCode . '): ' . $desc);
+        }
+
+        return $data;
+    }
+
+    public function parseMpesaCallback(string $payload): ?array
+    {
+        $data = json_decode($payload, true);
+        if (!$data) {
+            return null;
+        }
+
+        $callback = $data['Body']['stkCallback'] ?? null;
+        if (!$callback) {
+            return null;
+        }
+
+        $resultCode = (int) ($callback['ResultCode'] ?? -1);
+        if ($resultCode !== 0) {
+            return [
+                'paid' => false,
+                'checkout_request_id' => $callback['CheckoutRequestID'] ?? '',
+                'result_desc' => $callback['ResultDesc'] ?? 'Payment failed',
+            ];
+        }
+
+        // Parse CallbackMetadata items into key-value pairs
+        $meta = [];
+        foreach ($callback['CallbackMetadata']['Item'] ?? [] as $item) {
+            $meta[$item['Name']] = $item['Value'] ?? null;
+        }
+
+        return [
+            'paid' => true,
+            'checkout_request_id' => $callback['CheckoutRequestID'] ?? '',
+            'merchant_request_id' => $callback['MerchantRequestID'] ?? '',
+            'receipt_number' => $meta['MpesaReceiptNumber'] ?? '',
+            'amount' => $meta['Amount'] ?? 0,
+            'phone' => $meta['PhoneNumber'] ?? '',
+            'transaction_date' => $meta['TransactionDate'] ?? '',
+        ];
+    }
+
+    /**
+     * GET /v2/checkout/orders/{id} — Check PayPal order status without capturing.
+     */
+    public function getPayPalOrderStatus(
+        string $paypalOrderId,
+        string $clientId,
+        string $secret,
+        bool $sandbox = true
+    ): ?array {
+        $baseUrl = $sandbox
+            ? 'https://api-m.sandbox.paypal.com'
+            : 'https://api-m.paypal.com';
+
+        $token = $this->getPayPalAccessToken($clientId, $secret, $baseUrl);
+
+        $ch = curl_init($baseUrl . '/v2/checkout/orders/' . urlencode($paypalOrderId));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $token,
+            ],
+            CURLOPT_TIMEOUT => 15,
+        ]);
+        $response = curl_exec($ch);
+        if ($response === false) {
+            curl_close($ch);
+            return null;
+        }
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            return null;
+        }
+
+        $data = json_decode($response, true);
+        return [
+            'status' => $data['status'] ?? '',
+            'id' => $data['id'] ?? '',
+            'paid' => ($data['status'] ?? '') === 'COMPLETED',
+        ];
+    }
+
     private function getPayPalAccessToken(string $clientId, string $secret, string $baseUrl): string
     {
         $ch = curl_init($baseUrl . '/v1/oauth2/token');
@@ -223,6 +411,10 @@ final class Payment
         }
 
         $data = json_decode($response, true);
-        return $data['access_token'] ?? null;
+        $token = $data['access_token'] ?? '';
+        if ($token === '') {
+            throw new \RuntimeException('PayPal authentication failed: no access token in response');
+        }
+        return $token;
     }
 }

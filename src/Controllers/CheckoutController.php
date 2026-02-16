@@ -42,10 +42,14 @@ final class CheckoutController
             );
         }
 
-        $hasStripe = !empty($shop['stripe_public_key']) && !empty($shop['stripe_secret_key']);
-        $hasPaypal = !empty($shop['paypal_client_id']) && !empty($shop['paypal_secret']);
+        $hasStripe = !empty($shop['stripe_enabled']) && !empty($shop['stripe_public_key']) && !empty($shop['stripe_secret_key']);
+        $hasPaypal = !empty($shop['paypal_enabled']) && !empty($shop['paypal_client_id']) && !empty($shop['paypal_secret']);
+        $hasCod = !empty($shop['cod_enabled']);
+        $hasMpesa = !empty($shop['mpesa_enabled']) && !empty($shop['mpesa_shortcode'])
+            && !empty($shop['mpesa_consumer_key']) && !empty($shop['mpesa_consumer_secret'])
+            && !empty($shop['mpesa_passkey']);
 
-        if (!$hasStripe && !$hasPaypal) {
+        if (!$hasStripe && !$hasPaypal && !$hasCod && !$hasMpesa) {
             return $response->withHeader('Location', '/')->withStatus(302);
         }
 
@@ -55,12 +59,14 @@ final class CheckoutController
         $this->view->setTheme($shop['shop_theme'] ?? 'classic');
 
         return $this->view->render($response, 'pages/checkout.tpl', [
-            'page_title' => 'Checkout — ' . ($shop['store_name'] ?: $shop['name']),
+            'page_title' => 'Checkout — ' . ($shop['store_name'] ?? ''),
             'shop' => $shop,
             'currency' => $currency,
             'currency_symbol' => $currencySymbol,
             'has_stripe' => $hasStripe,
             'has_paypal' => $hasPaypal,
+            'has_cod' => $hasCod,
+            'has_mpesa' => $hasMpesa,
             'shop_theme' => $shop['shop_theme'] ?? 'classic',
         ]);
     }

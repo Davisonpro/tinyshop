@@ -1,7 +1,7 @@
 <a href="/{$product.slug|default:$product.id}" class="product-card{if $product.is_sold} product-card-sold{/if}" data-category="{$product.category_id|default:''}">
     <div class="product-card-img">
         {if $product.is_sold}
-            <span class="product-badge product-badge-sold">Sold</span>
+            <span class="product-badge product-badge-sold">Sold out</span>
         {elseif $product.compare_price && $product.compare_price > $product.price}
             {math equation="round((1 - x/y) * 100)" x=$product.price y=$product.compare_price assign="discount_pct"}
             <span class="product-badge product-badge-sale">-{$discount_pct}%</span>

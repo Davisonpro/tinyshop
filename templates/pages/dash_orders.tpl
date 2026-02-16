@@ -3,7 +3,25 @@
 {block name="content"}
 <div class="dash-topbar">
     <span class="dash-topbar-title">Orders</span>
-    <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|default:$user.name|escape|substr:0:1|upper}</a>
+    <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|escape|substr:0:1|upper}</a>
+</div>
+
+{* Bulk action bar *}
+<div class="bulk-action-bar" id="bulkActionBar" style="display:none">
+    <div class="bulk-action-info">
+        <button type="button" id="bulkCancelBtn" class="bulk-action-close" aria-label="Cancel selection">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <span id="bulkCount">0 selected</span>
+    </div>
+    <div class="bulk-action-buttons">
+        <button type="button" id="bulkCompleteBtn" class="bulk-action-btn">
+            <i class="fa-solid fa-check"></i> Complete
+        </button>
+        <button type="button" id="bulkDeleteBtn" class="bulk-action-btn bulk-action-btn-danger">
+            <i class="fa-solid fa-trash"></i> Delete
+        </button>
+    </div>
 </div>
 
 {* Stats overview *}
@@ -27,7 +45,10 @@
 {* Search bar *}
 <div class="product-search-bar" id="orderSearchBar" style="display:none">
     <i class="fa-solid fa-magnifying-glass"></i>
-    <input type="text" id="orderSearch" placeholder="Search by name, phone, or order #..." autocomplete="off" aria-label="Search orders">
+    <input type="text" id="orderSearch" placeholder="Search orders..." autocomplete="off" aria-label="Search orders">
+    <button type="button" id="orderMoreBtn" class="search-bar-action" aria-label="More actions">
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+    </button>
 </div>
 
 {* Status filter tabs *}
@@ -64,6 +85,8 @@ $(function() {ldelim}
     var _filter = 'all';
     var _search = '';
     var _products = null;
+    var _selectMode = false;
+    var _selected = {ldelim}{rdelim};
 
     function loadOrders() {ldelim}
         TinyShop.api('GET', '/api/orders').done(function(res) {ldelim}
@@ -120,9 +143,9 @@ $(function() {ldelim}
             var msg;
             if (_orders.length === 0) {ldelim}
                 msg = '<div class="empty-state">' +
-                    '<div class="empty-icon"><i class="fa-solid fa-bag-shopping icon-2xl text-muted"></i></div>' +
-                    '<h2>You\'re all set up</h2>' +
-                    '<p>Orders will show here when customers start buying</p>' +
+                    '<div class="empty-icon"><i class="fa-solid fa-bag-shopping"></i></div>' +
+                    '<h2>No orders yet</h2>' +
+                    '<p>Share your shop link and watch orders roll in</p>' +
                 '</div>';
             {rdelim} else if (_search) {ldelim}
                 msg = '<div class="empty-state"><p>No orders matching "' + escapeHtml(_search) + '"</p></div>';
@@ -152,9 +175,12 @@ $(function() {ldelim}
             var gw = o.payment_gateway || o.payment_method || '';
             if (gw === 'stripe') gatewayBadge = '<span class="order-gateway-badge order-gateway-stripe">Stripe</span>';
             else if (gw === 'paypal') gatewayBadge = '<span class="order-gateway-badge order-gateway-paypal">PayPal</span>';
+            else if (gw === 'cod') gatewayBadge = '<span class="order-gateway-badge order-gateway-cod">Pay on Delivery</span>';
             else if (gw && gw !== 'whatsapp' && gw !== 'manual') gatewayBadge = '<span class="order-gateway-badge">' + escapeHtml(gw) + '</span>';
 
-            html += '<div class="order-card" data-id="' + o.id + '">' +
+            var isChecked = _selected[o.id] ? ' checked' : '';
+            html += '<div class="order-card' + (_selectMode ? ' select-mode' : '') + '" data-id="' + o.id + '">' +
+                (_selectMode ? '<label class="order-card-checkbox"><input type="checkbox" data-id="' + o.id + '"' + isChecked + '><span class="order-checkbox-mark"></span></label>' : '') +
                 '<div class="order-card-top">' +
                     '<div class="order-card-customer">' +
                         '<div class="order-card-name">' + escapeHtml(o.customer_name || 'Customer') + '</div>' +
@@ -188,14 +214,15 @@ $(function() {ldelim}
 
     // Filter tabs
     $('#orderFilterBar').on('click', '.category-tab', function() {ldelim}
-        $('#orderFilterBar .category-tab').removeClass('active');
+        $('.category-tab').removeClass('active');
         $(this).addClass('active');
         _filter = $(this).data('filter');
         renderOrders();
     {rdelim});
 
     // ── Order Detail Modal ──
-    $('#orderList').on('click', '.order-card', function() {ldelim}
+    $('#orderList').on('click', '.order-card', function(e) {ldelim}
+        if (_selectMode) return;
         var id = $(this).data('id');
         var order = _orders.find(function(o) {ldelim} return parseInt(o.id) === parseInt(id); {rdelim});
         if (!order) return;
@@ -273,7 +300,8 @@ $(function() {ldelim}
             '</div>';
         var gw = order.payment_gateway || order.payment_method || '';
         if (gw && gw !== 'manual' && gw !== 'whatsapp') {ldelim}
-            html += '<div style="margin-top:6px;font-size:0.75rem;color:var(--color-text-muted)">Paid via ' + escapeHtml(gw.charAt(0).toUpperCase() + gw.slice(1)) + '</div>';
+            var gwLabel = gw === 'cod' ? 'Pay on Delivery' : gw.charAt(0).toUpperCase() + gw.slice(1);
+            html += '<div style="margin-top:6px;font-size:0.75rem;color:var(--color-text-muted)">' + (gw === 'cod' ? '' : 'Paid via ') + escapeHtml(gwLabel) + '</div>';
         {rdelim}
         if (order.notes || order.reference_id) {ldelim}
             html += '<div style="margin-top:6px;font-size:0.75rem;color:var(--color-text-muted)">Notes: ' + escapeHtml(order.notes || order.reference_id) + '</div>';
@@ -370,6 +398,7 @@ $(function() {ldelim}
     {rdelim}
 
     var _orderItems = [];
+    var _lastChangedIdx = -1;
 
     $('#addOrderFab').on('click', function() {ldelim}
         _orderItems = [];
@@ -444,7 +473,7 @@ $(function() {ldelim}
             {rdelim}
             var h = '';
             _orderItems.forEach(function(item, idx) {ldelim}
-                h += '<div class="order-line-item" data-idx="' + idx + '">' +
+                h += '<div class="order-line-item' + (idx === _lastChangedIdx ? ' item-flash' : '') + '" data-idx="' + idx + '">' +
                     '<div class="order-line-item-info">' +
                         '<div class="order-line-item-name">' + escapeHtml(item.name) + '</div>' +
                         '<div class="order-line-item-price">' + TinyShop.formatPrice(item.price, _currency) + ' each</div>' +
@@ -462,7 +491,15 @@ $(function() {ldelim}
                 '</div>';
             {rdelim});
             $list.html(h);
+            _lastChangedIdx = -1;
             calcTotal();
+
+            // Animate total
+            var $total = $('#orderCalcTotal');
+            if ($total.length) {ldelim}
+                $total.addClass('total-pop');
+                setTimeout(function() {ldelim} $total.removeClass('total-pop'); {rdelim}, 300);
+            {rdelim}
         {rdelim}
 
         $(document).off('click.orderItems');
@@ -488,6 +525,11 @@ $(function() {ldelim}
 
         // Add Product → picker modal
         $('#addProductBtn').on('click', function() {ldelim}
+            // Save form values before picker replaces modal
+            var savedName = $('#orderCustomerName').val() || '';
+            var savedPhone = $('#orderCustomerPhone').val() || '';
+            var savedNotes = $('#orderNotes').val() || '';
+
             var pickerHtml = '<div style="margin-bottom:12px">' +
                 '<input type="text" class="form-control" id="productPickerSearch" placeholder="Search products..." autocomplete="off" autofocus>' +
             '</div>' +
@@ -532,11 +574,19 @@ $(function() {ldelim}
                 {rdelim}
                 if (existing !== -1) {ldelim}
                     _orderItems[existing].qty++;
+                    _lastChangedIdx = existing;
                 {rdelim} else {ldelim}
                     _orderItems.push({ldelim} productId: pid, name: name, price: price, image: image, qty: 1 {rdelim});
+                    _lastChangedIdx = _orderItems.length - 1;
                 {rdelim}
+
                 TinyShop.closeModal();
                 showAddOrderModal(products);
+
+                // Restore saved values from before picker opened
+                $('#orderCustomerName').val(savedName);
+                $('#orderCustomerPhone').val(savedPhone);
+                $('#orderNotes').val(savedNotes);
             {rdelim});
         {rdelim});
 
@@ -567,12 +617,16 @@ $(function() {ldelim}
                 amount: amount,
                 notes: notes
             {rdelim};
-            if (_orderItems.length > 0 && _orderItems[0].productId) {ldelim}
+            if (_orderItems.length > 0) {ldelim}
+                payload.items = _orderItems.map(function(item) {ldelim}
+                    return {ldelim} product_id: item.productId, quantity: item.qty {rdelim};
+                {rdelim});
                 payload.product_id = _orderItems[0].productId;
             {rdelim}
 
             TinyShop.api('POST', '/api/orders', payload).done(function(res) {ldelim}
                 _orders.unshift(res.order);
+                _orderItems = [];
                 TinyShop.toast('Order logged!');
                 TinyShop.closeModal();
                 renderOrders();
@@ -583,6 +637,179 @@ $(function() {ldelim}
                 $btn.prop('disabled', false).text('Log Order');
             {rdelim});
         {rdelim});
+    {rdelim}
+
+    // ── Bulk Select Mode ──
+    function updateBulkCount() {ldelim}
+        var count = Object.keys(_selected).length;
+        $('#bulkCount').text(count + ' selected');
+        $('#bulkCompleteBtn, #bulkDeleteBtn').prop('disabled', count === 0);
+    {rdelim}
+
+    function enterSelectMode() {ldelim}
+        _selectMode = true;
+        _selected = {ldelim}{rdelim};
+        $('#bulkActionBar').show();
+        $('#addOrderFab').hide();
+        updateBulkCount();
+        renderOrders();
+    {rdelim}
+
+    function exitSelectMode() {ldelim}
+        _selectMode = false;
+        _selected = {ldelim}{rdelim};
+        $('#bulkActionBar').hide();
+        $('#addOrderFab').show();
+        renderOrders();
+    {rdelim}
+
+    $('#bulkCancelBtn').on('click', function() {ldelim}
+        exitSelectMode();
+    {rdelim});
+
+    // Checkbox toggle
+    $('#orderList').on('change', '.order-card-checkbox input', function(e) {ldelim}
+        e.stopPropagation();
+        var id = $(this).data('id');
+        if (this.checked) _selected[id] = true;
+        else delete _selected[id];
+        updateBulkCount();
+    {rdelim});
+
+    // Prevent card click when in select mode — toggle checkbox instead
+    $('#orderList').on('click', '.order-card.select-mode', function(e) {ldelim}
+        if ($(e.target).closest('.order-card-checkbox').length) return;
+        var $cb = $(this).find('.order-card-checkbox input');
+        $cb.prop('checked', !$cb.prop('checked')).trigger('change');
+    {rdelim});
+
+    // Bulk complete
+    $('#bulkCompleteBtn').on('click', function() {ldelim}
+        var ids = Object.keys(_selected);
+        if (ids.length === 0) return;
+        var $btn = $(this).prop('disabled', true).html('<span class="btn-spinner btn-spinner-dark"></span>');
+        var done = 0;
+        ids.forEach(function(id) {ldelim}
+            TinyShop.api('PUT', '/api/orders/' + id + '/status', {ldelim} status: 'paid' {rdelim}).always(function() {ldelim}
+                done++;
+                if (done === ids.length) {ldelim}
+                    TinyShop.toast(ids.length + ' order' + (ids.length > 1 ? 's' : '') + ' marked as completed');
+                    exitSelectMode();
+                    loadOrders();
+                {rdelim}
+            {rdelim});
+        {rdelim});
+    {rdelim});
+
+    // Bulk delete
+    $('#bulkDeleteBtn').on('click', function() {ldelim}
+        var ids = Object.keys(_selected);
+        if (ids.length === 0) return;
+        TinyShop.confirm('Delete ' + ids.length + ' order' + (ids.length > 1 ? 's' : '') + '?', 'This cannot be undone.', 'Delete', function() {ldelim}
+            TinyShop.closeModal();
+            var done = 0;
+            ids.forEach(function(id) {ldelim}
+                TinyShop.api('DELETE', '/api/orders/' + id).always(function() {ldelim}
+                    done++;
+                    if (done === ids.length) {ldelim}
+                        TinyShop.toast(ids.length + ' order' + (ids.length > 1 ? 's' : '') + ' deleted');
+                        exitSelectMode();
+                        loadOrders();
+                    {rdelim}
+                {rdelim});
+            {rdelim});
+        {rdelim}, 'danger');
+    {rdelim});
+
+    // ── More menu (overflow) ──
+    $('#orderMoreBtn').on('click', function() {ldelim}
+        var html = '<div class="action-menu">' +
+            '<button type="button" class="action-menu-item" id="menuExportBtn">' +
+                '<i class="fa-solid fa-download"></i>' +
+                '<span>Export as CSV</span>' +
+            '</button>' +
+            '<button type="button" class="action-menu-item" id="menuSelectBtn">' +
+                '<i class="fa-solid fa-check-double"></i>' +
+                '<span>Select orders</span>' +
+            '</button>' +
+        '</div>';
+        TinyShop.openModal('Actions', html);
+
+        $('#menuSelectBtn').on('click', function() {ldelim}
+            TinyShop.closeModal();
+            enterSelectMode();
+        {rdelim});
+
+        $('#menuExportBtn').on('click', function() {ldelim}
+            TinyShop.closeModal();
+            exportOrders();
+        {rdelim});
+    {rdelim});
+
+    // ── Export orders ──
+    function exportOrders() {ldelim}
+        var filtered = _orders.slice();
+        if (_filter !== 'all') {ldelim}
+            filtered = filtered.filter(function(o) {ldelim} return o.status === _filter; {rdelim});
+        {rdelim}
+        if (_search) {ldelim}
+            filtered = filtered.filter(matchesSearch);
+        {rdelim}
+
+        if (filtered.length === 0) {ldelim}
+            TinyShop.toast('No orders to export', 'error');
+            return;
+        {rdelim}
+
+        var filterLabel = _filter === 'all' ? '' : _filter === 'paid' ? ' completed' : ' ' + _filter;
+        var msg = 'Export ' + filtered.length + filterLabel + ' order' + (filtered.length > 1 ? 's' : '') + ' as a CSV file.';
+
+        TinyShop.confirm('Export Orders', msg, 'Export', function() {ldelim}
+            TinyShop.closeModal();
+            doExport(filtered);
+        {rdelim});
+    {rdelim}
+
+    function doExport(filtered) {ldelim}
+        var headers = ['Order #', 'Date', 'Customer', 'Email', 'Phone', 'Amount', 'Status', 'Payment Method', 'Items'];
+        var rows = filtered.map(function(o) {ldelim}
+            var items = '';
+            if (o.items && o.items.length) {ldelim}
+                items = o.items.map(function(it) {ldelim}
+                    return (it.product_name || 'Product') + ' x' + (it.quantity || 1);
+                {rdelim}).join('; ');
+            {rdelim}
+            return [
+                o.order_number || '#' + o.id,
+                o.created_at || '',
+                o.customer_name || '',
+                o.customer_email || '',
+                o.customer_phone || '',
+                o.amount || '0',
+                o.status || '',
+                o.payment_gateway || o.payment_method || '',
+                items
+            ];
+        {rdelim});
+
+        var csv = [headers.join(',')];
+        rows.forEach(function(row) {ldelim}
+            csv.push(row.map(function(cell) {ldelim}
+                var s = String(cell).replace(/"/g, '""');
+                return '"' + s + '"';
+            {rdelim}).join(','));
+        {rdelim});
+
+        var blob = new Blob([csv.join('\n')], {ldelim} type: 'text/csv;charset=utf-8;' {rdelim});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'orders-' + new Date().toISOString().split('T')[0] + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        TinyShop.toast('Exported ' + filtered.length + ' order' + (filtered.length > 1 ? 's' : ''));
     {rdelim}
 
     loadOrders();

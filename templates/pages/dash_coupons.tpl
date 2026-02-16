@@ -6,7 +6,7 @@
         <i class="fa-solid fa-chevron-left icon-md"></i>
     </a>
     <span class="dash-topbar-title">Coupons</span>
-    <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|default:$user.name|escape|substr:0:1|upper}</a>
+    <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|escape|substr:0:1|upper}</a>
 </div>
 
 {if !empty($usage) && !$usage.coupons}
@@ -58,9 +58,9 @@ $(function() {ldelim}
         if (_coupons.length === 0) {ldelim}
             $('#couponList').html(
                 '<div class="empty-state">' +
-                    '<div class="empty-icon"><i class="fa-solid fa-ticket icon-2xl text-muted"></i></div>' +
-                    '<h2>No coupons yet</h2>' +
-                    '<p>Create a coupon to offer discounts to your customers</p>' +
+                    '<div class="empty-icon"><i class="fa-solid fa-ticket"></i></div>' +
+                    '<h2>Boost your sales</h2>' +
+                    '<p>Create discount codes your customers will love</p>' +
                 '</div>'
             );
             return;
@@ -247,6 +247,8 @@ $(function() {ldelim}
             if (!code) {ldelim} TinyShop.toast('Enter a coupon code', 'error'); return; {rdelim}
             if (!value || value <= 0) {ldelim} TinyShop.toast('Enter a discount value', 'error'); return; {rdelim}
             if (type === 'percent' && value > 100) {ldelim} TinyShop.toast('Percent cannot exceed 100', 'error'); return; {rdelim}
+            if (maxUses && parseInt(maxUses) < 1) {ldelim} TinyShop.toast('Max uses must be at least 1', 'error'); return; {rdelim}
+            if (minOrder && parseFloat(minOrder) < 0) {ldelim} TinyShop.toast('Minimum order cannot be negative', 'error'); return; {rdelim}
 
             var payload = {ldelim}
                 code: code,

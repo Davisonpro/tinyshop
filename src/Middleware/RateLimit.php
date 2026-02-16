@@ -96,13 +96,6 @@ final class RateLimit implements MiddlewareInterface
     private function resolveIp(ServerRequestInterface $request): string
     {
         $server = $request->getServerParams();
-
-        // Trust X-Forwarded-For only behind a known proxy
-        $forwarded = $server['HTTP_X_FORWARDED_FOR'] ?? '';
-        if ($forwarded !== '') {
-            return trim(explode(',', $forwarded)[0]);
-        }
-
         return $server['REMOTE_ADDR'] ?? '127.0.0.1';
     }
 

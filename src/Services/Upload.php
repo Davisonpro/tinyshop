@@ -75,13 +75,19 @@ final class Upload
 
     private function convertToWebP(string $sourcePath, string $baseName, string $mime): ?string
     {
-        if (!function_exists('imagecreatefromjpeg')) {
+        if (!function_exists('imagewebp')) {
+            return null;
+        }
+
+        // Already WebP — nothing to convert
+        if ($mime === 'image/webp') {
             return null;
         }
 
         $image = match ($mime) {
             'image/jpeg' => @imagecreatefromjpeg($sourcePath),
             'image/png'  => @imagecreatefrompng($sourcePath),
+            'image/gif'  => @imagecreatefromgif($sourcePath),
             default      => null,
         };
 
@@ -89,7 +95,8 @@ final class Upload
             return null;
         }
 
-        if ($mime === 'image/png') {
+        // Preserve transparency for PNG and GIF
+        if ($mime === 'image/png' || $mime === 'image/gif') {
             imagepalettetotruecolor($image);
             imagealphablending($image, true);
             imagesavealpha($image, true);
@@ -105,16 +112,7 @@ final class Upload
             return null;
         }
 
-        $originalSize = filesize($sourcePath);
-        $webpSize = filesize($webpPath);
-
-        if ($webpSize >= $originalSize) {
-            @unlink($webpPath);
-            return null;
-        }
-
-        @unlink($sourcePath);
-
+        // Keep the original file for fallback — only return WebP URL
         return $this->uploadUrl . '/' . $webpName;
     }
 
@@ -180,11 +178,32 @@ final class Upload
 
         $filename = basename($url);
         $path = $this->uploadDir . '/' . $filename;
+        $deleted = false;
 
         if (is_file($path)) {
-            return unlink($path);
+            $deleted = unlink($path);
         }
 
-        return false;
+        // Also remove the companion file (original ↔ WebP)
+        $baseName = pathinfo($filename, PATHINFO_FILENAME);
+        $ext = pathinfo($filename, PATHINFO_EXTENSION);
+
+        if ($ext === 'webp') {
+            // Delete any original that shares the same base name
+            foreach (['jpg', 'jpeg', 'png', 'gif'] as $origExt) {
+                $origPath = $this->uploadDir . '/' . $baseName . '.' . $origExt;
+                if (is_file($origPath)) {
+                    @unlink($origPath);
+                }
+            }
+        } else {
+            // Delete the WebP companion if it exists
+            $webpPath = $this->uploadDir . '/' . $baseName . '.webp';
+            if (is_file($webpPath)) {
+                @unlink($webpPath);
+            }
+        }
+
+        return $deleted;
     }
 }

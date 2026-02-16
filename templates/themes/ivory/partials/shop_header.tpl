@@ -1,7 +1,7 @@
 <header class="shop-header">
     <div class="shop-header-top">
         {if $shop.show_store_name|default:1}
-        <h1 class="shop-name">{$shop.store_name|default:$shop.name}</h1>
+        <h1 class="shop-name">{$shop.store_name}</h1>
         {/if}
         <div class="shop-header-actions">
             <button type="button" class="shop-search-toggle" id="searchToggle" aria-label="Search products">

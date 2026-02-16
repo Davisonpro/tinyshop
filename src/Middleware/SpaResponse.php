@@ -19,6 +19,19 @@ use Slim\Psr7\Stream;
  */
 final class SpaResponse implements MiddlewareInterface
 {
+    /** Core assets loaded on every page — no need to send in SPA responses. */
+    private const CORE_STYLES = [
+        '/public/css/app.css',
+        '/public/css/marketing.css',
+        '/public/css/fontawesome.min.css',
+        'fonts.googleapis.com',
+    ];
+
+    private const CORE_SCRIPTS = [
+        '/public/js/jquery.min.js',
+        '/public/js/app.js',
+    ];
+
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);
@@ -105,6 +118,14 @@ final class SpaResponse implements MiddlewareInterface
             $attrs = $sm[1];
             $content = trim($sm[2]);
 
+            // Skip non-JS scripts (JSON-LD, importmap, etc.)
+            if (preg_match('/type="([^"]*)"/', $attrs, $typeMatch)) {
+                $type = strtolower($typeMatch[1]);
+                if ($type !== '' && $type !== 'text/javascript' && $type !== 'module') {
+                    continue;
+                }
+            }
+
             if (preg_match('/src="([^"]*)"/', $attrs, $srcMatch)) {
                 $scripts[] = $srcMatch[1];
             } elseif ($content !== '') {
@@ -118,6 +139,25 @@ final class SpaResponse implements MiddlewareInterface
 
         // Strip all script tags from body content
         $bodyContent = preg_replace('/<script[\s\S]*?<\/script>/i', '', $bodyContent);
+
+        // Strip core assets — the client already has them permanently loaded
+        $styles = array_values(array_filter($styles, static function (string $href): bool {
+            foreach (self::CORE_STYLES as $core) {
+                if (str_contains($href, $core)) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+
+        $scripts = array_values(array_filter($scripts, static function (string $src): bool {
+            foreach (self::CORE_SCRIPTS as $core) {
+                if (str_contains($src, $core)) {
+                    return false;
+                }
+            }
+            return true;
+        }));
 
         $payload = json_encode([
             'title'         => $title,

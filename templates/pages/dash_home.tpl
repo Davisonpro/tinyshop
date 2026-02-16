@@ -6,20 +6,20 @@
     <div class="dash-greeting-row">
         <div>
             <small>Welcome back</small>
-            <h1>Hi, {$user.store_name|default:$user.name|escape}!</h1>
+            <h1>Hi, {$user.store_name|escape}!</h1>
         </div>
-        <a href="/dashboard/shop" class="dash-avatar">{$user.store_name|default:$user.name|escape|substr:0:1|upper}</a>
+        <a href="/dashboard/shop" class="dash-avatar">{$user.store_name|escape|substr:0:1|upper}</a>
     </div>
 </div>
 
-{* Upgrade banner for free plan *}
-{if !empty($usage) && $usage.is_free}
+{* Upgrade banner *}
+{if !empty($usage) && $usage.can_upgrade}
 <a href="/dashboard/billing" class="upgrade-banner">
     <div class="upgrade-banner-content">
         <i class="fa-solid fa-crown icon-md" style="color:#F5A623"></i>
         <div>
-            <strong>You're on the Free plan</strong>
-            <span>{$usage.product_count} of {$usage.max_products} products used</span>
+            <strong>You're on the {$usage.plan.name|escape} plan</strong>
+            <span>{if $usage.products_unlimited}Unlimited products{elseif $usage.product_count >= $usage.max_products}Product limit reached ({$usage.max_products}){else}{$usage.product_count} of {$usage.max_products} products used{/if}</span>
         </div>
     </div>
     <i class="fa-solid fa-chevron-right icon-sm text-muted"></i>
@@ -77,16 +77,15 @@
 {foreach $onboarding_steps as $step}
     {if $step.done}{assign var="completed_count" value=$completed_count+1}{/if}
 {/foreach}
-{if $completed_count < $onboarding_steps|@count}
-<div class="onboarding-card" id="onboardingCard">
+<div class="onboarding-card" id="onboardingCard" style="display:none">
     <div class="onboarding-title">Getting Started</div>
-    <div style="font-size:0.8125rem;color:var(--color-text-muted);margin-bottom:4px">{$completed_count} of {$onboarding_steps|@count} complete</div>
+    <div style="font-size:0.8125rem;color:var(--color-text-muted);margin-bottom:4px" id="onboardingProgress">{$completed_count} of {$onboarding_steps|@count} complete</div>
     <div class="onboarding-progress">
-        <div class="onboarding-progress-fill" style="width:{$completed_count / $onboarding_steps|@count * 100}%"></div>
+        <div class="onboarding-progress-fill" id="onboardingBar" style="width:{$completed_count / $onboarding_steps|@count * 100}%"></div>
     </div>
     <div class="onboarding-steps">
         {foreach $onboarding_steps as $step}
-        <a href="{$step.link}" class="onboarding-step{if $step.done} completed{/if}">
+        <a href="{$step.link}" class="onboarding-step{if $step.done} completed{/if}" data-key="{$step.key}">
             <div class="onboarding-step-icon">
                 {if $step.done}
                     <i class="fa-solid fa-check"></i>
@@ -101,12 +100,102 @@
     <button type="button" class="onboarding-dismiss" onclick="this.closest('.onboarding-card').style.display='none';try{ldelim}localStorage.setItem('tinyshop_onboard_dismissed','1'){rdelim}catch(e){ldelim}{rdelim}">I'll do this later</button>
 </div>
 <script>
-if (localStorage.getItem('tinyshop_onboard_dismissed') === '1') {ldelim}
+(function() {
     var card = document.getElementById('onboardingCard');
-    if (card) card.style.display = 'none';
-{rdelim}
+    if (!card) return;
+    if (localStorage.getItem('tinyshop_onboard_dismissed') === '1') return;
+
+    // Check homescreen step from localStorage
+    var hsStep = card.querySelector('.onboarding-step[data-key="homescreen"]');
+    var hsCompleted = localStorage.getItem('tinyshop_homescreen_added') === '1';
+    if (hsStep && hsCompleted && !hsStep.classList.contains('completed')) {
+        hsStep.classList.add('completed');
+        hsStep.querySelector('.onboarding-step-icon').innerHTML = '<i class="fa-solid fa-check"></i>';
+    }
+
+    // Recalculate progress
+    var steps = card.querySelectorAll('.onboarding-step');
+    var done = card.querySelectorAll('.onboarding-step.completed').length;
+    var total = steps.length;
+    if (done >= total) return; // All done — hide onboarding
+    card.querySelector('#onboardingProgress').textContent = done + ' of ' + total + ' complete';
+    card.querySelector('#onboardingBar').style.width = (done / total * 100) + '%';
+    card.style.display = '';
+
+    // Homescreen step — open modal instead of navigating
+    if (hsStep) {
+        hsStep.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (hsStep.classList.contains('completed')) return;
+
+            var ua = navigator.userAgent || '';
+            var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            var isAndroid = /Android/.test(ua);
+            var isSafari = /Safari/.test(ua) && !/CriOS|Chrome/.test(ua);
+
+            var html = '<div style="padding:4px 0">';
+
+            if (isIOS) {
+                html += '<div class="a2hs-instruction">' +
+                    '<div class="a2hs-step-num">1</div>' +
+                    '<div class="a2hs-step-text">Tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--color-accent)"></i> at the bottom of Safari</div>' +
+                '</div>' +
+                '<div class="a2hs-instruction">' +
+                    '<div class="a2hs-step-num">2</div>' +
+                    '<div class="a2hs-step-text">Scroll down and tap <strong>Add to Home Screen</strong></div>' +
+                '</div>' +
+                '<div class="a2hs-instruction">' +
+                    '<div class="a2hs-step-num">3</div>' +
+                    '<div class="a2hs-step-text">Tap <strong>Add</strong> in the top-right corner</div>' +
+                '</div>';
+                if (!isSafari) {
+                    html += '<div style="margin-top:12px;padding:10px 12px;background:var(--color-bg-alt);border-radius:var(--radius-md);font-size:0.8125rem;color:var(--color-text-muted)">' +
+                        '<i class="fa-solid fa-circle-info" style="margin-right:4px"></i> Open this page in <strong>Safari</strong> to add to homescreen' +
+                    '</div>';
+                }
+            } else if (isAndroid) {
+                html += '<div class="a2hs-instruction">' +
+                    '<div class="a2hs-step-num">1</div>' +
+                    '<div class="a2hs-step-text">Tap the <strong>menu</strong> button <i class="fa-solid fa-ellipsis-vertical" style="color:var(--color-accent)"></i> in Chrome</div>' +
+                '</div>' +
+                '<div class="a2hs-instruction">' +
+                    '<div class="a2hs-step-num">2</div>' +
+                    '<div class="a2hs-step-text">Tap <strong>Add to Home screen</strong></div>' +
+                '</div>' +
+                '<div class="a2hs-instruction">' +
+                    '<div class="a2hs-step-num">3</div>' +
+                    '<div class="a2hs-step-text">Tap <strong>Add</strong> to confirm</div>' +
+                '</div>';
+            } else {
+                html += '<div class="a2hs-instruction">' +
+                    '<div class="a2hs-step-num">1</div>' +
+                    '<div class="a2hs-step-text">Click the <strong>install icon</strong> <i class="fa-solid fa-download" style="color:var(--color-accent)"></i> in your browser\'s address bar</div>' +
+                '</div>' +
+                '<div class="a2hs-instruction">' +
+                    '<div class="a2hs-step-num">2</div>' +
+                    '<div class="a2hs-step-text">Click <strong>Install</strong> to confirm</div>' +
+                '</div>';
+            }
+
+            html += '</div>' +
+                '<button type="button" class="btn btn-primary btn-block" id="a2hsDoneBtn" style="margin-top:16px">Done, I\'ve added it</button>';
+
+            TinyShop.openModal('Add to Homescreen', html);
+
+            document.getElementById('a2hsDoneBtn').addEventListener('click', function() {
+                localStorage.setItem('tinyshop_homescreen_added', '1');
+                hsStep.classList.add('completed');
+                hsStep.querySelector('.onboarding-step-icon').innerHTML = '<i class="fa-solid fa-check"></i>';
+                var newDone = card.querySelectorAll('.onboarding-step.completed').length;
+                card.querySelector('#onboardingProgress').textContent = newDone + ' of ' + total + ' complete';
+                card.querySelector('#onboardingBar').style.width = (newDone / total * 100) + '%';
+                TinyShop.closeModal();
+                if (newDone >= total) card.style.display = 'none';
+            });
+        });
+    }
+})();
 </script>
-{/if}
 {/if}
 
 {* Share shop link *}
@@ -164,7 +253,7 @@ if (localStorage.getItem('tinyshop_onboard_dismissed') === '1') {ldelim}
             <strong>Coupons</strong>
         </a>
         <a href="/logout" class="action-card">
-            <div class="action-icon" style="background:var(--color-text-muted)">
+            <div class="action-icon red">
                 <i class="fa-solid fa-right-from-bracket"></i>
             </div>
             <strong>Log Out</strong>

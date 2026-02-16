@@ -3,7 +3,7 @@
 {block name="body_class"}page-shop page-tracking{/block}
 
 {block name="extra_css"}
-<link rel="stylesheet" href="/public/css/tracking.css?v={$asset_v}">
+<link rel="stylesheet" href="/public/css/tracking{$min}.css?v={$asset_v}">
 {/block}
 {block name="body"}
 <div class="tracking-page">

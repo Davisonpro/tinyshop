@@ -40,6 +40,7 @@ final class PageController
     {
         return $this->view->render($response, 'pages/login.tpl', [
             'page_title' => 'Sign In',
+            'current_page' => 'login',
         ]);
     }
 
@@ -51,6 +52,7 @@ final class PageController
 
         return $this->view->render($response, 'pages/register.tpl', [
             'page_title' => 'Create Account',
+            'current_page' => 'register',
         ]);
     }
 
@@ -102,7 +104,7 @@ final class PageController
             }
 
             $role = UserRole::tryFrom($existing['role'] ?? '') ?? UserRole::Seller;
-            $this->auth->login((int) $existing['id'], $existing['name'], $role);
+            $this->auth->login((int) $existing['id'], $existing['store_name'] ?? '', $role);
             $this->user->recordLogin((int) $existing['id']);
 
             $redirect = $role === UserRole::Admin ? '/admin' : '/dashboard';
@@ -114,9 +116,9 @@ final class PageController
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
-        // Create new user — generate subdomain from name
-        $name = $oauthUser['name'] ?: 'User';
-        $subdomain = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $name));
+        // Create new user — generate subdomain from OAuth name or email
+        $oauthName = $oauthUser['name'] ?: 'User';
+        $subdomain = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $oauthName));
         if (strlen($subdomain) < 3) {
             $subdomain .= bin2hex(random_bytes(2));
         }
@@ -128,17 +130,18 @@ final class PageController
             $i++;
         }
 
+        $storeName = $oauthName . "'s Shop";
+
         // 5. Use provider's unique ID for oauth_id
         $userId = $this->user->create([
-            'name' => $name,
             'email' => $oauthUser['email'] ?: $subdomain . '@oauth.local',
             'oauth_provider' => $provider,
             'oauth_id' => $oauthUser['id'],
-            'store_name' => $name . "'s Shop",
+            'store_name' => $storeName,
             'subdomain' => $subdomain,
         ]);
 
-        $this->auth->login($userId, $name, UserRole::Seller);
+        $this->auth->login($userId, $storeName, UserRole::Seller);
         $this->user->recordLogin($userId);
 
         return $response->withHeader('Location', '/dashboard')->withStatus(302);
@@ -159,6 +162,7 @@ final class PageController
     {
         return $this->view->render($response, 'pages/forgot_password.tpl', [
             'page_title' => 'Forgot Password',
+            'current_page' => 'forgot_password',
         ]);
     }
 
@@ -168,6 +172,7 @@ final class PageController
 
         return $this->view->render($response, 'pages/reset_password.tpl', [
             'page_title' => 'Reset Password',
+            'current_page' => 'reset_password',
             'token'      => $token,
         ]);
     }
@@ -176,5 +181,31 @@ final class PageController
     {
         $this->auth->logout();
         return $response->withHeader('Location', '/login')->withStatus(302);
+    }
+
+    public function manifest(Request $request, Response $response): Response
+    {
+        $appName = $this->setting->get('app_name') ?: 'TinyShop';
+
+        $manifest = [
+            'name'             => $appName,
+            'short_name'       => $appName,
+            'description'      => 'Create your mobile shop in minutes. Share anywhere.',
+            'start_url'        => '/dashboard',
+            'display'          => 'standalone',
+            'background_color' => '#F5F5F7',
+            'theme_color'      => '#111111',
+            'orientation'      => 'portrait',
+            'icons'            => [
+                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
+                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+            ],
+        ];
+
+        $response->getBody()->write(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+
+        return $response
+            ->withHeader('Content-Type', 'application/manifest+json')
+            ->withHeader('Cache-Control', 'public, max-age=3600');
     }
 }

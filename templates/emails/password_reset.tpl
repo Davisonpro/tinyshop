@@ -4,8 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="color-scheme" content="light dark">
-    <meta name="supported-color-schemes" content="light dark">
     <title>Reset Your Password</title>
     <!--[if mso]>
     <noscript>
@@ -16,111 +14,76 @@
         </xml>
     </noscript>
     <![endif]-->
-    <style>
-        :root {
-            color-scheme: light dark;
-            supported-color-schemes: light dark;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100% !important;
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
-        }
-        table {
-            border-collapse: collapse;
-            mso-table-lspace: 0pt;
-            mso-table-rspace: 0pt;
-        }
-        img {
-            border: 0;
-            line-height: 100%;
-            outline: none;
-            text-decoration: none;
-        }
-        @media (prefers-color-scheme: dark) {
-            .email-bg {
-                background-color: #1a1a2e !important;
-            }
-            .email-card {
-                background-color: #16213e !important;
-            }
-            .email-heading {
-                color: #e0e0e0 !important;
-            }
-            .email-text {
-                color: #b0b0c0 !important;
-            }
-            .email-text-muted {
-                color: #808090 !important;
-            }
-            .email-footer-text {
-                color: #606070 !important;
-            }
-            .email-divider {
-                border-color: #2a2a4a !important;
-            }
-        }
-        @media only screen and (max-width: 600px) {
-            .email-container {
-                width: 100% !important;
-                padding: 12px !important;
-            }
-            .email-card {
-                padding: 28px 20px !important;
-            }
-        }
-    </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
 
-    <!-- Preheader (hidden text for inbox preview) -->
+    <!-- Preheader -->
     <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
         Reset your {$app_name} password. This link expires in 1 hour.
     </div>
 
     <!-- Outer wrapper -->
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-bg" style="background-color: #f4f4f7;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5;">
         <tr>
             <td align="center" style="padding: 40px 16px;">
 
                 <!-- Main container -->
-                <table role="presentation" class="email-container" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width: 560px; width: 100%;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; width: 100%;">
 
-                    <!-- Logo / Brand -->
+                    <!-- Brand header -->
                     <tr>
                         <td align="center" style="padding-bottom: 24px;">
-                            <span style="font-size: 26px; font-weight: 700; color: #6c5ce7; letter-spacing: -0.5px; text-decoration: none;">{$app_name}</span>
+                            <span style="font-size: 22px; font-weight: 700; color: #111111; letter-spacing: -0.5px; text-decoration: none;">{$app_name}</span>
                         </td>
                     </tr>
 
                     <!-- Card -->
                     <tr>
-                        <td class="email-card" style="background-color: #ffffff; border-radius: 12px; padding: 40px 36px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                        <td style="background-color: #ffffff; border-radius: 12px; padding: 40px 36px;">
 
-                            <!-- Greeting -->
-                            <h1 class="email-heading" style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #1a1a2e; line-height: 1.3;">
-                                Hi {$user_name},
+                            <!-- Lock icon -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td align="center" style="padding-bottom: 20px;">
+                                        <!--[if mso]>
+                                        <v:oval style="width:52px;height:52px;" fillcolor="#f5f5f5" stroked="f">
+                                            <v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:false;">
+                                                <center style="font-size:24px;color:#111111;line-height:52px;">&#128274;</center>
+                                            </v:textbox>
+                                        </v:oval>
+                                        <![endif]-->
+                                        <!--[if !mso]><!-->
+                                        <div style="display: inline-block; width: 52px; height: 52px; border-radius: 50%; background-color: #f5f5f5; line-height: 52px; text-align: center; font-size: 24px;">&#128274;</div>
+                                        <!--<![endif]-->
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Heading -->
+                            <h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 700; color: #111111; line-height: 1.3; text-align: center;">
+                                Reset Your Password
                             </h1>
 
-                            <!-- Message -->
-                            <p class="email-text" style="margin: 0 0 24px; font-size: 15px; color: #555770; line-height: 1.6;">
+                            <p style="margin: 0 0 8px; font-size: 15px; color: #555555; line-height: 1.6; text-align: center;">
+                                Hi {$user_name|escape},
+                            </p>
+
+                            <p style="margin: 0 0 28px; font-size: 15px; color: #555555; line-height: 1.6; text-align: center;">
                                 We received a request to reset the password for your {$app_name} account. Click the button below to choose a new password.
                             </p>
 
-                            <!-- CTA Button -->
+                            <!-- Reset Password button -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td align="center" style="padding: 4px 0 28px;">
                                         <!--[if mso]>
-                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{$reset_url}" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="17%" stroke="f" fillcolor="#6c5ce7">
+                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{$reset_url}" style="height:46px;v-text-anchor:middle;width:240px;" arcsize="17%" stroke="f" fillcolor="#111111">
                                             <w:anchorlock/>
-                                            <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">Reset Password</center>
+                                            <center style="color:#ffffff;font-family:sans-serif;font-size:15px;font-weight:bold;">Reset Password</center>
                                         </v:roundrect>
                                         <![endif]-->
                                         <!--[if !mso]><!-->
-                                        <a href="{$reset_url}" target="_blank" style="display: inline-block; background-color: #6c5ce7; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 40px; border-radius: 8px; line-height: 1; mso-hide: all;">
+                                        <a href="{$reset_url}" target="_blank" style="display: inline-block; background-color: #111111; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 40px; border-radius: 8px; line-height: 1;">
                                             Reset Password
                                         </a>
                                         <!--<![endif]-->
@@ -129,17 +92,28 @@
                             </table>
 
                             <!-- Expiry notice -->
-                            <p class="email-text-muted" style="margin: 0 0 20px; font-size: 13px; color: #888898; line-height: 1.5;">
-                                This link will expire in <strong>1 hour</strong>. After that, you will need to request a new password reset.
-                            </p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="background-color: #f5f5f5; border-radius: 8px; padding: 14px 16px; text-align: center;">
+                                        <p style="margin: 0; font-size: 13px; color: #888888; line-height: 1.5;">
+                                            This link will expire in <strong style="color: #555555;">1 hour</strong>. After that, you will need to request a new password reset.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
 
                             <!-- Divider -->
-                            <hr class="email-divider" style="border: none; border-top: 1px solid #e8e8f0; margin: 20px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 24px;">
+                                <tr>
+                                    <td style="border-top: 1px solid #eeeeee; padding-top: 20px;">
+                                    </td>
+                                </tr>
+                            </table>
 
                             <!-- Fallback URL -->
-                            <p class="email-text-muted" style="margin: 0; font-size: 12px; color: #888898; line-height: 1.5; word-break: break-all;">
-                                If the button above doesn't work, copy and paste this link into your browser:<br>
-                                <a href="{$reset_url}" style="color: #6c5ce7; text-decoration: underline;">{$reset_url}</a>
+                            <p style="margin: 0; font-size: 12px; color: #888888; line-height: 1.5; word-break: break-all; text-align: center;">
+                                If the button doesn't work, copy and paste this link into your browser:<br>
+                                <a href="{$reset_url}" style="color: #111111; text-decoration: underline;">{$reset_url}</a>
                             </p>
 
                         </td>
@@ -148,22 +122,23 @@
                     <!-- Footer -->
                     <tr>
                         <td align="center" style="padding: 28px 16px 0;">
-                            <p class="email-footer-text" style="margin: 0 0 6px; font-size: 12px; color: #999; line-height: 1.5;">
+                            <p style="margin: 0 0 6px; font-size: 12px; color: #999999; line-height: 1.5;">
                                 If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
                             </p>
-                            <p class="email-footer-text" style="margin: 0; font-size: 12px; color: #bbb; line-height: 1.5;">
-                                &copy; {$smarty.now|date_format:"%Y"} {$app_name}. All rights reserved.
+                            <p style="margin: 0 0 4px; font-size: 12px; color: #bbbbbb; line-height: 1.5;">
+                                &copy; {$smarty.now|date_format:"%Y"} {$app_name}
+                            </p>
+                            <p style="margin: 0; font-size: 11px; color: #cccccc; line-height: 1.5;">
+                                Powered by TinyShop
                             </p>
                         </td>
                     </tr>
 
                 </table>
-                <!-- /Main container -->
 
             </td>
         </tr>
     </table>
-    <!-- /Outer wrapper -->
 
 </body>
 </html>

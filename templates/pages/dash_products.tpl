@@ -3,16 +3,16 @@
 {block name="content"}
 <div class="dash-topbar">
     <span class="dash-topbar-title">Products</span>
-    <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|default:$user.name|escape|substr:0:1|upper}</a>
+    <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|escape|substr:0:1|upper}</a>
 </div>
 
 {if !empty($usage) && !$usage.products_unlimited}
 <div class="plan-limit-bar" id="planLimitBar">
-    <span>{$usage.product_count} of {$usage.max_products} products</span>
+    <span>{if $usage.product_count >= $usage.max_products}Product limit reached ({$usage.max_products}){else}{$usage.product_count} of {$usage.max_products} products{/if}</span>
     <div class="plan-limit-bar-fill{if $usage.product_count >= $usage.max_products} at-limit{elseif $usage.product_count >= $usage.max_products * 0.8} near-limit{/if}">
         <span style="width:{$usage.product_percent}%"></span>
     </div>
-    {if $usage.is_free}<a href="/dashboard/billing" style="font-size:0.75rem;font-weight:600;color:var(--color-accent)">Upgrade</a>{/if}
+    {if $usage.can_upgrade}<a href="/dashboard/billing" style="font-size:0.75rem;font-weight:600;color:var(--color-accent)">Upgrade</a>{/if}
 </div>
 {/if}
 

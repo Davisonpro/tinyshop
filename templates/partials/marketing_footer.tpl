@@ -13,7 +13,8 @@
             <div class="mk-footer-col">
                 <div class="mk-footer-col-title">Support</div>
                 <div class="mk-footer-col-links">
-                    <a href="mailto:hello@{$base_domain|default:'tinyshop.com'}" class="mk-footer-link">Contact us</a>
+                    <a href="/help" class="mk-footer-link">Help center</a>
+                    <a href="mailto:{if $support_email}{$support_email|escape}{else}hello@{$base_domain|default:'tinyshop.com'}{/if}" class="mk-footer-link">Contact us</a>
                 </div>
             </div>
         </div>

@@ -28,11 +28,14 @@ if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
     ini_set('session.cookie_secure', '1');
 }
 
-session_start();
-
-// Generate CSRF token once per session
-if (empty($_SESSION['_csrf_token'])) {
-    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+// Lazy session start — only for returning visitors (session cookie exists).
+// New visitors skip session I/O entirely on public pages.
+// Protected routes call Auth::ensureSession() on demand.
+if (!empty($_COOKIE[session_name()])) {
+    session_start();
+    if (empty($_SESSION['_csrf_token'])) {
+        $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    }
 }
 
 $app = \TinyShop\App::create($appConfig, $dbConfig);

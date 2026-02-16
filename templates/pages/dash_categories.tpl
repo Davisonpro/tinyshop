@@ -53,9 +53,9 @@ $(function() {
         if (tree.length === 0 && _allCats.length === 0) {
             $list.html(
                 '<div class="empty-state">' +
-                    '<div class="empty-icon"><i class="fa-solid fa-folder icon-2xl text-muted"></i></div>' +
-                    '<h2>Organize your products</h2>' +
-                    '<p>Create categories to help customers browse your shop</p>' +
+                    '<div class="empty-icon"><i class="fa-solid fa-folder"></i></div>' +
+                    '<h2>Get organized</h2>' +
+                    '<p>Categories make it easy for customers to find what they want</p>' +
                     '<button class="empty-state-btn" onclick="document.querySelector(\'.fab\').click()">Create category</button>' +
                 '</div>'
             );

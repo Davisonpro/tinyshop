@@ -6,10 +6,7 @@
 
 <form id="registerForm" novalidate>
     <div class="form-group">
-        <input type="text" class="form-control" id="name" name="name" placeholder="Your name" required autofocus autocomplete="name" aria-label="Your name">
-    </div>
-    <div class="form-group">
-        <input type="text" class="form-control" id="storeName" name="store_name" placeholder="Shop name" required autocomplete="off" aria-label="Shop name">
+        <input type="text" class="form-control" id="storeName" name="store_name" placeholder="Shop name" required autofocus autocomplete="off" aria-label="Shop name">
     </div>
     <div class="form-group">
         <input type="email" class="form-control" id="email" name="email" placeholder="Email address" required autocomplete="email" aria-label="Email address">
@@ -30,19 +27,21 @@
     <button type="submit" class="btn btn-primary" id="registerBtn">Create My Shop</button>
 </form>
 
+{if $oauth_google || $oauth_instagram || $oauth_tiktok}
 <div class="auth-divider"><span>or continue with</span></div>
 
 <div class="social-logins social-logins-row">
-    <a href="/auth/google" class="btn-social-icon" title="Google" aria-label="Sign up with Google">
+    {if $oauth_google}<a href="/auth/google" class="btn-social-icon" title="Google" aria-label="Sign up with Google">
         <i class="fa-brands fa-google" style="font-size:20px"></i>
-    </a>
-    <a href="/auth/instagram" class="btn-social-icon" title="Instagram" aria-label="Sign up with Instagram">
+    </a>{/if}
+    {if $oauth_instagram}<a href="/auth/instagram" class="btn-social-icon" title="Instagram" aria-label="Sign up with Instagram">
         <i class="fa-brands fa-instagram" style="font-size:20px"></i>
-    </a>
-    <a href="/auth/tiktok" class="btn-social-icon" title="TikTok" aria-label="Sign up with TikTok">
+    </a>{/if}
+    {if $oauth_tiktok}<a href="/auth/tiktok" class="btn-social-icon" title="TikTok" aria-label="Sign up with TikTok">
         <i class="fa-brands fa-tiktok" style="font-size:20px"></i>
-    </a>
+    </a>{/if}
 </div>
+{/if}
 
 <div class="auth-footer">
     Already have an account? <a href="/login">Sign in</a>
@@ -50,5 +49,5 @@
 {/block}
 
 {block name="page_scripts"}
-<script src="/public/js/auth.js?v={$asset_v}"></script>
+<script src="/public/js/auth{$min}.js?v={$asset_v}"></script>
 {/block}

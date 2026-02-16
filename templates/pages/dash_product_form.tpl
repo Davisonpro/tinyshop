@@ -20,15 +20,15 @@
     <i class="fa-solid fa-circle-exclamation"></i>
     <div>
         <strong>Product limit reached</strong>
-        <p>You've used all {$usage.max_products} products on your plan. <a href="/dashboard/billing">Upgrade</a> to add more.</p>
+        <p>You've used all {$usage.max_products} products on your plan.{if $usage.can_upgrade} <a href="/dashboard/billing">Upgrade</a> to add more.{/if}</p>
     </div>
 </div>
 {elseif !$is_edit && !empty($usage) && !$usage.products_unlimited && $usage.product_count >= ($usage.max_products * 0.8)}
 <div class="plan-limit-banner plan-limit-banner-warning">
     <i class="fa-solid fa-triangle-exclamation"></i>
     <div>
-        <strong>{$usage.product_count} of {$usage.max_products} products used</strong>
-        <p>You're almost at your limit. <a href="/dashboard/billing">Upgrade</a> for unlimited products.</p>
+        <strong>{if $usage.product_count >= $usage.max_products}Product limit reached ({$usage.max_products}){else}{$usage.product_count} of {$usage.max_products} products used{/if}</strong>
+        <p>You're almost at your limit.{if $usage.can_upgrade} <a href="/dashboard/billing">Upgrade</a> for unlimited products.{/if}</p>
     </div>
 </div>
 {/if}
@@ -162,7 +162,7 @@
         <div class="form-toggle-row mt-md">
             <div>
                 <div class="form-toggle-label">Mark as sold out</div>
-                <p class="form-hint mt-xs">Customers will see a "Sold" badge</p>
+                <p class="form-hint mt-xs">Customers will see a "Sold out" badge</p>
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" id="productSold" name="is_sold" {if $product.is_sold}checked{/if}>
@@ -378,7 +378,7 @@ $('#duplicateProductBtn').on('click', function() {
             success: function(res) {
                 if (res.success && res.redirect_url) {
                     TinyShop.toast('Product duplicated!');
-                    setTimeout(function() { window.location.href = res.redirect_url; }, 500);
+                    setTimeout(function() { TinyShop.navigate(res.redirect_url); }, 500);
                 }
             },
             error: function(xhr) {

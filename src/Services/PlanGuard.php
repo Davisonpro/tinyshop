@@ -115,6 +115,15 @@ final class PlanGuard
             $productPercent = min(100, (int) round($productCount / (int) $maxProducts * 100));
         }
 
+        $currentPrice = (float) ($plan['price_monthly'] ?? 0);
+        $canUpgrade = false;
+        foreach ($this->planModel->findAll() as $p) {
+            if ((float) ($p['price_monthly'] ?? 0) > $currentPrice) {
+                $canUpgrade = true;
+                break;
+            }
+        }
+
         return [
             'plan' => $plan,
             'product_count' => $productCount,
@@ -125,7 +134,8 @@ final class PlanGuard
             'all_themes' => $themes === null,
             'custom_domain' => !empty($plan['custom_domain_allowed']),
             'coupons' => !empty($plan['coupons_allowed']),
-            'is_free' => (float) ($plan['price_monthly'] ?? 0) === 0.0,
+            'is_free' => $currentPrice === 0.0,
+            'can_upgrade' => $canUpgrade,
             'expires_at' => $expiresAt,
             'days_left' => $daysLeft,
         ];
@@ -139,8 +149,8 @@ final class PlanGuard
                 // Fallback: no plans in DB at all — full access
                 $this->defaultPlan = [
                     'id' => 0,
-                    'name' => 'Free',
-                    'slug' => 'free',
+                    'name' => 'Starter',
+                    'slug' => 'starter',
                     'price_monthly' => 0,
                     'price_yearly' => 0,
                     'max_products' => null,

@@ -5,7 +5,7 @@
     "@graph": [
         {ldelim}
             "@type": "Organization",
-            "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}",
+            "name": "{$shop.store_name|escape:'javascript'}",
             "url": "{$base_url}/"
             {if $shop.shop_logo},"logo": "{$shop.shop_logo|escape:'javascript'}"{/if}
             {if $shop.shop_tagline},"description": "{$shop.shop_tagline|escape:'javascript'}"{/if}
@@ -15,11 +15,11 @@
         {ldelim}
             "@type": "WebSite",
             "url": "{$base_url}/",
-            "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}"
+            "name": "{$shop.store_name|escape:'javascript'}"
         {rdelim},
         {ldelim}
             "@type": "CollectionPage",
-            "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}",
+            "name": "{$shop.store_name|escape:'javascript'}",
             "url": "{$base_url}/",
             "numberOfItems": {$total_products},
             "mainEntity": {ldelim}
@@ -44,7 +44,7 @@
                 {ldelim}
                     "@type": "ListItem",
                     "position": 1,
-                    "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}",
+                    "name": "{$shop.store_name|escape:'javascript'}",
                     "item": "{$base_url}/"
                 {rdelim}
             ]

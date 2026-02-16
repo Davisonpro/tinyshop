@@ -11,7 +11,7 @@
                 <div class="shop-logo shop-logo-placeholder">{$shop.store_name|truncate:1:''|upper}</div>
             {/if}
             {if $shop.show_store_name|default:1}
-            <span class="shop-name">{$shop.store_name|default:$shop.name}</span>
+            <span class="shop-name">{$shop.store_name}</span>
             {/if}
         </a>
         <div class="bloom-topbar-actions">

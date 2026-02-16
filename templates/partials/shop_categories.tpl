@@ -15,7 +15,7 @@
                 {assign var="childIds" value="`$childIds`,`$child.id`"}
             {/foreach}
         {/if}
-        <button class="category-tab" data-category="{$childIds}">{$parent.name|escape}</button>
+        <button class="category-tab" data-category="{$childIds}" data-slug="{$parent.slug|escape}">{$parent.name|escape}</button>
     {/foreach}
 </nav>
 
@@ -35,7 +35,7 @@
                 {assign var="childIds" value="`$childIds`,`$child.id`"}
             {/foreach}
         {/if}
-        <button class="category-card" data-category="{$childIds}">
+        <button class="category-card" data-category="{$childIds}" data-slug="{$parent.slug|escape}">
             {if $parent.image_url}
                 <img src="{$parent.image_url|escape}" alt="{$parent.name|escape}" loading="lazy" onload="this.classList.add('loaded')">
             {else}

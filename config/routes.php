@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
+use TinyShop\Controllers\HelpController;
 use TinyShop\Controllers\PageController;
 use TinyShop\Controllers\ShopController;
 use TinyShop\Controllers\SitemapController;
@@ -67,16 +68,21 @@ return function (App $app): void {
     $app->get('/auth/callback/{provider}', [PageController::class, 'oauthCallback']);
 
     $app->get('/pricing', [PageController::class, 'pricing']);
+    $app->get('/help', [HelpController::class, 'index']);
+    $app->get('/help/{slug}', [HelpController::class, 'article']);
+    $app->get('/manifest.json', [PageController::class, 'manifest']);
 
     $app->get('/logout', [PageController::class, 'logout']);
 
     // Shop pages — accessed via subdomain/custom domain (rewritten by CustomDomain middleware)
     $app->get('/~shop/{subdomain}', [ShopController::class, 'show']);
+    $app->get('/~shop/{subdomain}/category/{categorySlug}', [ShopController::class, 'showCategory']);
+    $app->get('/~shop/{subdomain}/manifest.json', [ShopController::class, 'manifest']);
     $app->get('/~shop/{subdomain}/sitemap.xml', [SitemapController::class, 'shopSitemap']);
     $app->get('/~shop/{subdomain}/checkout', [CheckoutController::class, 'showCheckout']);
     $app->get('/~shop/{subdomain}/order/{orderNumber}', [CheckoutController::class, 'showConfirmation']);
     $app->get('/~shop/{subdomain}/orders/track', [ShopController::class, 'orderTracking']);
-    $app->post('/~shop/{subdomain}/orders/lookup', [ShopController::class, 'orderLookup']);
+    $app->post('/~shop/{subdomain}/orders/lookup', [ShopController::class, 'orderLookup'])->add(CsrfGuard::class);
     $app->get('/~shop/{subdomain}/products', [ShopController::class, 'searchProducts']);
     $app->get('/~shop/{subdomain}/{slug}', [ShopController::class, 'showProduct']);
 
@@ -87,6 +93,8 @@ return function (App $app): void {
     // Webhooks (no CSRF, no auth — verified by gateway signature)
     $app->post('/webhook/stripe', [WebhookController::class, 'stripeWebhook']);
     $app->post('/webhook/paypal', [WebhookController::class, 'paypalWebhook']);
+    $app->post('/webhook/mpesa', [WebhookController::class, 'mpesaWebhook']);
+    $app->post('/webhook/mpesa/billing', [WebhookController::class, 'mpesaBillingWebhook']);
 
     // ── Seller dashboard (auth required) ──
 
@@ -109,9 +117,13 @@ return function (App $app): void {
         $group->get('', [AdminController::class, 'dashboard']);
         $group->get('/sellers', [AdminController::class, 'sellers']);
         $group->get('/sellers/{id}', [AdminController::class, 'sellerDetail']);
+        $group->get('/orders', [AdminController::class, 'orders']);
+        $group->get('/products', [AdminController::class, 'products']);
         $group->get('/settings', [AdminController::class, 'settings']);
         $group->get('/plans', [AdminController::class, 'plans']);
-        $group->get('/impersonate/{id}', [AdminController::class, 'impersonate']);
+        $group->get('/help', [AdminController::class, 'help']);
+        $group->get('/help/articles/add', [AdminController::class, 'helpArticleForm']);
+        $group->get('/help/articles/{id}/edit', [AdminController::class, 'helpArticleForm']);
     })->add(AdminGuard::class);
 
     // Stop impersonation (needs AuthGuard, not AdminGuard — user is currently a seller)
@@ -123,6 +135,7 @@ return function (App $app): void {
 
         // Auth (public, rate-limited)
         $api->group('/auth', function (RouteCollectorProxy $auth) {
+            $auth->get('/check', [ApiAuthController::class, 'check']);
             $auth->post('/register', [ApiAuthController::class, 'register']);
             $auth->post('/login', [ApiAuthController::class, 'login']);
             $auth->post('/logout', [ApiAuthController::class, 'logout']);
@@ -163,6 +176,7 @@ return function (App $app): void {
 
             $protected->post('/billing/subscribe', [ApiBillingController::class, 'subscribe']);
             $protected->post('/billing/cancel', [ApiBillingController::class, 'cancel']);
+            $protected->get('/billing/status', [ApiBillingController::class, 'checkBillingStatus']);
         })->add(AuthGuard::class)->add(new RateLimit(maxAttempts: 60, windowSeconds: 60));
 
         // Public checkout API (rate-limited)
@@ -170,11 +184,13 @@ return function (App $app): void {
             $checkout->post('/validate', [ApiCheckoutController::class, 'validateCart']);
             $checkout->post('/create', [ApiCheckoutController::class, 'createOrder']);
             $checkout->post('/apply-coupon', [ApiCouponController::class, 'applyCoupon']);
+            $checkout->get('/status', [ApiCheckoutController::class, 'checkStatus']);
         })->add(new RateLimit(maxAttempts: 20, windowSeconds: 60));
 
         // Admin API endpoints (admin only)
         $api->group('/admin', function (RouteCollectorProxy $admin) {
             $admin->put('/sellers/{id}/toggle', [AdminController::class, 'toggleSeller']);
+            $admin->post('/sellers/{id}/impersonate', [AdminController::class, 'impersonate']);
             $admin->delete('/sellers/{id}', [AdminController::class, 'deleteSeller']);
             $admin->put('/settings', [AdminController::class, 'updateSettings']);
             $admin->post('/test-email', [AdminController::class, 'testEmail']);
@@ -184,6 +200,15 @@ return function (App $app): void {
             $admin->post('/plans', [AdminController::class, 'createPlan']);
             $admin->put('/plans/{id}', [AdminController::class, 'updatePlan']);
             $admin->delete('/plans/{id}', [AdminController::class, 'deletePlan']);
+
+            $admin->get('/help-categories', [AdminController::class, 'listHelpCategories']);
+            $admin->post('/help-categories', [AdminController::class, 'createHelpCategory']);
+            $admin->put('/help-categories/{id}', [AdminController::class, 'updateHelpCategory']);
+            $admin->delete('/help-categories/{id}', [AdminController::class, 'deleteHelpCategory']);
+            $admin->get('/help-articles', [AdminController::class, 'listHelpArticles']);
+            $admin->post('/help-articles', [AdminController::class, 'createHelpArticle']);
+            $admin->put('/help-articles/{id}', [AdminController::class, 'updateHelpArticle']);
+            $admin->delete('/help-articles/{id}', [AdminController::class, 'deleteHelpArticle']);
         })->add(AdminGuard::class);
 
     })->add(CsrfGuard::class)->add(JsonResponse::class);

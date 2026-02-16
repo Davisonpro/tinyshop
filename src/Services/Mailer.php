@@ -31,6 +31,21 @@ final class Mailer
         $this->smarty->setCaching(Smarty::CACHING_OFF);
     }
 
+    public function sendWelcome(string $email, string $name): bool
+    {
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $this->smarty->assign('app_name', $this->appName);
+        $this->smarty->assign('app_url', $this->appUrl);
+        $this->smarty->assign('user_name', $name);
+
+        $html = $this->smarty->fetch('emails/welcome.tpl');
+
+        return $this->send($email, 'Welcome to ' . $this->appName . '!', $html) === null;
+    }
+
     public function sendPasswordReset(string $email, string $name, string $resetUrl): bool
     {
         $this->smarty->assign('app_name', $this->appName);

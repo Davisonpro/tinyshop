@@ -4,7 +4,7 @@
 
 {block name="body"}
 {include file="partials/desktop_header.tpl"}
-<div class="product-page">
+<div class="product-page" id="main-content">
     <div class="container">
         {* Full-bleed Image Gallery *}
         <div class="product-gallery" id="productGallery">
@@ -69,9 +69,9 @@
         {* Breadcrumb Navigation *}
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <a href="/">Shop</a>
-            {if $product.category_name}
+            {if $product.category_name && $product.category_slug}
                 <span class="breadcrumb-sep" aria-hidden="true">/</span>
-                <a href="/?category={$product.category_id}">{$product.category_name|escape}</a>
+                <a href="/category/{$product.category_slug|escape}">{$product.category_name|escape}</a>
             {/if}
             <span class="breadcrumb-sep" aria-hidden="true">/</span>
             <span class="breadcrumb-current" aria-current="page">{$product.name|escape|truncate:40}</span>
@@ -223,7 +223,7 @@
             {if $product.category_name},"category": "{$product.category_name|escape:'javascript'}"{/if}
             ,"brand": {ldelim}
                 "@type": "Organization",
-                "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}"
+                "name": "{$shop.store_name|escape:'javascript'}"
             {rdelim}
             ,"image": [{if $images|@count > 0}{foreach $images as $img}"{$img.image_url|escape:'javascript'}"{if !$img@last},{/if}{/foreach}{elseif $product.image_url}"{$product.image_url|escape:'javascript'}"{/if}]
             ,"offers": {ldelim}
@@ -235,7 +235,7 @@
                 "itemCondition": "https://schema.org/NewCondition",
                 "seller": {ldelim}
                     "@type": "Organization",
-                    "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}"
+                    "name": "{$shop.store_name|escape:'javascript'}"
                 {rdelim}
                 {if $product.compare_price && $product.compare_price > $product.price}
                 ,"priceValidUntil": "{$smarty.now|date_format:'%Y-12-31'}"
@@ -248,7 +248,7 @@
                 {ldelim}
                     "@type": "ListItem",
                     "position": 1,
-                    "name": "{$shop.store_name|default:$shop.name|escape:'javascript'}",
+                    "name": "{$shop.store_name|escape:'javascript'}",
                     "item": "{$base_url}/"
                 {rdelim}
                 {if $product.category_name}

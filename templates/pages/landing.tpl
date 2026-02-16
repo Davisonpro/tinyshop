@@ -3,11 +3,7 @@
 {block name="body_class"}page-landing{/block}
 
 {block name="extra_css"}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="/public/css/marketing.css?v={$asset_v}">
-<link rel="stylesheet" href="/public/css/landing.css?v={$asset_v}">
+<link rel="stylesheet" href="/public/css/landing{$min}.css?v={$asset_v}">
 {/block}
 
 {block name="body"}
@@ -274,5 +270,5 @@
 {/block}
 
 {block name="page_scripts"}
-<script src="/public/js/landing.js?v={$asset_v}"></script>
+<script src="/public/js/landing{$min}.js?v={$asset_v}"></script>
 {/block}

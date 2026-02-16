@@ -49,7 +49,10 @@ TinyShop.uploadFile = function(file, onSuccess, onError) {
    ============================================================ */
 TinyShop._previousFocus = null;
 
+TinyShop._modalClearTimer = null;
 TinyShop.openModal = function(title, contentHtml) {
+    // Cancel any pending clear from a previous closeModal
+    if (TinyShop._modalClearTimer) { clearTimeout(TinyShop._modalClearTimer); TinyShop._modalClearTimer = null; }
     TinyShop._previousFocus = document.activeElement;
     $('#modalTitle').text(title);
     $('#modalBody').html(contentHtml);
@@ -66,7 +69,8 @@ TinyShop.openModal = function(title, contentHtml) {
 TinyShop.closeModal = function() {
     $('#modal').removeClass('active');
     document.body.style.overflow = '';
-    setTimeout(function() { $('#modalBody').html(''); }, 300);
+    if (TinyShop._modalClearTimer) clearTimeout(TinyShop._modalClearTimer);
+    TinyShop._modalClearTimer = setTimeout(function() { $('#modalBody').html(''); TinyShop._modalClearTimer = null; }, 300);
     // Restore focus to trigger element
     if (TinyShop._previousFocus) {
         try { TinyShop._previousFocus.focus(); } catch(e) {}
@@ -75,11 +79,18 @@ TinyShop.closeModal = function() {
 };
 
 /**
- * TinyShop.confirm(title, message, confirmLabel, onConfirm)
- * Opens a confirmation modal using the existing bottom-sheet modal.
- * confirmLabel defaults to 'Confirm'. Pass 'danger' as 5th arg for red button.
+ * TinyShop.confirm(title, message, confirmLabel, onConfirm, variant)
+ * Also accepts: TinyShop.confirm({ title, message, confirmText, onConfirm, variant })
  */
 TinyShop.confirm = function(title, message, confirmLabel, onConfirm, variant) {
+    if (typeof title === 'object' && title !== null) {
+        var opts = title;
+        title = opts.title || 'Confirm';
+        message = opts.message || '';
+        confirmLabel = opts.confirmText || opts.confirmLabel || 'Confirm';
+        onConfirm = opts.onConfirm;
+        variant = opts.variant;
+    }
     var btnBg = variant === 'danger' ? '#FF3B30' : 'var(--color-accent)';
     var html = '<p style="margin-bottom:20px;color:var(--color-text-muted);font-size:0.9rem;">' + message + '</p>' +
         '<div style="display:flex;gap:10px">' +
@@ -905,16 +916,32 @@ TinyShop.initProductForm = function() {
         try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
     }
 
-    // Bind input changes to draft save
+    // --- Unsaved Changes Warning ---
+    var _formDirty = false;
+    function markDirty() { _formDirty = true; }
+    function markClean() { _formDirty = false; window.removeEventListener('beforeunload', _beforeUnload); }
+    function _beforeUnload(e) { if (_formDirty) { e.preventDefault(); e.returnValue = ''; } }
+
+    // Bind input changes to draft save + dirty tracking
     $form.on('input change', 'input, textarea, select', function() {
         saveDraft();
+        markDirty();
     });
 
-    // Rich editor triggers draft save
+    // Rich editor triggers draft save + dirty tracking
     var richContent = document.querySelector('.rich-editor-content');
     if (richContent) {
-        richContent.addEventListener('input', function() { saveDraft(); });
+        richContent.addEventListener('input', function() { saveDraft(); markDirty(); });
     }
+
+    // Image changes mark form dirty
+    var _origAddImage = addImageToGallery;
+    addImageToGallery = function(url) { _origAddImage(url); markDirty(); };
+
+    // Enable beforeunload when dirty
+    $form.on('input change', function() {
+        if (_formDirty) window.addEventListener('beforeunload', _beforeUnload);
+    });
 
     // Restore draft on load (add mode only)
     restoreDraft();
@@ -925,6 +952,7 @@ TinyShop.initProductForm = function() {
             TinyShop.confirm('Delete Product?', 'This will permanently delete this product and all its images. This cannot be undone.', 'Delete', function() {
                 $('#confirmModalOk').prop('disabled', true).text('Deleting...');
                 TinyShop.api('DELETE', '/api/products/' + productId).done(function() {
+                    markClean();
                     TinyShop.toast('Product deleted');
                     TinyShop.closeModal();
                     TinyShop.navigate('/dashboard/products');
@@ -939,7 +967,7 @@ TinyShop.initProductForm = function() {
     // --- Form Submit ---
     $form.on('submit', function(e) {
         e.preventDefault();
-        var $btn = $('#saveProductBtn').prop('disabled', true).text('Saving...');
+        var $btn = $('#saveProductBtn').prop('disabled', true).html('<span class="btn-spinner"></span> Saving...');
 
         var priceRaw = $('#productPrice').val().replace(/,/g, '');
         var compareRaw = $('#productComparePrice').val().replace(/,/g, '');
@@ -971,6 +999,7 @@ TinyShop.initProductForm = function() {
         var url = isEdit ? '/api/products/' + productId : '/api/products';
 
         TinyShop.api(method, url, payload).done(function() {
+            markClean();
             clearDraft();
             TinyShop.toast(isEdit ? 'Product saved!' : 'Product added!');
             setTimeout(function() {

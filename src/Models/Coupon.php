@@ -100,6 +100,12 @@ final class Coupon
         $stmt->execute([$id]);
     }
 
+    public function decrementUsage(int $id): void
+    {
+        $stmt = $this->db->prepare('UPDATE coupons SET used_count = GREATEST(0, used_count - 1) WHERE id = ?');
+        $stmt->execute([$id]);
+    }
+
     /**
      * Validate a coupon and calculate discount.
      *

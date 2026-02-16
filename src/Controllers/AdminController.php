@@ -9,6 +9,8 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Enums\UserRole;
+use TinyShop\Models\HelpArticle;
+use TinyShop\Models\HelpCategory;
 use TinyShop\Models\User;
 use TinyShop\Models\Product;
 use TinyShop\Models\Order;
@@ -40,6 +42,8 @@ final class AdminController
         'robots_extra',
         'platform_stripe_public_key', 'platform_stripe_secret_key', 'platform_stripe_mode',
         'platform_paypal_client_id', 'platform_paypal_secret', 'platform_paypal_mode',
+        'platform_mpesa_shortcode', 'platform_mpesa_consumer_key',
+        'platform_mpesa_consumer_secret', 'platform_mpesa_passkey', 'platform_mpesa_mode',
     ];
 
     public function __construct(
@@ -52,6 +56,8 @@ final class AdminController
         private readonly Setting $settingModel,
         private readonly ShopView $shopViewModel,
         private readonly Subscription $subscriptionModel,
+        private readonly HelpCategory $helpCategoryModel,
+        private readonly HelpArticle $helpArticleModel,
         private readonly Mailer $mailer,
         private readonly Upload $upload,
         private readonly Validation $validation,
@@ -72,6 +78,51 @@ final class AdminController
             'total_products' => $this->productModel->countAll(),
             'total_orders'   => $orderStats['total'],
             'new_signups'    => $this->userModel->recentSignups(7),
+        ]);
+    }
+
+    private const ORDERS_PER_PAGE = 50;
+    private const PRODUCTS_PER_PAGE = 50;
+
+    public function orders(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $page   = max(1, (int) ($params['page'] ?? 1));
+        $status = trim($params['status'] ?? '');
+        $offset = ($page - 1) * self::ORDERS_PER_PAGE;
+
+        $orders = $this->orderModel->findAllAdmin(self::ORDERS_PER_PAGE, $offset, $status);
+        $total  = $this->orderModel->countAllAdmin($status);
+
+        return $this->view->render($response, 'pages/admin_orders.tpl', [
+            'page_title'   => 'All Orders',
+            'active_page'  => 'orders',
+            'orders'       => $orders,
+            'total'        => $total,
+            'status'       => $status,
+            'current_page' => $page,
+            'total_pages'  => max(1, (int) ceil($total / self::ORDERS_PER_PAGE)),
+        ]);
+    }
+
+    public function products(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $page   = max(1, (int) ($params['page'] ?? 1));
+        $search = trim($params['q'] ?? '');
+        $offset = ($page - 1) * self::PRODUCTS_PER_PAGE;
+
+        $products = $this->productModel->findAllAdmin(self::PRODUCTS_PER_PAGE, $offset, $search);
+        $total    = $this->productModel->countAllAdmin($search);
+
+        return $this->view->render($response, 'pages/admin_products.tpl', [
+            'page_title'   => 'All Products',
+            'active_page'  => 'products',
+            'products'     => $products,
+            'total'        => $total,
+            'search'       => $search,
+            'current_page' => $page,
+            'total_pages'  => max(1, (int) ceil($total / self::PRODUCTS_PER_PAGE)),
         ]);
     }
 
@@ -108,7 +159,7 @@ final class AdminController
         $products = $this->productModel->findByUser($id);
 
         return $this->view->render($response, 'pages/admin_seller_detail.tpl', [
-            'page_title'  => $seller['store_name'] ?: $seller['name'],
+            'page_title'  => $seller['store_name'] ?? '',
             'active_page' => 'sellers',
             'seller'      => $seller,
             'products'    => $products,
@@ -132,10 +183,10 @@ final class AdminController
         $seller = $this->userModel->findById($id);
 
         if (!$seller || $seller['role'] === UserRole::Admin->value) {
-            return $response->withHeader('Location', '/admin/sellers')->withStatus(302);
+            return $this->json($response, ['error' => true, 'message' => 'Cannot impersonate this account'], 403);
         }
 
-        $this->auth->impersonate((int) $seller['id'], $seller['name'], UserRole::tryFrom($seller['role'] ?? '') ?? UserRole::Seller);
+        $this->auth->impersonate((int) $seller['id'], $seller['store_name'] ?? '', UserRole::tryFrom($seller['role'] ?? '') ?? UserRole::Seller);
 
         $this->logger->info('admin.impersonate', [
             'admin_id'  => $this->auth->realAdminId(),
@@ -143,7 +194,7 @@ final class AdminController
             'ip'        => $request->getServerParams()['REMOTE_ADDR'] ?? '',
         ]);
 
-        return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        return $this->json($response, ['success' => true, 'redirect' => '/dashboard']);
     }
 
     public function stopImpersonate(Request $request, Response $response): Response
@@ -160,6 +211,12 @@ final class AdminController
         $id   = (int) $args['id'];
         $data = (array) $request->getParsedBody();
         $active = !empty($data['is_active']);
+
+        // Prevent toggling admin accounts
+        $target = $this->userModel->findById($id);
+        if (!$target || ($target['role'] ?? '') === UserRole::Admin->value) {
+            return $this->json($response, ['error' => true, 'message' => 'Cannot modify admin accounts'], 403);
+        }
 
         $this->userModel->toggleActive($id, $active);
 
@@ -457,6 +514,256 @@ final class AdminController
             'admin_id' => $this->auth->userId(),
             'plan_id'  => $id,
             'name'     => $plan['name'],
+        ]);
+
+        return $this->json($response, ['success' => true]);
+    }
+
+    // ── Help center management ──
+
+    public function help(Request $request, Response $response): Response
+    {
+        $categories = $this->helpCategoryModel->findAllAdmin();
+        $articles = $this->helpArticleModel->findAll();
+
+        return $this->view->render($response, 'pages/admin_help.tpl', [
+            'page_title'  => 'Help Center',
+            'active_page' => 'help',
+            'categories'  => $categories,
+            'articles'    => $articles,
+        ]);
+    }
+
+    public function helpArticleForm(Request $request, Response $response, array $args = []): Response
+    {
+        $categories = $this->helpCategoryModel->findAllAdmin();
+        $article = null;
+        $isEdit = false;
+
+        if (!empty($args['id'])) {
+            $article = $this->helpArticleModel->findById((int) $args['id']);
+            if (!$article) {
+                return $response->withHeader('Location', '/admin/help')->withStatus(302);
+            }
+            $isEdit = true;
+        }
+
+        return $this->view->render($response, 'pages/admin_help_article.tpl', [
+            'page_title'  => $isEdit ? 'Edit Article' : 'New Article',
+            'active_page' => 'help',
+            'categories'  => $categories,
+            'article'     => $article,
+            'is_edit'     => $isEdit,
+        ]);
+    }
+
+    public function listHelpCategories(Request $request, Response $response): Response
+    {
+        return $this->json($response, ['success' => true, 'categories' => $this->helpCategoryModel->findAllAdmin()]);
+    }
+
+    public function createHelpCategory(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $name = trim($data['name'] ?? '');
+
+        if ($name === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Category name is required'], 422);
+        }
+
+        $slug = $this->validation->slug($name);
+        if ($this->helpCategoryModel->slugExists($slug)) {
+            return $this->json($response, ['error' => true, 'message' => 'A category with a similar name already exists'], 422);
+        }
+
+        $id = $this->helpCategoryModel->create([
+            'name'        => $name,
+            'slug'        => $slug,
+            'icon'        => trim($data['icon'] ?? '') ?: 'fa-circle-question',
+            'description' => trim($data['description'] ?? ''),
+            'sort_order'  => (int) ($data['sort_order'] ?? 0),
+        ]);
+
+        $this->logger->info('admin.help_category_created', [
+            'admin_id'    => $this->auth->userId(),
+            'category_id' => $id,
+        ]);
+
+        return $this->json($response, ['success' => true, 'category' => $this->helpCategoryModel->findById($id)], 201);
+    }
+
+    public function updateHelpCategory(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $category = $this->helpCategoryModel->findById($id);
+
+        if (!$category) {
+            return $this->json($response, ['error' => true, 'message' => 'Category not found'], 404);
+        }
+
+        $data = (array) $request->getParsedBody();
+        $updates = [];
+
+        if (isset($data['name'])) {
+            $name = trim($data['name']);
+            if ($name === '') {
+                return $this->json($response, ['error' => true, 'message' => 'Category name is required'], 422);
+            }
+            $updates['name'] = $name;
+            $newSlug = $this->validation->slug($name);
+            if ($this->helpCategoryModel->slugExists($newSlug, $id)) {
+                return $this->json($response, ['error' => true, 'message' => 'A category with a similar name already exists'], 422);
+            }
+            $updates['slug'] = $newSlug;
+        }
+
+        if (isset($data['icon'])) $updates['icon'] = trim($data['icon']) ?: 'fa-circle-question';
+        if (isset($data['description'])) $updates['description'] = trim($data['description']);
+        if (isset($data['sort_order'])) $updates['sort_order'] = (int) $data['sort_order'];
+
+        if (!empty($updates)) {
+            $this->helpCategoryModel->update($id, $updates);
+        }
+
+        $this->logger->info('admin.help_category_updated', [
+            'admin_id'    => $this->auth->userId(),
+            'category_id' => $id,
+        ]);
+
+        return $this->json($response, ['success' => true, 'category' => $this->helpCategoryModel->findById($id)]);
+    }
+
+    public function deleteHelpCategory(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $category = $this->helpCategoryModel->findById($id);
+
+        if (!$category) {
+            return $this->json($response, ['error' => true, 'message' => 'Category not found'], 404);
+        }
+
+        if (!$this->helpCategoryModel->delete($id)) {
+            return $this->json($response, ['error' => true, 'message' => 'Remove all articles from this category first'], 422);
+        }
+
+        $this->logger->info('admin.help_category_deleted', [
+            'admin_id'    => $this->auth->userId(),
+            'category_id' => $id,
+            'name'        => $category['name'],
+        ]);
+
+        return $this->json($response, ['success' => true]);
+    }
+
+    public function listHelpArticles(Request $request, Response $response): Response
+    {
+        return $this->json($response, ['success' => true, 'articles' => $this->helpArticleModel->findAll()]);
+    }
+
+    public function createHelpArticle(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $title = trim($data['title'] ?? '');
+        $categoryId = (int) ($data['category_id'] ?? 0);
+
+        if ($title === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Article title is required'], 422);
+        }
+
+        if (!$this->helpCategoryModel->findById($categoryId)) {
+            return $this->json($response, ['error' => true, 'message' => 'Invalid category'], 422);
+        }
+
+        $slug = $this->validation->slug($title);
+        if ($this->helpArticleModel->slugExists($slug)) {
+            return $this->json($response, ['error' => true, 'message' => 'An article with a similar title already exists'], 422);
+        }
+
+        $id = $this->helpArticleModel->create([
+            'category_id'  => $categoryId,
+            'title'        => $title,
+            'slug'         => $slug,
+            'summary'      => trim($data['summary'] ?? ''),
+            'content'      => $data['content'] ?? '',
+            'keywords'     => trim($data['keywords'] ?? ''),
+            'sort_order'   => (int) ($data['sort_order'] ?? 0),
+            'is_published' => isset($data['is_published']) ? (int) (bool) $data['is_published'] : 1,
+        ]);
+
+        $this->logger->info('admin.help_article_created', [
+            'admin_id'   => $this->auth->userId(),
+            'article_id' => $id,
+        ]);
+
+        return $this->json($response, ['success' => true, 'article' => $this->helpArticleModel->findById($id)], 201);
+    }
+
+    public function updateHelpArticle(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $article = $this->helpArticleModel->findById($id);
+
+        if (!$article) {
+            return $this->json($response, ['error' => true, 'message' => 'Article not found'], 404);
+        }
+
+        $data = (array) $request->getParsedBody();
+        $updates = [];
+
+        if (isset($data['title'])) {
+            $title = trim($data['title']);
+            if ($title === '') {
+                return $this->json($response, ['error' => true, 'message' => 'Article title is required'], 422);
+            }
+            $updates['title'] = $title;
+            $newSlug = $this->validation->slug($title);
+            if ($this->helpArticleModel->slugExists($newSlug, $id)) {
+                return $this->json($response, ['error' => true, 'message' => 'An article with a similar title already exists'], 422);
+            }
+            $updates['slug'] = $newSlug;
+        }
+
+        if (isset($data['category_id'])) {
+            $catId = (int) $data['category_id'];
+            if (!$this->helpCategoryModel->findById($catId)) {
+                return $this->json($response, ['error' => true, 'message' => 'Invalid category'], 422);
+            }
+            $updates['category_id'] = $catId;
+        }
+
+        if (isset($data['summary'])) $updates['summary'] = trim($data['summary']);
+        if (isset($data['content'])) $updates['content'] = $data['content'];
+        if (isset($data['keywords'])) $updates['keywords'] = trim($data['keywords']);
+        if (isset($data['sort_order'])) $updates['sort_order'] = (int) $data['sort_order'];
+        if (isset($data['is_published'])) $updates['is_published'] = (int) (bool) $data['is_published'];
+
+        if (!empty($updates)) {
+            $this->helpArticleModel->update($id, $updates);
+        }
+
+        $this->logger->info('admin.help_article_updated', [
+            'admin_id'   => $this->auth->userId(),
+            'article_id' => $id,
+        ]);
+
+        return $this->json($response, ['success' => true, 'article' => $this->helpArticleModel->findById($id)]);
+    }
+
+    public function deleteHelpArticle(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $article = $this->helpArticleModel->findById($id);
+
+        if (!$article) {
+            return $this->json($response, ['error' => true, 'message' => 'Article not found'], 404);
+        }
+
+        $this->helpArticleModel->delete($id);
+
+        $this->logger->info('admin.help_article_deleted', [
+            'admin_id'   => $this->auth->userId(),
+            'article_id' => $id,
+            'title'      => $article['title'],
         ]);
 
         return $this->json($response, ['success' => true]);

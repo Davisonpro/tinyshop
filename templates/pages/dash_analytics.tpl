@@ -3,7 +3,7 @@
 {block name="content"}
 <div class="dash-topbar">
     <span class="dash-topbar-title">Analytics</span>
-    <a href="/dashboard/shop" class="dash-topbar-avatar" aria-label="Settings">{$user.store_name|default:$user.name|escape|substr:0:1|upper}</a>
+    <a href="/dashboard/shop" class="dash-topbar-avatar" aria-label="Settings">{$user.store_name|escape|substr:0:1|upper}</a>
 </div>
 
 {* Views *}
@@ -62,11 +62,12 @@
     <div class="dash-section-header">
         <h2>Daily Sales</h2>
         <div class="date-range-tabs" aria-label="Date range">
-            <a href="/dashboard/analytics?days=7" class="date-range-tab{if $selected_days == 7} active{/if}">7d</a>
-            <a href="/dashboard/analytics?days=14" class="date-range-tab{if $selected_days == 14} active{/if}">14d</a>
-            <a href="/dashboard/analytics?days=30" class="date-range-tab{if $selected_days == 30} active{/if}">30d</a>
+            <button type="button" class="date-range-tab{if $sales_days == 7} active{/if}" data-days="7" data-chart="sales">7d</button>
+            <button type="button" class="date-range-tab{if $sales_days == 14} active{/if}" data-days="14" data-chart="sales">14d</button>
+            <button type="button" class="date-range-tab{if $sales_days == 30} active{/if}" data-days="30" data-chart="sales">30d</button>
         </div>
     </div>
+    <div id="salesChart">
     <div class="chart-card">
         {assign var="max_revenue" value=1}
         {foreach $daily_sales as $ds}
@@ -77,10 +78,11 @@
                 <div class="bar-col">
                     <div class="bar-value">{if $ds.revenue > 0}{$currency} {$ds.revenue|number_format:0:'.':','}{else}0{/if}</div>
                     <div class="bar-fill bar-fill-sales" style="height:{($ds.revenue / $max_revenue * 100)|string_format:'%.0f'}%{if $ds.revenue == 0};min-height:2px{/if}"></div>
-                    <div class="bar-label">{if $selected_days == 7}{$ds.day|date_format:'%a'}{else}{$ds.label|regex_replace:'/^[A-Za-z]+ /':''}{/if}</div>
+                    <div class="bar-label">{if $sales_days == 7}{$ds.day|date_format:'%a'}{else}{$ds.label|regex_replace:'/^[A-Za-z]+ /':''}{/if}</div>
                 </div>
             {/foreach}
         </div>
+    </div>
     </div>
 </div>
 {/if}
@@ -90,11 +92,12 @@
     <div class="dash-section-header">
         <h2>Daily Views</h2>
         <div class="date-range-tabs" aria-label="Date range">
-            <a href="/dashboard/analytics?days=7" class="date-range-tab{if $selected_days == 7} active{/if}">7d</a>
-            <a href="/dashboard/analytics?days=14" class="date-range-tab{if $selected_days == 14} active{/if}">14d</a>
-            <a href="/dashboard/analytics?days=30" class="date-range-tab{if $selected_days == 30} active{/if}">30d</a>
+            <button type="button" class="date-range-tab{if $view_days == 7} active{/if}" data-days="7" data-chart="views">7d</button>
+            <button type="button" class="date-range-tab{if $view_days == 14} active{/if}" data-days="14" data-chart="views">14d</button>
+            <button type="button" class="date-range-tab{if $view_days == 30} active{/if}" data-days="30" data-chart="views">30d</button>
         </div>
     </div>
+    <div id="viewsChart">
     <div class="chart-card">
         {assign var="max_views" value=1}
         {foreach $daily_views as $d}
@@ -105,10 +108,11 @@
                 <div class="bar-col">
                     <div class="bar-value">{$d.views|number_format:0:'.':','}</div>
                     <div class="bar-fill" style="height:{($d.views / $max_views * 100)|string_format:'%.0f'}%{if $d.views == 0};min-height:2px{/if}"></div>
-                    <div class="bar-label">{if $selected_days == 7}{$d.day|date_format:'%a'}{else}{$d.label|regex_replace:'/^[A-Za-z]+ /':''}{/if}</div>
+                    <div class="bar-label">{if $view_days == 7}{$d.day|date_format:'%a'}{else}{$d.label|regex_replace:'/^[A-Za-z]+ /':''}{/if}</div>
                 </div>
             {/foreach}
         </div>
+    </div>
     </div>
 </div>
 
@@ -143,4 +147,75 @@
         </div>
     {/if}
 </div>
+{/block}
+
+{block name="extra_scripts"}
+<script>
+$(function() {ldelim}
+    var _viewDays = {$view_days};
+    var _salesDays = {$sales_days};
+    var _loading = false;
+
+    $(document).on('click', '.date-range-tab[data-chart]', function() {ldelim}
+        var days = parseInt($(this).data('days'));
+        var chart = $(this).data('chart');
+        if (!days || _loading) return;
+
+        // Skip if already active
+        if (chart === 'views' && days === _viewDays) return;
+        if (chart === 'sales' && days === _salesDays) return;
+
+        // Update tracked state
+        if (chart === 'views') _viewDays = days;
+        else _salesDays = days;
+
+        _loading = true;
+
+        // Update active state only within this tab group
+        $(this).closest('.date-range-tabs').find('.date-range-tab').removeClass('active');
+        $(this).addClass('active');
+
+        // Fade just the target chart
+        var targetId = chart === 'sales' ? '#salesChart' : '#viewsChart';
+        var $target = $(targetId);
+        $target.css({ldelim} opacity: 0.5, transition: 'opacity 0.15s' {rdelim});
+
+        $.ajax({ldelim}
+            url: '/dashboard/analytics?view_days=' + _viewDays + '&sales_days=' + _salesDays,
+            headers: {ldelim} 'X-SPA': '1' {rdelim},
+            dataType: 'text',
+            success: function(text) {ldelim}
+                var body = '';
+                try {ldelim}
+                    var json = JSON.parse(text);
+                    body = json.body || '';
+                {rdelim} catch(e) {ldelim}
+                    body = text;
+                {rdelim}
+
+                var $temp = $('<div>').html(body);
+                var newContent = $temp.find(targetId).html();
+                if (newContent) {ldelim}
+                    $target.html(newContent);
+                {rdelim}
+
+                // Update URL
+                history.replaceState(
+                    {ldelim} spa: true, url: location.pathname {rdelim},
+                    '',
+                    '/dashboard/analytics?view_days=' + _viewDays + '&sales_days=' + _salesDays
+                );
+
+                $target.css({ldelim} opacity: 1 {rdelim});
+                _loading = false;
+            {rdelim},
+            error: function() {ldelim}
+                $target.css({ldelim} opacity: 1 {rdelim});
+                _loading = false;
+                TinyShop.toast('Failed to load data', 'error');
+            {rdelim}
+        {rdelim});
+    {rdelim});
+{rdelim});
+</script>
 {/block}

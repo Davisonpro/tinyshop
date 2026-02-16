@@ -18,12 +18,14 @@ var TinyShop = window.TinyShop || {};
         var _fetch = window.fetch;
         window.fetch = function(url, opts) {
             opts = opts || {};
+            // Read live token — SPA navigation updates TinyShop.csrfToken
+            var currentToken = TinyShop.csrfToken;
             var isSameOrigin = typeof url === 'string' && (url.startsWith('/') || url.startsWith(location.origin));
-            if (isSameOrigin) {
+            if (isSameOrigin && currentToken) {
                 if (opts.headers instanceof Headers) {
-                    if (!opts.headers.has('X-CSRF-Token')) opts.headers.set('X-CSRF-Token', token);
+                    if (!opts.headers.has('X-CSRF-Token')) opts.headers.set('X-CSRF-Token', currentToken);
                 } else {
-                    opts.headers = Object.assign({ 'X-CSRF-Token': token }, opts.headers || {});
+                    opts.headers = Object.assign({ 'X-CSRF-Token': currentToken }, opts.headers || {});
                 }
             }
             return _fetch.call(this, url, opts);
@@ -108,9 +110,162 @@ var TinyShop = window.TinyShop || {};
 })();
 
 /* ============================================================
+   Login modal — shown when session expires (cross-tab logout)
+   ============================================================ */
+(function() {
+    var _overlay = null;
+    var _showing = false;
+    var _pendingUrl = null;
+
+    function getOverlay() {
+        if (_overlay && _overlay.isConnected) return _overlay;
+
+        var div = document.createElement('div');
+        div.className = 'login-modal-overlay';
+        div.id = 'loginModal';
+        div.innerHTML =
+            '<div class="login-modal-box">' +
+                '<div class="login-modal-handle"></div>' +
+                '<div class="login-modal-header">' +
+                    '<h2>Session expired</h2>' +
+                    '<p>Please sign in again to continue.</p>' +
+                '</div>' +
+                '<div class="login-modal-body">' +
+                    '<form id="loginModalForm">' +
+                        '<div class="login-modal-field">' +
+                            '<label for="loginModalEmail">Email</label>' +
+                            '<input type="email" id="loginModalEmail" placeholder="you@example.com" autocomplete="email" required>' +
+                        '</div>' +
+                        '<div class="login-modal-field">' +
+                            '<label for="loginModalPassword">Password</label>' +
+                            '<input type="password" id="loginModalPassword" placeholder="Your password" autocomplete="current-password" required>' +
+                        '</div>' +
+                        '<div class="login-modal-error" id="loginModalError"></div>' +
+                        '<button type="submit" class="login-modal-btn" id="loginModalBtn">Sign In</button>' +
+                    '</form>' +
+                '</div>' +
+            '</div>';
+        document.body.appendChild(div);
+        _overlay = div;
+
+        // Form submission
+        div.querySelector('#loginModalForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var email = div.querySelector('#loginModalEmail').value.trim();
+            var password = div.querySelector('#loginModalPassword').value;
+            var btn = div.querySelector('#loginModalBtn');
+            var errEl = div.querySelector('#loginModalError');
+
+            if (!email || !password) {
+                errEl.textContent = 'Email and password are required';
+                errEl.classList.add('visible');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+            errEl.classList.remove('visible');
+
+            $.ajax({
+                url: '/api/auth/login',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ email: email, password: password }),
+                success: function(res) {
+                    if (res.success) {
+                        TinyShop.hideLoginModal();
+                        // Clear SPA cache — session changed
+                        if (TinyShop.spa) TinyShop.spa._cache = {};
+                        // Update CSRF token if returned
+                        if (res.csrf) {
+                            TinyShop.csrfToken = res.csrf;
+                            $.ajaxSetup({ headers: { 'X-CSRF-Token': res.csrf } });
+                            var meta = document.querySelector('meta[name="csrf-token"]');
+                            if (meta) meta.setAttribute('content', res.csrf);
+                        }
+                        // Reload the page the user was trying to reach
+                        var dest = _pendingUrl || location.pathname + location.search;
+                        if (TinyShop.spa && TinyShop.spa._ready) {
+                            TinyShop.spa.go(dest);
+                        } else {
+                            window.location.reload();
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Something went wrong';
+                    errEl.textContent = msg;
+                    errEl.classList.add('visible');
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                }
+            });
+        });
+
+        return div;
+    }
+
+    TinyShop.showLoginModal = function(targetUrl) {
+        if (_showing) return;
+        _showing = true;
+        _pendingUrl = targetUrl || null;
+        var overlay = getOverlay();
+        // Reset form
+        overlay.querySelector('#loginModalEmail').value = '';
+        overlay.querySelector('#loginModalPassword').value = '';
+        overlay.querySelector('#loginModalError').classList.remove('visible');
+        overlay.querySelector('#loginModalBtn').disabled = false;
+        overlay.querySelector('#loginModalBtn').textContent = 'Sign In';
+
+        // Refresh CSRF token — old session is dead, need a fresh one
+        $.getJSON('/api/auth/check').done(function(res) {
+            if (res.csrf) {
+                TinyShop.csrfToken = res.csrf;
+                $.ajaxSetup({ headers: { 'X-CSRF-Token': res.csrf } });
+                var meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) meta.setAttribute('content', res.csrf);
+            }
+        });
+
+        // Show — CSS handles visibility via .active class
+        overlay.classList.add('active');
+        document.body.classList.add('login-modal-open');
+        // Focus email field
+        setTimeout(function() {
+            overlay.querySelector('#loginModalEmail').focus();
+        }, 100);
+    };
+
+    TinyShop.hideLoginModal = function() {
+        if (!_showing || !_overlay) return;
+        _showing = false;
+        _pendingUrl = null;
+        _overlay.classList.remove('active');
+        document.body.classList.remove('login-modal-open');
+    };
+
+    TinyShop._isLoginModalShowing = function() {
+        return _showing;
+    };
+
+    // Global AJAX handler — intercept 401 on API calls to show login modal
+    $(document).ajaxError(function(event, xhr, settings) {
+        if (xhr.status === 401 && settings.url && settings.url.indexOf('/api/') !== -1) {
+            // Don't show modal for login attempts themselves
+            if (settings.url.indexOf('/api/auth/login') !== -1) return;
+            if (_showing) return;
+            TinyShop.showLoginModal();
+        }
+    });
+})();
+
+/* ============================================================
    Navigate helper — uses SPA when available, else full load
    ============================================================ */
 TinyShop.navigate = function(url) {
+    // Close any open modal/confirm before navigating
+    if (typeof TinyShop.closeModal === 'function') TinyShop.closeModal();
+    document.body.style.overflow = '';
     if (TinyShop.spa && TinyShop.spa._ready) {
         TinyShop.spa.go(url);
     } else {
@@ -131,7 +286,7 @@ TinyShop.formatPrice = function(n) {
    ============================================================ */
 TinyShop.cardHelpers = {
     badge: function(p) {
-        if (p.is_sold == 1) return { type: 'sold', text: 'Sold', pct: 0 };
+        if (p.is_sold == 1) return { type: 'sold', text: 'Sold out', pct: 0 };
         if (p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price)) {
             var pct = Math.round((1 - parseFloat(p.price) / parseFloat(p.compare_price)) * 100);
             return { type: 'sale', text: '-' + pct + '%', pct: pct };
@@ -233,6 +388,7 @@ TinyShop.initShop = function() {
     // State
     var state = {
         category: 'all',
+        categorySlug: '',
         search: '',
         sort: 'default',
         offset: $catalogue.find('.product-card').length,
@@ -311,6 +467,10 @@ TinyShop.initShop = function() {
         var append = opts && opts.append;
         var query = buildQuery(opts);
 
+        // Show loading indicator on search input
+        var $shopSearch = $('#shopSearch');
+        if ($shopSearch.length) $shopSearch.addClass('search-loading');
+
         if (!append) {
             $catalogue.html(TinyShop.renderSkeletons(limit > 8 ? 8 : limit));
             $catalogue.show();
@@ -358,6 +518,8 @@ TinyShop.initShop = function() {
             })
             .always(function() {
                 state.loading = false;
+                var $ss = $('#shopSearch');
+                if ($ss.length) $ss.removeClass('search-loading');
                 $loadMoreBtn.removeClass('loading').html('Show more products <span class="load-more-count" id="loadMoreCount"></span>');
                 $loadMoreCount = $('#loadMoreCount');
                 updateLoadMore(state.offset, state.total);
@@ -386,8 +548,9 @@ TinyShop.initShop = function() {
         if (category === 'all') $('#categoryCards .category-card').first().addClass('active');
     }
 
-    function filterByCategory(category) {
+    function filterByCategory(category, slug) {
         state.category = category;
+        state.categorySlug = (category === 'all') ? '' : (slug || '');
         state.offset = 0;
 
         // Clear search when switching categories
@@ -405,13 +568,13 @@ TinyShop.initShop = function() {
     // Category pill tabs
     $('#categoryTabs').on('click', '.category-tab', function() {
         scrollIntoCenter(this);
-        filterByCategory(String($(this).data('category')));
+        filterByCategory(String($(this).data('category')), $(this).data('slug') || '');
     });
 
     // Category image cards
     $('#categoryCards').on('click', '.category-card', function() {
         scrollIntoCenter(this);
-        filterByCategory(String($(this).data('category')));
+        filterByCategory(String($(this).data('category')), $(this).data('slug') || '');
     });
 
     // Search toggle (for themes that use icon-only search)
@@ -512,18 +675,48 @@ TinyShop.initShop = function() {
     function updateUrl() {
         var params = new URLSearchParams();
         if (state.search) params.set('search', state.search);
-        if (state.category !== 'all') params.set('category', state.category);
         if (state.sort !== 'default') params.set('sort', state.sort);
         var qs = params.toString();
-        history.replaceState(null, '', qs ? '?' + qs : location.pathname);
+        var basePath = (state.categorySlug) ? '/category/' + encodeURIComponent(state.categorySlug) : '/';
+        history.replaceState(null, '', basePath + (qs ? '?' + qs : ''));
     }
 
     // Restore URL state on page load
     var urlParams = new URLSearchParams(window.location.search);
     var urlSearch = urlParams.get('search');
-    var urlCategory = urlParams.get('category');
     var urlSort = urlParams.get('sort');
     var needsFetch = false;
+
+    // Detect server-rendered category page (from /category/{slug} route)
+    var serverCategory = $shopPage.data('active-category');
+    var serverSlug = $shopPage.data('active-slug');
+    if (serverCategory) {
+        // Find matching tab to get the full ID list (parent + children)
+        var $matchTab = $('#categoryTabs .category-tab[data-slug="' + serverSlug + '"]');
+        if ($matchTab.length) {
+            state.category = String($matchTab.data('category'));
+        } else {
+            state.category = String(serverCategory);
+        }
+        state.categorySlug = String(serverSlug || '');
+        syncCategoryUI(state.category);
+        // Products are already server-rendered for this category — no re-fetch needed
+    }
+
+    // Legacy: support ?category= query param (redirect to clean URL)
+    var urlCategory = urlParams.get('category');
+    if (urlCategory && !serverCategory) {
+        state.category = urlCategory;
+        syncCategoryUI(urlCategory);
+        // Find slug for the active category
+        var $activeTab = $('#categoryTabs .category-tab.active');
+        if ($activeTab.length && $activeTab.data('slug')) {
+            state.categorySlug = String($activeTab.data('slug'));
+            // Replace ?category= with clean /category/slug URL
+            history.replaceState(null, '', '/category/' + encodeURIComponent(state.categorySlug));
+        }
+        needsFetch = true;
+    }
 
     if (urlSearch && $searchInput.length) {
         $searchInput.val(urlSearch);
@@ -531,11 +724,6 @@ TinyShop.initShop = function() {
         var $ds = $('#bloomDesktopSearch');
         if ($ds.length) $ds.val(urlSearch);
         state.search = urlSearch;
-        needsFetch = true;
-    }
-    if (urlCategory) {
-        state.category = urlCategory;
-        syncCategoryUI(urlCategory);
         needsFetch = true;
     }
     if (urlSort && $sort.length) {
@@ -550,8 +738,8 @@ TinyShop.initShop = function() {
 
     // Patch filter handlers to update URL
     var _origFilterByCategory = filterByCategory;
-    filterByCategory = function(category) {
-        _origFilterByCategory(category);
+    filterByCategory = function(category, slug) {
+        _origFilterByCategory(category, slug);
         updateUrl();
     };
 
@@ -606,9 +794,9 @@ $(function() {
                 e.preventDefault();
                 var q = $.trim($(this).val());
                 if (q) {
-                    window.location.href = '/?search=' + encodeURIComponent(q);
+                    TinyShop.navigate('/?search=' + encodeURIComponent(q));
                 } else {
-                    window.location.href = '/';
+                    TinyShop.navigate('/');
                 }
             }
         });
@@ -862,9 +1050,9 @@ TinyShop.spa = {
     _xhr: null,
     _loadedScripts: {},
 
-    /* --- Client-side page cache (30s TTL, max 20 entries) --- */
+    /* --- Client-side page cache (5min TTL, max 20 entries) --- */
     _cache: {},
-    _cacheTimeout: 30000,
+    _cacheTimeout: 300000,
 
     _cacheKey: function(url) {
         return url.split('#')[0];
@@ -942,7 +1130,10 @@ TinyShop.spa = {
                     return res.text();
                 }).then(function(text) {
                     var data = self._parseResponse(text);
-                    if (data) self._setCache(href, data);
+                    if (data && !data.redirect) {
+                        self._setCache(href, data);
+                        self._preloadStyles(data.styles);
+                    }
                     self._pendingFetch = null;
                     self._pendingUrl = null;
                     return data;
@@ -1017,7 +1208,10 @@ TinyShop.spa = {
             }).then(function(text) {
                 if (text) {
                     var data = self._parseResponse(text);
-                    if (data) self._setCache(href, data);
+                    if (data && !data.redirect) {
+                        self._setCache(href, data);
+                        self._preloadStyles(data.styles);
+                    }
                 }
             }).catch(function() {});
         }
@@ -1037,7 +1231,7 @@ TinyShop.spa = {
             }
         });
 
-        // Viewport prefetch (mobile) — IntersectionObserver for visible links
+        // Viewport prefetch — IntersectionObserver for visible links, deferred until idle
         if ('IntersectionObserver' in window) {
             var observer = new IntersectionObserver(function(entries) {
                 entries.forEach(function(entry) {
@@ -1051,11 +1245,21 @@ TinyShop.spa = {
                 });
             }, { rootMargin: '200px' });
 
+            var _observeTimer = null;
             function observeLinks() {
-                var els = document.querySelectorAll('.product-card a, .dash-content a, .shop-page a, .dash-tab, .pricing-card a, .pricing-nav a, .land-nav-container a, .land-cta, .auth-footer a');
-                for (var i = 0; i < els.length; i++) {
-                    observer.observe(els[i]);
-                }
+                // Reset prefetch flags so expired cache entries get re-prefetched
+                prefetched = {};
+                // Disconnect old observations to release detached DOM nodes
+                observer.disconnect();
+                // Defer observation so prefetches don't compete with current page load
+                if (_observeTimer) clearTimeout(_observeTimer);
+                var idle = window.requestIdleCallback || function(cb) { setTimeout(cb, 200); };
+                idle(function() {
+                    var els = document.querySelectorAll('.product-card a, .dash-content a, .shop-page a, .dash-tab, .pricing-card a, .pricing-nav a, .land-nav-container a, .land-cta, .auth-footer a');
+                    for (var i = 0; i < els.length; i++) {
+                        observer.observe(els[i]);
+                    }
+                });
             }
 
             $(document).on('page:init', observeLinks);
@@ -1133,7 +1337,15 @@ TinyShop.spa = {
         var cached = self._getCached(url);
         if (cached) {
             if (cached.redirect) {
-                self.go(cached.redirect);
+                // Auth redirect — show login modal instead of navigating to login
+                if (cached.redirect === '/login' || cached.redirect === '/register') {
+                    delete self._cache[self._cacheKey(url)];
+                    TinyShop.showLoginModal(url);
+                    self._loading = false;
+                    self.hideProgress();
+                    return;
+                }
+                self.go(cached.redirect, isPopState);
             } else {
                 self._applyPage(cached, url, isPopState);
             }
@@ -1146,10 +1358,20 @@ TinyShop.spa = {
         // Check if there's a pending instant-click prefetch for this URL
         if (self._pendingUrl === url && self._pendingFetch) {
             self._pendingFetch.then(function(data) {
-                if (data) {
-                    self._applyPage(data, url, isPopState);
-                } else {
+                if (!data) {
                     self._doFetch(url, isPopState);
+                } else if (data.redirect) {
+                    self._cache = {};
+                    self._loading = false;
+                    self.hideProgress();
+                    if (data.redirect === '/login' && url !== '/logout') {
+                        TinyShop.showLoginModal(url);
+                    } else {
+                        self.go(data.redirect, isPopState);
+                    }
+                } else {
+                    self._setCache(url, data);
+                    self._applyPage(data, url, isPopState);
                 }
             }).catch(function() {
                 self._doFetch(url, isPopState);
@@ -1178,10 +1400,17 @@ TinyShop.spa = {
                     return;
                 }
 
-                // Handle SPA redirects (e.g. /logout → /login)
+                // Handle SPA redirects
                 if (data.redirect) {
                     self._cache = {}; // Clear cache on redirect (session may have changed)
-                    self.go(data.redirect);
+                    // Auth redirect — show login modal instead of navigating away
+                    if (data.redirect === '/login' && url !== '/logout') {
+                        self._loading = false;
+                        self.hideProgress();
+                        TinyShop.showLoginModal(url);
+                        return;
+                    }
+                    self.go(data.redirect, isPopState);
                     return;
                 }
 
@@ -1202,8 +1431,25 @@ TinyShop.spa = {
     _applyPage: function(data, url, isPopState) {
         var self = this;
 
-        function doSwap() {
+        function doSwap(onDomReady) {
             document.title = data.title || 'TinyShop';
+
+            // Announce page change to screen readers
+            var announcer = document.getElementById('spaAnnouncer');
+            if (!announcer) {
+                announcer = document.createElement('div');
+                announcer.id = 'spaAnnouncer';
+                announcer.setAttribute('role', 'status');
+                announcer.setAttribute('aria-live', 'polite');
+                announcer.setAttribute('aria-atomic', 'true');
+                announcer.className = 'sr-only';
+                document.body.appendChild(announcer);
+            }
+            announcer.textContent = '';
+            setTimeout(function() {
+                announcer.textContent = (data.title || 'Page') + ' loaded';
+            }, 100);
+
             document.body.className = data.bodyClass || '';
 
             // Update CSRF token
@@ -1214,66 +1460,93 @@ TinyShop.spa = {
                 $.ajaxSetup({ headers: { 'X-CSRF-Token': data.csrf } });
             }
 
-            // Sync stylesheets and inline styles
-            self._syncStylesFromList(data.styles || [], data.inlineStyles || []);
+            // Wait for new stylesheets to load, then swap body
+            self._syncStylesFromList(data.styles || [], data.inlineStyles || [], function() {
+                // Swap body content — styles are ready, no FOUC
+                document.body.innerHTML = data.body;
 
-            // Swap body content
-            document.body.innerHTML = data.body;
-
-            // Build script list for loadScripts
-            var scriptObjs = [];
-            (data.scripts || []).forEach(function(src) {
-                scriptObjs.push({ src: src, text: '', type: '' });
-            });
-            (data.inlineScripts || []).forEach(function(code) {
-                scriptObjs.push({ src: '', text: code, type: '' });
-            });
-
-            self.loadScripts(scriptObjs, function() {
+                // Update URL and scroll immediately — don't wait for scripts
                 if (!isPopState) {
                     history.pushState({ spa: true, url: url }, '', url);
                     window.scrollTo(0, 0);
                 }
-                self._loading = false;
-                self.hideProgress();
+
+                // Signal DOM ready for view transition capture
+                if (onDomReady) onDomReady();
+
+                // Build script list for loadScripts
+                var scriptObjs = [];
+                (data.scripts || []).forEach(function(src) {
+                    scriptObjs.push({ src: src, text: '', type: '' });
+                });
+                (data.inlineScripts || []).forEach(function(code) {
+                    scriptObjs.push({ src: '', text: code, type: '' });
+                });
+
+                self.loadScripts(scriptObjs, function() {
+                    self._loading = false;
+                    self.hideProgress();
+                    $(document).trigger('page:init');
+                });
             });
         }
 
         // Use View Transitions API if available (Chrome 111+)
         if (document.startViewTransition) {
-            document.startViewTransition(doSwap);
+            document.startViewTransition(function() {
+                return new Promise(function(resolve) {
+                    doSwap(resolve);
+                });
+            });
         } else {
             // CSS fallback: brief opacity transition
             document.body.classList.add('spa-transitioning');
             requestAnimationFrame(function() {
                 requestAnimationFrame(function() {
-                    doSwap();
-                    document.body.classList.remove('spa-transitioning');
-                    document.body.classList.add('spa-transitioned');
-                    setTimeout(function() {
-                        document.body.classList.remove('spa-transitioned');
-                    }, 100);
+                    doSwap(function() {
+                        document.body.classList.remove('spa-transitioning');
+                        document.body.classList.add('spa-transitioned');
+                        setTimeout(function() {
+                            document.body.classList.remove('spa-transitioned');
+                        }, 100);
+                    });
                 });
             });
         }
     },
 
-    /* --- Sync stylesheets and inline styles --- */
-    _syncStylesFromList: function(styleHrefs, inlineStyles) {
-        // Remove previously SPA-injected styles
-        var spaStyles = document.head.querySelectorAll('[data-spa-style]');
-        for (var i = 0; i < spaStyles.length; i++) {
-            spaStyles[i].parentNode.removeChild(spaStyles[i]);
+    /* --- Preload stylesheets into browser cache (called during prefetch) --- */
+    _preloadStyles: function(styleHrefs) {
+        if (!styleHrefs || !styleHrefs.length || !window.fetch) return;
+        var loaded = {};
+        var links = document.head.querySelectorAll('link[rel="stylesheet"]');
+        for (var i = 0; i < links.length; i++) {
+            loaded[links[i].getAttribute('href')] = true;
         }
+        for (var i = 0; i < styleHrefs.length; i++) {
+            if (!loaded[styleHrefs[i]]) {
+                fetch(styleHrefs[i], { credentials: 'same-origin', priority: 'low' }).catch(function() {});
+            }
+        }
+    },
 
-        // Track permanent stylesheets (including preloaded ones)
+    /* --- Sync stylesheets and inline styles (waits for new CSS to load) --- */
+    _syncStylesFromList: function(styleHrefs, inlineStyles, onReady) {
+        var neededSet = {};
+        for (var i = 0; i < styleHrefs.length; i++) neededSet[styleHrefs[i]] = true;
+
+        // Track all currently loaded stylesheets
         var existingHrefs = {};
-        var permanent = document.head.querySelectorAll('link[rel="stylesheet"]:not([data-spa-style]), link[rel="preload"][as="style"]');
-        for (var i = 0; i < permanent.length; i++) {
-            existingHrefs[permanent[i].getAttribute('href')] = true;
+        var allLinks = document.head.querySelectorAll('link[rel="stylesheet"], link[rel="preload"][as="style"]');
+        for (var i = 0; i < allLinks.length; i++) {
+            existingHrefs[allLinks[i].getAttribute('href')] = true;
         }
 
-        // Add new stylesheet links
+        // Snapshot old SPA styles for cleanup
+        var oldSpaStyles = document.head.querySelectorAll('[data-spa-style]');
+
+        // Add new stylesheet links not yet loaded
+        var newLinks = [];
         for (var i = 0; i < styleHrefs.length; i++) {
             if (!existingHrefs[styleHrefs[i]]) {
                 var link = document.createElement('link');
@@ -1281,18 +1554,65 @@ TinyShop.spa = {
                 link.href = styleHrefs[i];
                 link.setAttribute('data-spa-style', '');
                 document.head.appendChild(link);
+                newLinks.push(link);
             }
         }
 
-        // Add inline <style> blocks
-        if (inlineStyles && inlineStyles.length) {
-            for (var i = 0; i < inlineStyles.length; i++) {
-                var style = document.createElement('style');
-                style.textContent = inlineStyles[i];
-                style.setAttribute('data-spa-style', '');
-                document.head.appendChild(style);
+        function finish() {
+            // Remove old SPA styles not needed by new page
+            for (var i = 0; i < oldSpaStyles.length; i++) {
+                var el = oldSpaStyles[i];
+                if (el.tagName === 'STYLE') {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                } else if (el.tagName === 'LINK') {
+                    var href = el.getAttribute('href');
+                    if (!neededSet[href] && el.parentNode) {
+                        el.parentNode.removeChild(el);
+                    }
+                }
+            }
+
+            // Add inline <style> blocks
+            if (inlineStyles && inlineStyles.length) {
+                for (var i = 0; i < inlineStyles.length; i++) {
+                    var style = document.createElement('style');
+                    style.textContent = inlineStyles[i];
+                    style.setAttribute('data-spa-style', '');
+                    document.head.appendChild(style);
+                }
+            }
+
+            if (onReady) onReady();
+        }
+
+        if (newLinks.length === 0) {
+            finish();
+            return;
+        }
+
+        var remaining = newLinks.length;
+        var done = false;
+
+        function check() {
+            if (done) return;
+            if (--remaining <= 0) {
+                done = true;
+                finish();
             }
         }
+
+        for (var i = 0; i < newLinks.length; i++) {
+            newLinks[i].onload = check;
+            newLinks[i].onerror = check;
+        }
+
+        // Safety timeout — don't block forever on broken links
+        setTimeout(function() {
+            if (!done) {
+                done = true;
+                finish();
+            }
+        }, 3000);
     },
 
     loadScripts: function(scripts, callback) {
@@ -1324,12 +1644,16 @@ TinyShop.spa = {
         // Load externals sequentially, then run inlines
         function loadNext(idx) {
             if (idx >= externals.length) {
-                // Execute inline scripts
+                // Execute inline scripts (isolated — errors don't kill SPA state)
                 inlines.forEach(function(code) {
-                    var el = document.createElement('script');
-                    el.textContent = code;
-                    document.body.appendChild(el);
-                    document.body.removeChild(el);
+                    try {
+                        var el = document.createElement('script');
+                        el.textContent = code;
+                        document.body.appendChild(el);
+                        document.body.removeChild(el);
+                    } catch(err) {
+                        if (window.console) console.warn('[SPA] inline script error:', err);
+                    }
                 });
                 if (callback) callback();
                 return;
@@ -1383,4 +1707,5 @@ TinyShop.spa = {
    ============================================================ */
 $(function() {
     TinyShop.spa.init();
+    $(document).trigger('page:init');
 });

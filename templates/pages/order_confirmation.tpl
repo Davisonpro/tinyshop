@@ -3,7 +3,7 @@
 {block name="body_class"}page-shop page-confirmation{/block}
 
 {block name="extra_css"}
-<link rel="stylesheet" href="/public/css/confirmation.css?v={$asset_v}">
+<link rel="stylesheet" href="/public/css/confirmation{$min}.css?v={$asset_v}">
 {/block}
 {block name="body"}
 <div class="confirm-page">

@@ -3,7 +3,7 @@
 {block name="body_class"}page-shop page-checkout{/block}
 
 {block name="extra_css"}
-<link rel="stylesheet" href="/public/css/checkout.css?v={$asset_v}">
+<link rel="stylesheet" href="/public/css/checkout{$min}.css?v={$asset_v}">
 {/block}
 {block name="body"}
 <div class="checkout-page" id="checkoutPage">
@@ -82,7 +82,7 @@
                 <label class="gateway-option" data-gateway="stripe">
                     <input type="radio" name="payment_method" value="stripe">
                     <div class="gateway-option-icon">
-                        <i class="fa-brands fa-stripe" style="font-size:24px;color:#635BFF"></i>
+                        <i class="fa-brands fa-stripe" style="color:#635BFF"></i>
                     </div>
                     <span class="gateway-option-label">Credit / Debit Card</span>
                     <div class="gateway-option-check">
@@ -94,7 +94,7 @@
                 <label class="gateway-option" data-gateway="paypal">
                     <input type="radio" name="payment_method" value="paypal">
                     <div class="gateway-option-icon">
-                        <i class="fa-brands fa-paypal" style="font-size:28px;color:#003087"></i>
+                        <i class="fa-brands fa-paypal" style="color:#003087"></i>
                     </div>
                     <span class="gateway-option-label">PayPal</span>
                     <div class="gateway-option-check">
@@ -102,11 +102,45 @@
                     </div>
                 </label>
                 {/if}
+                {if $has_cod}
+                <label class="gateway-option" data-gateway="cod">
+                    <input type="radio" name="payment_method" value="cod">
+                    <div class="gateway-option-icon">
+                        <i class="fa-solid fa-hand-holding-dollar" style="color:#059669"></i>
+                    </div>
+                    <span class="gateway-option-label">Pay on Delivery</span>
+                    <div class="gateway-option-check">
+                        <i class="fa-solid fa-check" style="font-size:12px;color:#fff;display:none"></i>
+                    </div>
+                </label>
+                {/if}
+                {if $has_mpesa}
+                <label class="gateway-option" data-gateway="mpesa">
+                    <input type="radio" name="payment_method" value="mpesa">
+                    <div class="gateway-option-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#4CAF50"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="white">M</text></svg>
+                    </div>
+                    <span class="gateway-option-label">M-Pesa</span>
+                    <div class="gateway-option-check">
+                        <i class="fa-solid fa-check" style="font-size:12px;color:#fff;display:none"></i>
+                    </div>
+                </label>
+                {/if}
+            </div>
+
+            <div class="checkout-section" id="mpesaPhoneSection" style="display:none">
+                <div class="checkout-field">
+                    <label for="mpesaPhone">M-Pesa Phone Number</label>
+                    <input type="tel" id="mpesaPhone" placeholder="e.g. 0712 345 678" inputmode="numeric" autocomplete="tel">
+                    <p class="form-hint" style="margin-top:4px;font-size:0.75rem;color:var(--color-text-muted)">
+                        The number registered with M-Pesa. You'll get a PIN prompt on this phone.
+                    </p>
+                </div>
             </div>
 
             <div class="checkout-pay-btn">
                 <button type="button" class="btn btn-accent" id="payBtn" disabled>
-                    Pay <span id="payBtnTotal"></span>
+                    Select payment method
                 </button>
             </div>
         </div>
@@ -118,7 +152,7 @@ window._shopId = {$shop.id|escape:'javascript'};
 window._shopCurrency = '{$currency|escape:'javascript'}';
 window._shopCurrencySymbol = '{$currency_symbol|escape:'javascript'}';
 </script>
-<script src="/public/js/cart.js?v={$asset_v}"></script>
+<script src="/public/js/cart{$min}.js?v={$asset_v}"></script>
 {/block}
 
 {block name="page_scripts"}
@@ -219,7 +253,7 @@ window._shopCurrencySymbol = '{$currency_symbol|escape:'javascript'}';
     function updateTotals() {ldelim}
         var finalTotal = Math.max(0, subtotal - discountAmt);
         document.getElementById('checkoutTotal').textContent = sym + fmt(finalTotal);
-        document.getElementById('payBtnTotal').textContent = sym + fmt(finalTotal);
+        if (selectedGateway) updatePayBtnLabel();
     {rdelim}
 
     updateTotals();
@@ -282,6 +316,13 @@ window._shopCurrencySymbol = '{$currency_symbol|escape:'javascript'}';
     // Gateway selection
     var $gateways = document.querySelectorAll('.gateway-option');
     var selectedGateway = '';
+    function updatePayBtnLabel() {ldelim}
+        var finalTotal = Math.max(0, subtotal - discountAmt);
+        var label = selectedGateway === 'cod' ? 'Place Order'
+            : selectedGateway === 'mpesa' ? 'Pay ' + sym + fmt(finalTotal) + ' via M-Pesa'
+            : 'Pay ' + sym + fmt(finalTotal);
+        document.getElementById('payBtn').innerHTML = label;
+    {rdelim}
     $gateways.forEach(function(g) {ldelim}
         g.addEventListener('click', function() {ldelim}
             $gateways.forEach(function(o) {ldelim}
@@ -293,6 +334,11 @@ window._shopCurrencySymbol = '{$currency_symbol|escape:'javascript'}';
             g.querySelector('i.fa-check').style.display = '';
             selectedGateway = g.dataset.gateway;
             document.getElementById('payBtn').disabled = false;
+            var mpesaSection = document.getElementById('mpesaPhoneSection');
+            if (mpesaSection) {ldelim}
+                mpesaSection.style.display = selectedGateway === 'mpesa' ? '' : 'none';
+            {rdelim}
+            updatePayBtnLabel();
         {rdelim});
     {rdelim});
 
@@ -312,6 +358,13 @@ window._shopCurrencySymbol = '{$currency_symbol|escape:'javascript'}';
         if (!name) {ldelim} TinyShop.toast('Please enter your name', 'error'); return; {rdelim}
         if (!email) {ldelim} TinyShop.toast('Please enter your email', 'error'); return; {rdelim}
         if (!selectedGateway) {ldelim} TinyShop.toast('Please select a payment method', 'error'); return; {rdelim}
+        if (selectedGateway === 'mpesa') {ldelim}
+            var mpesaPhone = document.getElementById('mpesaPhone').value.trim();
+            if (!mpesaPhone) {ldelim}
+                TinyShop.toast('Enter your M-Pesa phone number', 'error');
+                return;
+            {rdelim}
+        {rdelim}
 
         btn.disabled = true;
         btn.innerHTML = '<span class="btn-spinner"></span> Processing...';
@@ -332,28 +385,50 @@ window._shopCurrencySymbol = '{$currency_symbol|escape:'javascript'}';
                 customer_email: email,
                 customer_phone: phone,
                 notes: notes,
-                coupon_code: appliedCoupon || ''
+                coupon_code: appliedCoupon || '',
+                mpesa_phone: selectedGateway === 'mpesa' ? document.getElementById('mpesaPhone').value.trim() : ''
             {rdelim}),
             success: function(resp) {ldelim}
+                // Save customer details for next time
+                try {ldelim}
+                    localStorage.setItem('tinyshop_customer', JSON.stringify({ldelim} name: name, email: email, phone: phone {rdelim}));
+                {rdelim} catch(e) {ldelim}{rdelim}
+                TinyShop.Cart.clear();
+
+                if (resp.gateway === 'mpesa' && resp.poll_url) {ldelim}
+                    btn.innerHTML = '<span class="btn-spinner"></span> Enter your M-Pesa PIN...';
+                    var pollCount = 0;
+                    var maxPolls = 60;
+                    var pollTimer = setInterval(function() {ldelim}
+                        pollCount++;
+                        if (pollCount >= maxPolls) {ldelim}
+                            clearInterval(pollTimer);
+                            btn.disabled = false;
+                            btn.innerHTML = 'Try Again';
+                            TinyShop.toast('Payment not received. Please try again.', 'error');
+                            return;
+                        {rdelim}
+                        $.get(resp.poll_url, function(statusResp) {ldelim}
+                            if (statusResp.status === 'paid') {ldelim}
+                                clearInterval(pollTimer);
+                                window.location.href = statusResp.order_url;
+                            {rdelim}
+                        {rdelim});
+                    {rdelim}, 2000);
+                    return;
+                {rdelim}
+
                 if (resp.redirect_url) {ldelim}
-                    // Save customer details for next time
-                    try {ldelim}
-                        localStorage.setItem('tinyshop_customer', JSON.stringify({ldelim}
-                            name: document.getElementById('coName').value.trim(),
-                            email: document.getElementById('coEmail').value.trim(),
-                            phone: document.getElementById('coPhone').value.trim()
-                        {rdelim}));
-                    {rdelim} catch(e) {ldelim}{rdelim}
-                    TinyShop.Cart.clear();
                     window.location.href = resp.redirect_url;
+                {rdelim} else if (resp.order_url) {ldelim}
+                    window.location.href = resp.order_url;
                 {rdelim}
             {rdelim},
             error: function(xhr) {ldelim}
                 var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Something went wrong';
                 TinyShop.toast(msg, 'error');
                 btn.disabled = false;
-                var finalTotal = Math.max(0, subtotal - discountAmt);
-                btn.innerHTML = 'Pay <span id="payBtnTotal">' + esc(sym) + fmt(finalTotal) + '</span>';
+                updatePayBtnLabel();
             {rdelim}
         {rdelim});
     {rdelim});

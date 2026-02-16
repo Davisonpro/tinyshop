@@ -4,7 +4,7 @@
         {* Brand: italic serif name only — no logo image, no tagline *}
         <a href="/" class="desktop-header-brand ember-brand-text">
             {if $shop.show_store_name|default:1}
-                <span class="desktop-header-name">{$shop.store_name|default:$shop.name|escape}</span>
+                <span class="desktop-header-name">{$shop.store_name|escape}</span>
             {/if}
         </a>
 

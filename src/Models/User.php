@@ -179,7 +179,7 @@ final class User
             'INSERT INTO users (name, email, password_hash, oauth_provider, oauth_id, role, store_name, subdomain) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
-            $data['name'],
+            $data['name'] ?? $data['store_name'] ?? '',
             $data['email'],
             $data['password_hash'] ?? null,
             $data['oauth_provider'] ?? null,
@@ -204,10 +204,14 @@ final class User
             'shop_theme',
             'stripe_public_key', 'stripe_secret_key', 'stripe_mode', 'stripe_enabled',
             'paypal_client_id', 'paypal_secret', 'paypal_mode', 'paypal_enabled',
+            'cod_enabled',
+            'mpesa_shortcode', 'mpesa_consumer_key', 'mpesa_consumer_secret',
+            'mpesa_passkey', 'mpesa_mode', 'mpesa_enabled',
             'payment_mode',
             'show_store_name', 'show_tagline', 'show_search',
             'show_categories', 'show_sort_toolbar', 'show_desktop_footer',
             'announcement_text',
+            'google_verification', 'bing_verification',
         ];
 
         foreach ($allowed as $field) {
@@ -233,6 +237,13 @@ final class User
             'UPDATE users SET last_login_at = NOW(), login_count = login_count + 1 WHERE id = ?'
         );
         $stmt->execute([$id]);
+    }
+
+    public function isActive(int $id): bool
+    {
+        $stmt = $this->db->prepare('SELECT is_active FROM users WHERE id = ?');
+        $stmt->execute([$id]);
+        return (int) $stmt->fetchColumn() === 1;
     }
 
     public function toggleActive(int $id, bool $active): bool
@@ -353,6 +364,15 @@ final class User
                  WHERE o.user_id = ?'
             )->execute([$id]);
             $this->db->prepare('DELETE FROM orders WHERE user_id = ?')->execute([$id]);
+
+            // Delete billing pending records
+            $this->db->prepare('DELETE FROM billing_mpesa_pending WHERE user_id = ?')->execute([$id]);
+
+            // Delete coupons
+            $this->db->prepare('DELETE FROM coupons WHERE user_id = ?')->execute([$id]);
+
+            // Delete subscriptions
+            $this->db->prepare('DELETE FROM subscriptions WHERE user_id = ?')->execute([$id]);
 
             // Delete the user
             $this->db->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);

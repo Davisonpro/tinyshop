@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
 use TinyShop\Controllers\Traits\JsonResponder;
+use TinyShop\Models\AuditLog;
 use TinyShop\Models\User;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Hooks;
@@ -24,7 +25,8 @@ final class ShopController
         private readonly Validation $validation,
         private readonly Upload $upload,
         private readonly PlanGuard $planGuard,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly AuditLog $auditLog
     ) {}
 
     public function get(Request $request, Response $response): Response
@@ -63,14 +65,14 @@ final class ShopController
         }
 
         // Validate payment modes (per-gateway)
-        foreach (['payment_mode', 'stripe_mode', 'paypal_mode'] as $modeField) {
+        foreach (['payment_mode', 'stripe_mode', 'paypal_mode', 'mpesa_mode'] as $modeField) {
             if (isset($data[$modeField]) && !in_array($data[$modeField], ['test', 'live'], true)) {
                 $data[$modeField] = 'test';
             }
         }
 
         // Sanitize gateway enabled flags
-        foreach (['stripe_enabled', 'paypal_enabled'] as $enabledField) {
+        foreach (['stripe_enabled', 'paypal_enabled', 'cod_enabled', 'mpesa_enabled'] as $enabledField) {
             if (isset($data[$enabledField])) {
                 $data[$enabledField] = $data[$enabledField] ? 1 : 0;
             }
@@ -89,8 +91,17 @@ final class ShopController
             $data['announcement_text'] = $text === '' ? null : mb_substr($text, 0, 500);
         }
 
+        // Sanitize verification codes (alphanumeric + hyphens/underscores only)
+        foreach (['google_verification', 'bing_verification'] as $verField) {
+            if (isset($data[$verField])) {
+                $code = trim($data[$verField]);
+                $data[$verField] = $code === '' ? null : mb_substr(preg_replace('/[^a-zA-Z0-9_\-]/', '', $code), 0, 100);
+            }
+        }
+
         // Trim payment credential fields
-        foreach (['stripe_public_key', 'stripe_secret_key', 'paypal_client_id', 'paypal_secret'] as $payField) {
+        foreach (['stripe_public_key', 'stripe_secret_key', 'paypal_client_id', 'paypal_secret',
+                  'mpesa_shortcode', 'mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey'] as $payField) {
             if (isset($data[$payField])) {
                 $data[$payField] = trim($data[$payField]) ?: null;
             }
@@ -159,6 +170,8 @@ final class ShopController
         $this->userModel->update($userId, $data);
 
         Hooks::doAction('shop.updated', $userId, $data);
+
+        $this->auditLog->log('shop.update', $userId, 'user', $userId, ['fields' => array_keys($data)]);
 
         $user = $this->userModel->findById($userId);
         unset($user['password_hash']);
@@ -282,6 +295,11 @@ final class ShopController
             'user_id' => $userId,
             'email'   => $user['email'],
             'ip'      => $request->getServerParams()['REMOTE_ADDR'] ?? '',
+        ]);
+
+        $this->auditLog->log('account.delete', $userId, 'user', $userId, [
+            'email' => $user['email'],
+            'store_name' => $user['store_name'] ?? null,
         ]);
 
         Hooks::doAction('shop.deleted', $userId);

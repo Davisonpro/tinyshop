@@ -253,6 +253,11 @@
 <input type="hidden" id="platformPaypalClientId" value="{$settings.platform_paypal_client_id|escape}">
 <input type="hidden" id="platformPaypalSecret" value="{$settings.platform_paypal_secret|escape}">
 <input type="hidden" id="platformPaypalMode" value="{$settings.platform_paypal_mode|default:'test'}">
+<input type="hidden" id="platformMpesaShortcode" value="{$settings.platform_mpesa_shortcode|escape}">
+<input type="hidden" id="platformMpesaConsumerKey" value="{$settings.platform_mpesa_consumer_key|escape}">
+<input type="hidden" id="platformMpesaConsumerSecret" value="{$settings.platform_mpesa_consumer_secret|escape}">
+<input type="hidden" id="platformMpesaPasskey" value="{$settings.platform_mpesa_passkey|escape}">
+<input type="hidden" id="platformMpesaMode" value="{$settings.platform_mpesa_mode|default:'test'}">
 
 <div class="dash-form" style="padding-top:0">
     <div class="form-section">
@@ -290,6 +295,23 @@
             <span class="gateway-status-badge">
                 <i class="fa-solid fa-check icon-xs"></i>
                 {if $settings.platform_paypal_mode == 'live'}Live{else}Test{/if}
+            </span>
+            {else}
+            <i class="fa-solid fa-chevron-right account-row-chevron"></i>
+            {/if}
+        </div>
+        <div class="account-row" id="setupPlatformMpesaBtn">
+            <div class="account-row-left">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><circle cx="12" cy="12" r="12" fill="#4CAF50"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="white">M</text></svg>
+                <div>
+                    <div class="account-row-label">M-Pesa</div>
+                    <div class="account-row-value" id="platformMpesaStatusDisplay">{if $settings.platform_mpesa_shortcode}Connected{else}Not connected{/if}</div>
+                </div>
+            </div>
+            {if $settings.platform_mpesa_shortcode}
+            <span class="gateway-status-badge">
+                <i class="fa-solid fa-check icon-xs"></i>
+                {if $settings.platform_mpesa_mode == 'live'}Live{else}Test{/if}
             </span>
             {else}
             <i class="fa-solid fa-chevron-right account-row-chevron"></i>
@@ -582,6 +604,116 @@ function togglePw(btn) {ldelim}
                     $('#platformPaypalMode').val('test');
                     $('#platformPaypalStatusDisplay').text('Not connected');
                     TinyShop.toast('PayPal disconnected');
+                    TinyShop.closeModal();
+                    setTimeout(function() {ldelim} location.reload(); {rdelim}, 400);
+                {rdelim}).fail(function() {ldelim}
+                    TinyShop.toast('Failed to disconnect', 'error');
+                    TinyShop.closeModal();
+                {rdelim});
+            {rdelim}, 'danger');
+        {rdelim});
+    {rdelim});
+
+    // --- Platform M-Pesa setup (modal) ---
+    $('#setupPlatformMpesaBtn').on('click', function() {ldelim}
+        var currentShortcode = $('#platformMpesaShortcode').val();
+        var currentKey = $('#platformMpesaConsumerKey').val();
+        var currentSecret = $('#platformMpesaConsumerSecret').val();
+        var currentPasskey = $('#platformMpesaPasskey').val();
+        var currentMode = $('#platformMpesaMode').val();
+        var isConnected = currentShortcode !== '';
+
+        var html = '<form id="platformMpesaForm" autocomplete="off">' +
+            '<div class="gateway-modal-header">' +
+                '<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#4CAF50"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="white">M</text></svg>' +
+                '<span class="gateway-brand-name">M-Pesa</span>' +
+                (isConnected ? '<span class="gateway-status-badge"><i class="fa-solid fa-check icon-xs"></i> Connected</span>' : '') +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalPlatformMpesaShortcode">Shortcode (Till / Paybill)</label>' +
+                '<input type="text" class="form-control" id="modalPlatformMpesaShortcode" value="' + escapeHtml(currentShortcode) + '" placeholder="e.g. 174379" autocomplete="off" inputmode="numeric">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalPlatformMpesaKey">Consumer Key</label>' +
+                '<input type="text" class="form-control" id="modalPlatformMpesaKey" value="' + escapeHtml(currentKey) + '" placeholder="From Daraja portal" autocomplete="off">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalPlatformMpesaSecret">Consumer Secret</label>' +
+                '<div class="password-field"><input type="password" class="form-control" id="modalPlatformMpesaSecret" value="' + escapeHtml(currentSecret) + '" placeholder="From Daraja portal" autocomplete="off">' +
+                '<button type="button" class="password-toggle" onclick="togglePw(this)" aria-label="Show password"><i class="fa-solid fa-eye eye-open"></i><i class="fa-solid fa-eye-slash eye-closed d-none"></i></button></div>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalPlatformMpesaPasskey">Passkey</label>' +
+                '<div class="password-field"><input type="password" class="form-control" id="modalPlatformMpesaPasskey" value="' + escapeHtml(currentPasskey) + '" placeholder="STK Push passkey" autocomplete="off">' +
+                '<button type="button" class="password-toggle" onclick="togglePw(this)" aria-label="Show password"><i class="fa-solid fa-eye eye-open"></i><i class="fa-solid fa-eye-slash eye-closed d-none"></i></button></div>' +
+            '</div>' +
+            '<div class="form-toggle-row mb-md">' +
+                '<div>' +
+                    '<div class="form-toggle-label">Live Mode</div>' +
+                    '<p class="form-hint mt-xs">Use live credentials for real payments</p>' +
+                '</div>' +
+                '<label class="toggle-switch">' +
+                    '<input type="checkbox" id="modalPlatformMpesaMode"' + (currentMode === 'live' ? ' checked' : '') + '>' +
+                    '<span class="toggle-slider"></span>' +
+                '</label>' +
+            '</div>' +
+            '<button type="submit" class="btn-block btn-primary" id="savePlatformMpesaBtn">Save M-Pesa Settings</button>' +
+            (isConnected ? '<button type="button" class="btn-block btn-link mt-sm" id="disconnectPlatformMpesaBtn">Disconnect M-Pesa</button>' : '') +
+        '</form>';
+        TinyShop.openModal('Platform M-Pesa', html);
+
+        $('#platformMpesaForm').on('submit', function(e) {ldelim}
+            e.preventDefault();
+            var shortcode = $('#modalPlatformMpesaShortcode').val().trim();
+            var key = $('#modalPlatformMpesaKey').val().trim();
+            var secret = $('#modalPlatformMpesaSecret').val().trim();
+            var passkey = $('#modalPlatformMpesaPasskey').val().trim();
+            var mode = $('#modalPlatformMpesaMode').is(':checked') ? 'live' : 'test';
+            if (!shortcode || !key || !secret || !passkey) {ldelim}
+                TinyShop.toast('All fields are required', 'error');
+                return;
+            {rdelim}
+            var $btn = $('#savePlatformMpesaBtn').prop('disabled', true).text('Saving...');
+            TinyShop.api('PUT', '/api/admin/settings', {ldelim}
+                platform_mpesa_shortcode: shortcode,
+                platform_mpesa_consumer_key: key,
+                platform_mpesa_consumer_secret: secret,
+                platform_mpesa_passkey: passkey,
+                platform_mpesa_mode: mode
+            {rdelim}).done(function() {ldelim}
+                $('#platformMpesaShortcode').val(shortcode);
+                $('#platformMpesaConsumerKey').val(key);
+                $('#platformMpesaConsumerSecret').val(secret);
+                $('#platformMpesaPasskey').val(passkey);
+                $('#platformMpesaMode').val(mode);
+                $('#platformMpesaStatusDisplay').text('Connected');
+                TinyShop.toast('M-Pesa connected!');
+                TinyShop.closeModal();
+                setTimeout(function() {ldelim} location.reload(); {rdelim}, 400);
+            {rdelim}).fail(function(xhr) {ldelim}
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to save';
+                TinyShop.toast(msg, 'error');
+                $btn.prop('disabled', false).text('Save M-Pesa Settings');
+            {rdelim});
+        {rdelim});
+
+        $('#disconnectPlatformMpesaBtn').on('click', function() {ldelim}
+            TinyShop.confirm('Disconnect M-Pesa?', 'Sellers won\'t be able to pay for subscriptions with M-Pesa.', 'Disconnect', function() {ldelim}
+                $('#confirmModalOk').prop('disabled', true).text('Disconnecting...');
+                TinyShop.api('PUT', '/api/admin/settings', {ldelim}
+                    platform_mpesa_shortcode: '',
+                    platform_mpesa_consumer_key: '',
+                    platform_mpesa_consumer_secret: '',
+                    platform_mpesa_passkey: '',
+                    platform_mpesa_mode: 'test'
+                {rdelim}).done(function() {ldelim}
+                    $('#platformMpesaShortcode').val('');
+                    $('#platformMpesaConsumerKey').val('');
+                    $('#platformMpesaConsumerSecret').val('');
+                    $('#platformMpesaPasskey').val('');
+                    $('#platformMpesaMode').val('test');
+                    $('#platformMpesaStatusDisplay').text('Not connected');
+                    TinyShop.toast('M-Pesa disconnected');
                     TinyShop.closeModal();
                     setTimeout(function() {ldelim} location.reload(); {rdelim}, 400);
                 {rdelim}).fail(function() {ldelim}

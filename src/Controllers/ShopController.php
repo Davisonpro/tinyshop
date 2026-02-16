@@ -47,6 +47,16 @@ final class ShopController
 
     public function show(Request $request, Response $response, array $args): Response
     {
+        return $this->renderShop($request, $response, $args);
+    }
+
+    public function showCategory(Request $request, Response $response, array $args): Response
+    {
+        return $this->renderShop($request, $response, $args, $args['categorySlug'] ?? '');
+    }
+
+    private function renderShop(Request $request, Response $response, array $args, string $categorySlug = ''): Response
+    {
         $subdomain = $args['subdomain'] ?? '';
         $shop = $this->userModel->findBySubdomain($subdomain);
 
@@ -59,8 +69,24 @@ final class ShopController
         }
 
         $shopId = (int) $shop['id'];
-        $products = $this->productModel->findActiveByUserPaginated($shopId, self::PRODUCTS_PER_PAGE, 0);
-        $totalProducts = $this->productModel->countActiveByUser($shopId);
+
+        // Resolve category from slug
+        $activeCategory = null;
+        $activeCategoryIds = null;
+        if ($categorySlug !== '') {
+            $activeCategory = $this->categoryModel->findByUserAndSlug($shopId, $categorySlug);
+            if (!$activeCategory) {
+                return $this->view->render(
+                    $response->withStatus(404),
+                    'pages/shop_404.tpl',
+                    ['page_title' => 'Category Not Found']
+                );
+            }
+            $activeCategoryIds = (string) $activeCategory['id'];
+        }
+
+        $products = $this->productModel->findActiveByUserPaginated($shopId, self::PRODUCTS_PER_PAGE, 0, null, $activeCategoryIds);
+        $totalProducts = $this->productModel->countActiveByUser($shopId, null, $activeCategoryIds);
 
         foreach ($products as &$p) {
             $p['variations_data'] = self::filterVariations($p['variations'] ?? null);
@@ -77,14 +103,20 @@ final class ShopController
 
         $response = $this->trackVisit($request, $response, $shopId, null);
 
-        $shopName = $shop['store_name'] ?: $shop['name'] . "'s Shop";
+        $shopName = $shop['store_name'] ?? '';
+        $pageTitle = $shopName;
+        $metaDesc = $shop['shop_tagline'] ?: 'Browse products from ' . $shopName;
+        if ($activeCategory) {
+            $pageTitle = $activeCategory['name'] . ' — ' . $shopName;
+            $metaDesc = 'Browse ' . $activeCategory['name'] . ' from ' . $shopName;
+        }
 
         // Activate theme-specific template overrides
         $this->view->setTheme($shop['shop_theme'] ?? 'classic');
 
-        return $this->view->render($response, 'pages/shop.tpl', [
-            'page_title'       => $shopName,
-            'meta_description' => $shop['shop_tagline'] ?: 'Browse products from ' . $shopName,
+        $viewData = [
+            'page_title'       => $pageTitle,
+            'meta_description' => $metaDesc,
             'shop'             => $shop,
             'products'         => $products,
             'categories'       => $categories,
@@ -93,13 +125,24 @@ final class ShopController
             'currency_symbol'  => $currencySymbol,
             'has_payments'     => $hasPayments,
             'shop_theme'       => $shop['shop_theme'] ?? 'classic',
-            'og_title'         => $shopName,
-            'og_description'   => $shop['shop_tagline'] ?: 'Browse products from ' . $shopName,
+            'og_title'         => $pageTitle,
+            'og_description'   => $metaDesc,
             'og_image'         => $shop['shop_logo'] ?? '',
-            'og_url'           => '/',
+            'og_url'           => $activeCategory ? '/category/' . $activeCategory['slug'] : '/',
             'total_products'   => $totalProducts,
             'products_limit'   => self::PRODUCTS_PER_PAGE,
-        ]);
+            'active_category'  => $activeCategory,
+        ];
+
+        // Per-shop verification codes override platform-level ones
+        if (!empty($shop['google_verification'])) {
+            $viewData['google_verification'] = $shop['google_verification'];
+        }
+        if (!empty($shop['bing_verification'])) {
+            $viewData['bing_verification'] = $shop['bing_verification'];
+        }
+
+        return $this->view->render($response, 'pages/shop.tpl', $viewData);
     }
 
     public function searchProducts(Request $request, Response $response, array $args): Response
@@ -193,7 +236,7 @@ final class ShopController
         $categoryId = $product['category_id'] ? (int) $product['category_id'] : null;
         $moreProducts = $this->productModel->findRelated($shopId, $productId, $categoryId, 6);
 
-        $pageTitle = ($product['meta_title'] ?: $product['name']) . ' — ' . ($shop['store_name'] ?: $shop['name']);
+        $pageTitle = ($product['meta_title'] ?: $product['name']) . ' — ' . ($shop['store_name'] ?? '');
         $metaDesc  = $product['meta_description'] ?: ($product['description'] ? mb_substr(strip_tags($product['description']), 0, 160) : '');
 
         $hasPayments = self::shopHasPayments($shop);
@@ -201,7 +244,7 @@ final class ShopController
         // Activate theme-specific template overrides
         $this->view->setTheme($shop['shop_theme'] ?? 'classic');
 
-        return $this->view->render($response, 'pages/shop_product.tpl', [
+        $viewData = [
             'page_title'       => $pageTitle,
             'meta_description' => $metaDesc,
             'shop'             => $shop,
@@ -217,7 +260,17 @@ final class ShopController
             'og_image'         => $product['image_url'] ?? '',
             'og_url'           => '/' . ($product['slug'] ?: $productId),
             'og_type'          => 'product',
-        ]);
+        ];
+
+        // Per-shop verification codes override platform-level ones
+        if (!empty($shop['google_verification'])) {
+            $viewData['google_verification'] = $shop['google_verification'];
+        }
+        if (!empty($shop['bing_verification'])) {
+            $viewData['bing_verification'] = $shop['bing_verification'];
+        }
+
+        return $this->view->render($response, 'pages/shop_product.tpl', $viewData);
     }
 
     public function orderTracking(Request $request, Response $response, array $args): Response
@@ -303,7 +356,9 @@ final class ShopController
     {
         $hasStripe = !empty($shop['stripe_enabled']) && !empty($shop['stripe_public_key']) && !empty($shop['stripe_secret_key']);
         $hasPaypal = !empty($shop['paypal_enabled']) && !empty($shop['paypal_client_id']) && !empty($shop['paypal_secret']);
-        return $hasStripe || $hasPaypal;
+        $hasMpesa  = !empty($shop['mpesa_enabled']) && !empty($shop['mpesa_shortcode']) && !empty($shop['mpesa_consumer_key']) && !empty($shop['mpesa_consumer_secret']) && !empty($shop['mpesa_passkey']);
+        $hasCod = !empty($shop['cod_enabled']);
+        return $hasStripe || $hasPaypal || $hasMpesa || $hasCod;
     }
 
     /**
@@ -349,5 +404,47 @@ final class ShopController
         }
 
         return $response;
+    }
+
+    public function manifest(Request $request, Response $response, array $args): Response
+    {
+        $subdomain = $args['subdomain'] ?? '';
+        $shop = $this->userModel->findBySubdomain($subdomain);
+
+        if (!$shop) {
+            return $response->withStatus(404);
+        }
+
+        $shopName = $shop['store_name'] ?? '';
+        $icon = $shop['shop_favicon'] ?? $shop['shop_logo'] ?? null;
+
+        $manifest = [
+            'name'             => $shopName,
+            'short_name'       => mb_substr($shopName, 0, 12),
+            'description'      => $shop['shop_tagline'] ?: 'Browse products from ' . $shopName,
+            'start_url'        => '/',
+            'display'          => 'standalone',
+            'background_color' => '#F5F5F7',
+            'theme_color'      => '#111111',
+            'orientation'      => 'portrait',
+        ];
+
+        if ($icon) {
+            $manifest['icons'] = [
+                ['src' => $icon, 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
+                ['src' => $icon, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+            ];
+        } else {
+            $manifest['icons'] = [
+                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
+                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+            ];
+        }
+
+        $response->getBody()->write(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+
+        return $response
+            ->withHeader('Content-Type', 'application/manifest+json')
+            ->withHeader('Cache-Control', 'public, max-age=3600');
     }
 }

@@ -4,6 +4,9 @@
 <meta name="description" content="{$meta_description|default:$app_name}">
 <title>{$page_title|default:$app_name}</title>
 <link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 <link rel="dns-prefetch" href="https://connect.facebook.net">
 <link rel="dns-prefetch" href="https://www.google-analytics.com">
@@ -39,9 +42,9 @@
 {/if}
 <link rel="preload" href="/public/css/fontawesome.min.css?v={$asset_v}" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="/public/css/fontawesome.min.css?v={$asset_v}"></noscript>
-<link rel="stylesheet" href="/public/css/app.css?v={$asset_v}">
+<link rel="stylesheet" href="/public/css/app{$min}.css?v={$asset_v}">
 {if !empty($shop_theme) && $shop_theme !== 'classic'}
-<link rel="stylesheet" href="/public/css/themes/{$shop_theme}.css?v={$asset_v}">
+<link rel="stylesheet" href="/public/css/themes/{$shop_theme}{$min}.css?v={$asset_v}">
 {/if}
 {block name="extra_css"}{/block}
 {if !empty($google_analytics_id)}

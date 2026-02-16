@@ -6,6 +6,7 @@ namespace TinyShop\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use TinyShop\Models\HelpArticle;
 use TinyShop\Models\Product;
 use TinyShop\Models\Setting;
 use TinyShop\Models\User;
@@ -17,7 +18,8 @@ final class SitemapController
         private readonly Config $config,
         private readonly User $userModel,
         private readonly Product $productModel,
-        private readonly Setting $settingModel
+        private readonly Setting $settingModel,
+        private readonly HelpArticle $helpArticleModel
     ) {}
 
     /**
@@ -49,6 +51,13 @@ final class SitemapController
         $xml .= $this->urlEntry($baseUrl . '/', null, 'daily', '1.0');
         $xml .= $this->urlEntry($baseUrl . '/login', null, 'monthly', '0.3');
         $xml .= $this->urlEntry($baseUrl . '/register', null, 'monthly', '0.3');
+        $xml .= $this->urlEntry($baseUrl . '/pricing', null, 'monthly', '0.5');
+        $xml .= $this->urlEntry($baseUrl . '/help', null, 'weekly', '0.7');
+
+        foreach ($this->helpArticleModel->findPublished() as $article) {
+            $xml .= $this->urlEntry($baseUrl . '/help/' . $article['slug'], null, 'monthly', '0.5');
+        }
+
         $xml .= '</urlset>';
 
         $response->getBody()->write($xml);

@@ -26,5 +26,5 @@
 {/block}
 
 {block name="page_scripts"}
-<script src="/public/js/auth.js?v={$asset_v}"></script>
+<script src="/public/js/auth{$min}.js?v={$asset_v}"></script>
 {/block}

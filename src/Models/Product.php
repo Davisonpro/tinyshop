@@ -19,7 +19,7 @@ final class Product
     public function findByUser(int $userId, int $limit = 100, int $offset = 0): array
     {
         $stmt = $this->db->prepare(
-            'SELECT p.*, c.name AS category_name
+            'SELECT p.*, c.name AS category_name, c.slug AS category_slug
              FROM products p
              LEFT JOIN categories c ON c.id = p.category_id
              WHERE p.user_id = ?
@@ -35,7 +35,7 @@ final class Product
 
     public function findActiveByUser(int $userId, ?int $categoryId = null): array
     {
-        $sql = 'SELECT p.*, c.name AS category_name
+        $sql = 'SELECT p.*, c.name AS category_name, c.slug AS category_slug
                 FROM products p
                 LEFT JOIN categories c ON c.id = p.category_id
                 WHERE p.user_id = ? AND p.is_active = 1';
@@ -55,7 +55,7 @@ final class Product
     public function findById(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            'SELECT p.*, c.name AS category_name
+            'SELECT p.*, c.name AS category_name, c.slug AS category_slug
              FROM products p
              LEFT JOIN categories c ON c.id = p.category_id
              WHERE p.id = ?'
@@ -68,7 +68,7 @@ final class Product
     public function findBySlug(int $userId, string $slug): ?array
     {
         $stmt = $this->db->prepare(
-            'SELECT p.*, c.name AS category_name
+            'SELECT p.*, c.name AS category_name, c.slug AS category_slug
              FROM products p
              LEFT JOIN categories c ON c.id = p.category_id
              WHERE p.user_id = ? AND p.slug = ?'
@@ -236,7 +236,7 @@ final class Product
         ?string $categoryIds = null,
         string $sort = 'default'
     ): array {
-        $sql = 'SELECT p.*, c.name AS category_name
+        $sql = 'SELECT p.*, c.name AS category_name, c.slug AS category_slug
                 FROM products p
                 LEFT JOIN categories c ON c.id = p.category_id
                 WHERE p.user_id = ? AND p.is_active = 1';
@@ -312,7 +312,7 @@ final class Product
 
     public function findRelated(int $userId, int $excludeId, ?int $categoryId, int $limit = 6): array
     {
-        $sql = 'SELECT p.*, c.name AS category_name
+        $sql = 'SELECT p.*, c.name AS category_name, c.slug AS category_slug
                 FROM products p
                 LEFT JOIN categories c ON c.id = p.category_id
                 WHERE p.user_id = ? AND p.is_active = 1 AND p.id != ?

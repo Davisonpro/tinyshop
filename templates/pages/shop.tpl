@@ -4,7 +4,7 @@
 
 {block name="body"}
 {include file="partials/desktop_header.tpl"}
-<div class="shop-page" data-subdomain="{$shop.subdomain|escape}" data-total="{$total_products}" data-limit="{$products_limit}" data-currency="{$currency_symbol|escape}">
+<div class="shop-page" id="main-content" data-subdomain="{$shop.subdomain|escape}" data-total="{$total_products}" data-limit="{$products_limit}" data-currency="{$currency_symbol|escape}"{if $active_category} data-active-category="{$active_category.id}" data-active-slug="{$active_category.slug|escape}"{/if}>
     <div class="container">
         {include file="partials/announcement_bar.tpl"}
         {include file="partials/shop_header.tpl"}

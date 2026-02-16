@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
 use TinyShop\Controllers\Traits\JsonResponder;
+use TinyShop\Models\AuditLog;
 use TinyShop\Models\User;
 use TinyShop\Enums\UserRole;
 use TinyShop\Services\Auth;
@@ -35,6 +36,7 @@ final class AuthController
         private readonly Validation $validation,
         private readonly Setting $setting,
         private readonly LoggerInterface $logger,
+        private readonly AuditLog $auditLog,
         DB $database
     ) {
         $this->db = $database->pdo();
@@ -50,7 +52,6 @@ final class AuthController
 
         $email     = trim($data['email'] ?? '');
         $password  = $data['password'] ?? '';
-        $name      = trim($data['name'] ?? '');
         $storeName = trim($data['store_name'] ?? '');
 
         if ($email === '' || $password === '') {
@@ -70,10 +71,6 @@ final class AuthController
             return $this->json($response, ['error' => true, 'message' => $passwordError], 422);
         }
 
-        if ($name !== '' && ($err = $this->validation->maxLength($name, 'name'))) {
-            return $this->json($response, ['error' => true, 'message' => $err], 422);
-        }
-
         if ($storeName !== '' && ($err = $this->validation->maxLength($storeName, 'store_name'))) {
             return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
@@ -82,12 +79,9 @@ final class AuthController
             return $this->json($response, ['error' => true, 'message' => 'Email already registered'], 409);
         }
 
-        $emailPrefix = strstr($email, '@', true);
-        if ($name === '') {
-            $name = ucfirst(preg_replace('/[^a-zA-Z0-9]/', ' ', $emailPrefix));
-        }
         if ($storeName === '') {
-            $storeName = $name . "'s Shop";
+            $emailPrefix = strstr($email, '@', true);
+            $storeName = ucfirst(preg_replace('/[^a-zA-Z0-9]/', ' ', $emailPrefix)) . "'s Shop";
         }
 
         $subdomain = $this->validation->slug($storeName);
@@ -102,7 +96,6 @@ final class AuthController
         }
 
         $userId = $this->userModel->create([
-            'name'          => $name,
             'email'         => $email,
             'password_hash' => password_hash($password, PASSWORD_BCRYPT),
             'role'          => UserRole::Seller->value,
@@ -110,13 +103,15 @@ final class AuthController
             'subdomain'     => $subdomain,
         ]);
 
-        $this->auth->login($userId, $name, UserRole::Seller);
+        $this->auth->login($userId, $storeName, UserRole::Seller);
 
         $this->logger->info('auth.register', [
             'user_id' => $userId,
             'email'   => $email,
             'ip'      => $request->getServerParams()['REMOTE_ADDR'] ?? '',
         ]);
+
+        $this->auditLog->log('user.register', $userId, 'user', $userId, ['email' => $email]);
 
         Hooks::doAction('user.registered', $userId);
 
@@ -166,10 +161,12 @@ final class AuthController
         $this->clearLoginThrottle($email);
 
         $role = UserRole::tryFrom($user['role'] ?? '') ?? UserRole::Seller;
-        $this->auth->login((int) $user['id'], $user['name'], $role);
+        $this->auth->login((int) $user['id'], $user['store_name'] ?? '', $role);
         $this->userModel->recordLogin((int) $user['id']);
 
         $this->logger->info('auth.login_success', ['user_id' => $user['id'], 'ip' => $ip]);
+
+        $this->auditLog->log('user.login', (int) $user['id'], 'user', (int) $user['id'], ['email' => $email]);
 
         Hooks::doAction('user.logged_in', (int) $user['id']);
 
@@ -183,8 +180,26 @@ final class AuthController
 
     public function logout(Request $request, Response $response): Response
     {
+        $userId = $this->auth->userId();
+        $this->auditLog->log('user.logout', $userId, 'user', $userId);
         $this->auth->logout();
         return $this->json($response, ['success' => true]);
+    }
+
+    public function check(Request $request, Response $response): Response
+    {
+        Auth::ensureSession();
+        $loggedIn = $this->auth->check();
+
+        // Always return a fresh CSRF token so callers can update stale tokens
+        if (!isset($_SESSION['_csrf_token'])) {
+            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return $this->json($response, [
+            'logged_in' => $loggedIn,
+            'csrf'      => $_SESSION['_csrf_token'],
+        ]);
     }
 
     public function forgotPassword(Request $request, Response $response): Response
@@ -215,7 +230,7 @@ final class AuthController
 
             $resetUrl = $this->config->url() . '/reset-password?token=' . $plainToken;
 
-            $this->mailer->sendPasswordReset($email, $user['store_name'] ?? $user['name'], $resetUrl);
+            $this->mailer->sendPasswordReset($email, $user['store_name'] ?? '', $resetUrl);
 
             $this->logger->info('auth.forgot_password', [
                 'email' => $email,
@@ -273,6 +288,8 @@ final class AuthController
             'email'   => $reset['email'],
             'ip'      => $request->getServerParams()['REMOTE_ADDR'] ?? '',
         ]);
+
+        $this->auditLog->log('user.password_reset', (int) $user['id'], 'user', (int) $user['id'], ['email' => $reset['email']]);
 
         return $this->json($response, ['success' => true, 'message' => 'Password reset successfully']);
     }

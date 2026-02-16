@@ -136,6 +136,68 @@ final class BillingController
             ];
 
             return $this->json($response, ['success' => true, 'redirect_url' => $redirectUrl]);
+
+        } elseif ($gateway === 'mpesa') {
+            $shortcode = $settings['platform_mpesa_shortcode'] ?? '';
+            $consumerKey = $settings['platform_mpesa_consumer_key'] ?? '';
+            $consumerSecret = $settings['platform_mpesa_consumer_secret'] ?? '';
+            $passkey = $settings['platform_mpesa_passkey'] ?? '';
+
+            if ($shortcode === '' || $consumerKey === '' || $consumerSecret === '' || $passkey === '') {
+                return $this->json($response, ['error' => true, 'message' => 'M-Pesa is not configured. Contact support.'], 422);
+            }
+
+            $mpesaPhone = trim($data['mpesa_phone'] ?? '');
+            if (empty($mpesaPhone)) {
+                return $this->json($response, ['error' => true, 'message' => 'Phone number is required for M-Pesa'], 422);
+            }
+
+            // Normalize phone
+            $mpesaPhone = preg_replace('/[\s\-]/', '', $mpesaPhone);
+            if (str_starts_with($mpesaPhone, '0')) {
+                $mpesaPhone = '254' . substr($mpesaPhone, 1);
+            }
+            if (str_starts_with($mpesaPhone, '+')) {
+                $mpesaPhone = substr($mpesaPhone, 1);
+            }
+            if (!preg_match('/^254[0-9]{9}$/', $mpesaPhone)) {
+                return $this->json($response, ['error' => true, 'message' => 'Enter a valid Kenyan phone number'], 422);
+            }
+
+            $sandbox = ($settings['platform_mpesa_mode'] ?? 'test') !== 'live';
+            $ref = 'SUB-' . $userId . '-' . $planId . '-' . $cycle;
+            $callbackUrl = $baseUrl . '/webhook/mpesa/billing';
+
+            try {
+                $stkResult = $this->payment->initiateStkPush(
+                    $consumerKey,
+                    $consumerSecret,
+                    $shortcode,
+                    $passkey,
+                    $mpesaPhone,
+                    $price,
+                    $callbackUrl,
+                    $ref,
+                    'Subscription',
+                    $sandbox
+                );
+            } catch (\Throwable $e) {
+                $this->logger->error('billing.mpesa_stk_error', ['error' => $e->getMessage()]);
+                return $this->json($response, ['error' => true, 'message' => $e->getMessage()], 500);
+            }
+
+            // Store pending billing in DB for webhook matching
+            $checkoutRequestId = $stkResult['CheckoutRequestID'] ?? '';
+            $stmt = $this->db->prepare(
+                'INSERT INTO billing_mpesa_pending (user_id, plan_id, billing_cycle, checkout_request_id, amount) VALUES (?, ?, ?, ?, ?)'
+            );
+            $stmt->execute([$userId, $planId, $cycle, $checkoutRequestId, $price]);
+
+            return $this->json($response, [
+                'success' => true,
+                'gateway' => 'mpesa',
+                'poll_url' => '/api/billing/status',
+            ]);
         }
 
         return $this->json($response, ['error' => true, 'message' => 'Unsupported payment gateway'], 422);
@@ -192,6 +254,13 @@ final class BillingController
         $userId = (int) $parts[1];
         $planId = (int) $parts[2];
         $cycle = $parts[3];
+
+        // Verify the userId matches the authenticated user to prevent subscription hijacking
+        $currentUserId = $this->auth->userId();
+        if (!$currentUserId || $userId !== $currentUserId) {
+            $this->logger->warning('billing.stripe_user_mismatch', ['ref_user' => $userId, 'auth_user' => $currentUserId]);
+            return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
+        }
 
         $this->activateSubscription($userId, $planId, $cycle, 'stripe', $result['payment_intent'] ?? $sessionId, $result['amount'] ?? 0);
 
@@ -302,5 +371,32 @@ final class BillingController
             'success' => true,
             'message' => 'Your plan will remain active until ' . date('M j, Y', strtotime($active['expires_at'])),
         ]);
+    }
+
+    /**
+     * GET /api/billing/status — Check M-Pesa billing payment status (polling)
+     */
+    public function checkBillingStatus(Request $request, Response $response): Response
+    {
+        $userId = $this->auth->userId();
+        if (!$userId) {
+            return $this->json($response, ['status' => 'unknown']);
+        }
+
+        // Check for recently paid M-Pesa billing
+        $stmt = $this->db->prepare(
+            'SELECT * FROM billing_mpesa_pending
+             WHERE user_id = ? AND status = ?
+             AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+             ORDER BY created_at DESC LIMIT 1'
+        );
+        $stmt->execute([$userId, 'paid']);
+        $row = $stmt->fetch();
+
+        if ($row) {
+            return $this->json($response, ['status' => 'paid', 'redirect' => '/dashboard/billing']);
+        }
+
+        return $this->json($response, ['status' => 'pending']);
     }
 }

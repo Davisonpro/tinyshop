@@ -5,7 +5,7 @@
         <div class="ember-footer-top">
             <a href="/" class="ember-footer-brand">
                 {if $shop.show_store_name|default:1}
-                    {$shop.store_name|default:$shop.name|escape}
+                    {$shop.store_name|escape}
                 {/if}
             </a>
             {if $shop.social_instagram || $shop.social_tiktok || $shop.social_facebook}

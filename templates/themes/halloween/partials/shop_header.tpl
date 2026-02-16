@@ -14,7 +14,7 @@
     {if $shop.show_store_name|default:1}
     <div class="halloween-name-row">
         <span class="halloween-sparkle halloween-sparkle--md"><svg viewBox="0 0 24 24" fill="#FFFFFF" opacity="0.3"><path d="M12 0L14 10L24 12L14 14L12 24L10 14L0 12L10 10Z"/></svg></span>
-        <h1 class="shop-name">{$shop.store_name|default:$shop.name}</h1>
+        <h1 class="shop-name">{$shop.store_name}</h1>
         <span class="halloween-sparkle halloween-sparkle--md"><svg viewBox="0 0 24 24" fill="#FFFFFF" opacity="0.3"><path d="M12 0L14 10L24 12L14 14L12 24L10 14L0 12L10 10Z"/></svg></span>
     </div>
     {/if}

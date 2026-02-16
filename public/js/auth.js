@@ -20,7 +20,7 @@ $(document).on('page:init', function() {
     if ($('#loginForm').length) {
         bindPasswordToggle('togglePassword', 'password');
 
-        $('#loginForm').on('submit', function(e) {
+        $('#loginForm').off('submit').on('submit', function(e) {
             e.preventDefault();
             var $btn = $('#loginBtn').prop('disabled', true).text('Signing in...');
             $.ajax({
@@ -87,11 +87,9 @@ $(document).on('page:init', function() {
             label.text(lvl.t).css('color', lvl.c);
         });
 
-        $('#registerForm').on('submit', function(e) {
+        $('#registerForm').off('submit').on('submit', function(e) {
             e.preventDefault();
-            var name = $('#name').val().trim();
             var storeName = $('#storeName').val().trim();
-            if (!name) { TinyShop.toast('Please enter your name', 'error'); return; }
             if (!storeName) { TinyShop.toast('Please enter a shop name', 'error'); return; }
             var $btn = $('#registerBtn').prop('disabled', true).text('Creating...');
             $.ajax({
@@ -99,7 +97,6 @@ $(document).on('page:init', function() {
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
-                    name: name,
                     store_name: storeName,
                     email: $('#email').val(),
                     password: $('#password').val()
@@ -126,7 +123,7 @@ $(document).on('page:init', function() {
 
     // ── Forgot Password ──
     if ($('#forgotForm').length) {
-        $('#forgotForm').on('submit', function(e) {
+        $('#forgotForm').off('submit').on('submit', function(e) {
             e.preventDefault();
 
             var email = $('#email').val().trim();
@@ -163,7 +160,7 @@ $(document).on('page:init', function() {
         bindPasswordToggle('togglePassword', 'password');
         bindPasswordToggle('togglePasswordConfirm', 'passwordConfirm');
 
-        $('#resetForm').on('submit', function(e) {
+        $('#resetForm').off('submit').on('submit', function(e) {
             e.preventDefault();
 
             var password = $('#password').val();
@@ -203,6 +200,20 @@ $(document).on('page:init', function() {
                     var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Something went wrong';
                     TinyShop.toast(msg, 'error');
                     $btn.prop('disabled', false).text('Reset Password');
+                }
+            });
+        });
+    }
+
+    // ── Cross-tab session detection ──
+    // If user logs in on another tab, redirect to dashboard when this tab gains focus
+    if ($('#loginForm').length || $('#registerForm').length) {
+        $(document).off('visibilitychange.authcheck').on('visibilitychange.authcheck', function() {
+            if (document.visibilityState !== 'visible') return;
+            $.getJSON('/api/auth/check').done(function(res) {
+                if (res.logged_in) {
+                    $(document).off('visibilitychange.authcheck');
+                    TinyShop.navigate('/dashboard');
                 }
             });
         });

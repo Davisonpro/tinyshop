@@ -2,115 +2,67 @@
 
 {block name="content"}
 <div class="dash-topbar">
-    <span class="dash-topbar-title">Sellers ({$total})</span>
+    <span class="dash-topbar-title">Sellers</span>
+    <span class="sellers-count-badge">{$total}</span>
 </div>
 
-<div class="admin-toolbar">
-    <form method="get" action="/admin/sellers" class="admin-search">
-        <input type="text" name="q" value="{$search|escape}" placeholder="Search sellers..." class="form-control form-control-sm" autocomplete="off">
-        {if $search}<a href="/admin/sellers" class="admin-search-clear" title="Clear">&times;</a>{/if}
+<div class="sellers-toolbar">
+    <form method="get" action="/admin/sellers" class="sellers-search-form">
+        <i class="fa-solid fa-magnifying-glass sellers-search-icon"></i>
+        <input type="text" name="q" value="{$search|escape}" placeholder="Search by name or email..." class="sellers-search-input" autocomplete="off">
+        {if $search}<a href="/admin/sellers" class="sellers-search-clear" title="Clear">&times;</a>{/if}
     </form>
 </div>
 
-<div class="admin-list-wrap">
+<div class="sellers-list-wrap">
     {if $sellers|count == 0}
-        <div class="empty-state">
-            <div class="empty-icon">
-                <i class="fa-solid fa-users icon-2xl text-muted"></i>
+        <div class="sellers-empty">
+            <div class="sellers-empty-icon">
+                <i class="fa-solid fa-store"></i>
             </div>
-            <h2>{if $search}No sellers matching "{$search|escape}"{else}No sellers have signed up yet{/if}</h2>
+            <h3>{if $search}No sellers matching "{$search|escape}"{else}No sellers yet{/if}</h3>
+            <p>{if $search}Try a different search term{else}Sellers will appear here when they sign up{/if}</p>
         </div>
     {else}
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Seller</th>
-                        <th>Shop</th>
-                        <th>Joined</th>
-                        <th>Logins</th>
-                        <th>Status</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                {foreach $sellers as $seller}
-                    <tr>
-                        <td>
-                            <a href="/admin/sellers/{$seller.id}" class="seller-cell">
-                                <strong>{$seller.name|escape}</strong>
-                                <small>{$seller.email|escape}</small>
-                            </a>
-                        </td>
-                        <td>
-                            {if $seller.subdomain}
-                                <a href="{$scheme}://{$seller.subdomain|escape}.{$base_domain}" target="_blank">{$seller.store_name|escape:'html'|default:$seller.subdomain}</a>
-                            {else}
-                                <span class="text-muted">&mdash;</span>
-                            {/if}
-                        </td>
-                        <td><small>{$seller.created_at|date_format:"%b %e, %Y"}</small></td>
-                        <td>{$seller.login_count}</td>
-                        <td>
-                            <button
-                                type="button"
-                                class="status-toggle {if $seller.is_active}active{/if}"
-                                data-id="{$seller.id}"
-                                data-active="{$seller.is_active}"
-                                title="{if $seller.is_active}Suspend{else}Activate{/if}"
-                            >
-                                {if $seller.is_active}Active{else}Suspended{/if}
-                            </button>
-                        </td>
-                        <td>
-                            <a href="/admin/sellers/{$seller.id}" class="btn-icon" title="View details">
-                                <i class="fa-solid fa-chevron-right icon-md"></i>
-                            </a>
-                        </td>
-                    </tr>
-                {/foreach}
-                </tbody>
-            </table>
+        <div class="sellers-card-list">
+            {foreach $sellers as $seller}
+            <a href="/admin/sellers/{$seller.id}" class="seller-card" data-id="{$seller.id}">
+                <div class="seller-card-left">
+                    <div class="seller-card-avatar{if !$seller.is_active} suspended{/if}">
+                        {$seller.store_name|escape|substr:0:1|upper}
+                    </div>
+                    <div class="seller-card-info">
+                        <div class="seller-card-name">{$seller.store_name|escape}</div>
+                        <div class="seller-card-email">{$seller.email|escape}</div>
+                    </div>
+                </div>
+                <div class="seller-card-right">
+                    <span class="seller-status-pill{if $seller.is_active} active{/if}">{if $seller.is_active}Active{else}Suspended{/if}</span>
+                    <i class="fa-solid fa-chevron-right seller-card-chevron"></i>
+                </div>
+            </a>
+            {/foreach}
         </div>
 
         {if $total_pages > 1}
-        <div class="pagination">
+        <div class="sellers-pagination">
             {if $current_page > 1}
-                <a href="/admin/sellers?page={$current_page - 1}{if $search}&q={$search|escape:'url'}{/if}" class="btn btn-sm btn-outline">&larr; Prev</a>
+                <a href="/admin/sellers?page={$current_page - 1}{if $search}&q={$search|escape:'url'}{/if}" class="sellers-page-btn">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+            {else}
+                <span class="sellers-page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
             {/if}
-            <span class="pagination-info">Page {$current_page} of {$total_pages}</span>
+            <span class="sellers-page-info">{$current_page} / {$total_pages}</span>
             {if $current_page < $total_pages}
-                <a href="/admin/sellers?page={$current_page + 1}{if $search}&q={$search|escape:'url'}{/if}" class="btn btn-sm btn-outline">Next &rarr;</a>
+                <a href="/admin/sellers?page={$current_page + 1}{if $search}&q={$search|escape:'url'}{/if}" class="sellers-page-btn">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            {else}
+                <span class="sellers-page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
             {/if}
         </div>
         {/if}
     {/if}
 </div>
-{/block}
-
-{block name="extra_scripts"}
-<script>
-(function() {ldelim}
-    $('.status-toggle').on('click', function(e) {ldelim}
-        e.stopPropagation();
-        var $el = $(this);
-        var id = $el.data('id');
-        var currentlyActive = String($el.data('active')) === '1';
-        var newState = !currentlyActive;
-
-        TinyShop.api('PUT', '/api/admin/sellers/' + id + '/toggle', {ldelim} is_active: newState {rdelim})
-            .done(function(res) {ldelim}
-                if (res.success) {ldelim}
-                    $el.data('active', newState ? '1' : '0');
-                    $el.text(newState ? 'Active' : 'Suspended');
-                    $el.toggleClass('active', newState);
-                    TinyShop.toast(newState ? 'Seller activated' : 'Seller suspended', 'success');
-                {rdelim}
-            {rdelim})
-            .fail(function() {ldelim}
-                TinyShop.toast('Failed to update status', 'error');
-            {rdelim});
-    {rdelim});
-{rdelim})();
-</script>
 {/block}

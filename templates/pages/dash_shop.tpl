@@ -3,7 +3,7 @@
 {block name="content"}
 <div class="dash-topbar">
     <span class="dash-topbar-title">Settings</span>
-    <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|default:$user.name|escape|substr:0:1|upper}</a>
+    <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|escape|substr:0:1|upper}</a>
 </div>
 
 <form id="shopForm" class="dash-form" autocomplete="off">
@@ -99,6 +99,12 @@
     <input type="hidden" id="paypalSecret" name="paypal_secret" value="{$user.paypal_secret|escape}">
     <input type="hidden" id="paypalMode" name="paypal_mode" value="{$user.paypal_mode|default:'test'}">
     <input type="hidden" id="paypalEnabled" name="paypal_enabled" value="{$user.paypal_enabled|default:1}">
+    <input type="hidden" id="mpesaShortcode" name="mpesa_shortcode" value="{$user.mpesa_shortcode|escape}">
+    <input type="hidden" id="mpesaConsumerKey" name="mpesa_consumer_key" value="{$user.mpesa_consumer_key|escape}">
+    <input type="hidden" id="mpesaConsumerSecret" name="mpesa_consumer_secret" value="{$user.mpesa_consumer_secret|escape}">
+    <input type="hidden" id="mpesaPasskey" name="mpesa_passkey" value="{$user.mpesa_passkey|escape}">
+    <input type="hidden" id="mpesaMode" name="mpesa_mode" value="{$user.mpesa_mode|default:'test'}">
+    <input type="hidden" id="mpesaEnabled" name="mpesa_enabled" value="{$user.mpesa_enabled|default:0}">
 
     {* --- Contact Info --- *}
     <div class="form-section">
@@ -155,13 +161,13 @@
 </form>
 
 {* --- Shop Theme (auto-saves on click) --- *}
-{assign var="allThemes" value=$usage.all_themes|default:false}
 <div class="dash-form" style="padding-top:0">
     <div class="form-section">
         <div class="form-section-title">Shop Theme</div>
         <p class="form-hint" style="margin-bottom:12px">Choose how your storefront looks to customers</p>
         <div class="theme-picker" id="themePicker">
             {assign var="currentTheme" value=$user.shop_theme|default:'classic'}
+            {* Classic is always unlocked *}
             <label class="theme-card{if $currentTheme == 'classic'} active{/if}" data-theme="classic">
                 <input type="radio" name="shop_theme" value="classic" {if $currentTheme == 'classic'}checked{/if}>
                 <div class="theme-card-preview theme-preview-classic">
@@ -174,8 +180,8 @@
                 <div class="theme-card-name">Classic</div>
                 <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
             </label>
-            <label class="theme-card{if $currentTheme == 'ivory'} active{/if}{if !$allThemes} locked{/if}" data-theme="ivory">
-                <input type="radio" name="shop_theme" value="ivory" {if $currentTheme == 'ivory'}checked{/if}{if !$allThemes} disabled{/if}>
+            <label class="theme-card{if $currentTheme == 'ivory'} active{/if}{if !$unlocked_themes.ivory} locked{/if}" data-theme="ivory">
+                <input type="radio" name="shop_theme" value="ivory" {if $currentTheme == 'ivory'}checked{/if}{if !$unlocked_themes.ivory} disabled{/if}>
                 <div class="theme-card-preview theme-preview-ivory">
                     <div class="tp-announce"></div>
                     <div class="tp-header left"><div class="tp-logo"></div><div class="tp-lines"><div></div><div></div></div></div>
@@ -184,11 +190,11 @@
                     <div class="tp-cta"></div>
                 </div>
                 <div class="theme-card-name">Ivory</div>
-                {if !$allThemes}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i> Pro</div>{/if}
+                {if !$unlocked_themes.ivory}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
                 <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
             </label>
-            <label class="theme-card{if $currentTheme == 'obsidian'} active{/if}{if !$allThemes} locked{/if}" data-theme="obsidian">
-                <input type="radio" name="shop_theme" value="obsidian" {if $currentTheme == 'obsidian'}checked{/if}{if !$allThemes} disabled{/if}>
+            <label class="theme-card{if $currentTheme == 'obsidian'} active{/if}{if !$unlocked_themes.obsidian} locked{/if}" data-theme="obsidian">
+                <input type="radio" name="shop_theme" value="obsidian" {if $currentTheme == 'obsidian'}checked{/if}{if !$unlocked_themes.obsidian} disabled{/if}>
                 <div class="theme-card-preview theme-preview-obsidian">
                     <div class="tp-announce"></div>
                     <div class="tp-header dark left"><div class="tp-logo"></div><div class="tp-lines light"><div></div><div></div></div></div>
@@ -197,11 +203,11 @@
                     <div class="tp-cta"></div>
                 </div>
                 <div class="theme-card-name">Obsidian</div>
-                {if !$allThemes}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i> Pro</div>{/if}
+                {if !$unlocked_themes.obsidian}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
                 <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
             </label>
-            <label class="theme-card{if $currentTheme == 'bloom'} active{/if}{if !$allThemes} locked{/if}" data-theme="bloom">
-                <input type="radio" name="shop_theme" value="bloom" {if $currentTheme == 'bloom'}checked{/if}{if !$allThemes} disabled{/if}>
+            <label class="theme-card{if $currentTheme == 'bloom'} active{/if}{if !$unlocked_themes.bloom} locked{/if}" data-theme="bloom">
+                <input type="radio" name="shop_theme" value="bloom" {if $currentTheme == 'bloom'}checked{/if}{if !$unlocked_themes.bloom} disabled{/if}>
                 <div class="theme-card-preview theme-preview-bloom">
                     <div class="tp-announce"></div>
                     <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines"><div></div><div></div></div></div>
@@ -210,11 +216,11 @@
                     <div class="tp-cta"></div>
                 </div>
                 <div class="theme-card-name">Bloom</div>
-                {if !$allThemes}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i> Pro</div>{/if}
+                {if !$unlocked_themes.bloom}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
                 <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
             </label>
-            <label class="theme-card{if $currentTheme == 'ember'} active{/if}{if !$allThemes} locked{/if}" data-theme="ember">
-                <input type="radio" name="shop_theme" value="ember" {if $currentTheme == 'ember'}checked{/if}{if !$allThemes} disabled{/if}>
+            <label class="theme-card{if $currentTheme == 'ember'} active{/if}{if !$unlocked_themes.ember} locked{/if}" data-theme="ember">
+                <input type="radio" name="shop_theme" value="ember" {if $currentTheme == 'ember'}checked{/if}{if !$unlocked_themes.ember} disabled{/if}>
                 <div class="theme-card-preview theme-preview-ember">
                     <div class="tp-announce"></div>
                     <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines"><div></div><div></div></div></div>
@@ -223,11 +229,11 @@
                     <div class="tp-cta"></div>
                 </div>
                 <div class="theme-card-name">Ember</div>
-                {if !$allThemes}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i> Pro</div>{/if}
+                {if !$unlocked_themes.ember}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
                 <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
             </label>
-            <label class="theme-card{if $currentTheme == 'monaco'} active{/if}{if !$allThemes} locked{/if}" data-theme="monaco">
-                <input type="radio" name="shop_theme" value="monaco" {if $currentTheme == 'monaco'}checked{/if}{if !$allThemes} disabled{/if}>
+            <label class="theme-card{if $currentTheme == 'monaco'} active{/if}{if !$unlocked_themes.monaco} locked{/if}" data-theme="monaco">
+                <input type="radio" name="shop_theme" value="monaco" {if $currentTheme == 'monaco'}checked{/if}{if !$unlocked_themes.monaco} disabled{/if}>
                 <div class="theme-card-preview theme-preview-monaco">
                     <div class="tp-announce"></div>
                     <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines"><div></div><div></div></div></div>
@@ -236,11 +242,11 @@
                     <div class="tp-cta"></div>
                 </div>
                 <div class="theme-card-name">Monaco</div>
-                {if !$allThemes}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i> Pro</div>{/if}
+                {if !$unlocked_themes.monaco}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
                 <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
             </label>
-            <label class="theme-card{if $currentTheme == 'volt'} active{/if}{if !$allThemes} locked{/if}" data-theme="volt">
-                <input type="radio" name="shop_theme" value="volt" {if $currentTheme == 'volt'}checked{/if}{if !$allThemes} disabled{/if}>
+            <label class="theme-card{if $currentTheme == 'volt'} active{/if}{if !$unlocked_themes.volt} locked{/if}" data-theme="volt">
+                <input type="radio" name="shop_theme" value="volt" {if $currentTheme == 'volt'}checked{/if}{if !$unlocked_themes.volt} disabled{/if}>
                 <div class="theme-card-preview theme-preview-volt">
                     <div class="tp-announce"></div>
                     <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines light"><div></div><div></div></div></div>
@@ -249,11 +255,11 @@
                     <div class="tp-cta"></div>
                 </div>
                 <div class="theme-card-name">Volt</div>
-                {if !$allThemes}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i> Pro</div>{/if}
+                {if !$unlocked_themes.volt}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
                 <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
             </label>
-            <label class="theme-card{if $currentTheme == 'halloween'} active{/if}{if !$allThemes} locked{/if}" data-theme="halloween">
-                <input type="radio" name="shop_theme" value="halloween" {if $currentTheme == 'halloween'}checked{/if}{if !$allThemes} disabled{/if}>
+            <label class="theme-card{if $currentTheme == 'halloween'} active{/if}{if !$unlocked_themes.halloween} locked{/if}" data-theme="halloween">
+                <input type="radio" name="shop_theme" value="halloween" {if $currentTheme == 'halloween'}checked{/if}{if !$unlocked_themes.halloween} disabled{/if}>
                 <div class="theme-card-preview theme-preview-halloween">
                     <div class="tp-announce"></div>
                     <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines light"><div></div><div></div></div></div>
@@ -262,7 +268,7 @@
                     <div class="tp-cta"></div>
                 </div>
                 <div class="theme-card-name">Halloween</div>
-                {if !$allThemes}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i> Pro</div>{/if}
+                {if !$unlocked_themes.halloween}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
                 <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
             </label>
         </div>
@@ -368,7 +374,7 @@
                 <i class="fa-solid fa-globe icon-lg"></i>
                 <div>
                     <div class="account-row-label">Custom Domain</div>
-                    <div class="account-row-value" id="domainDisplay">{if $user.custom_domain}{$user.custom_domain|escape}{elseif !$usage.custom_domain}Available on paid plans{else}Not connected{/if}</div>
+                    <div class="account-row-value" id="domainDisplay">{if $user.custom_domain}{$user.custom_domain|escape}{elseif !$usage.custom_domain}Upgrade to unlock{else}Not connected{/if}</div>
                 </div>
             </div>
             {if $user.custom_domain}
@@ -385,11 +391,11 @@
     </div>
 </div>
 
-{* --- Sitemap (shown only for custom domain shops) --- *}
+{* --- Search & Sitemap (shown only for custom domain shops) --- *}
 {if !empty($user.custom_domain)}
 <div class="dash-form" style="padding-top:0">
     <div class="form-section">
-        <div class="form-section-title">Your Sitemap</div>
+        <div class="form-section-title">Search Engines</div>
         <div class="form-group">
             <div class="settings-copy-row">
                 <input type="text" class="form-control" id="shopSitemapUrl" value="https://{$user.custom_domain|escape}/sitemap.xml" readonly>
@@ -397,7 +403,17 @@
                     <i class="fa-solid fa-copy"></i>
                 </button>
             </div>
-            <p class="form-hint">Submit this to <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> so your shop shows up in search results</p>
+            <p class="form-hint">Submit this URL to <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> or <a href="https://www.bing.com/webmasters" target="_blank" rel="noopener">Bing Webmaster Tools</a></p>
+        </div>
+        <div class="account-row" id="verificationCodesBtn">
+            <div class="account-row-left">
+                <i class="fa-solid fa-shield-halved icon-lg"></i>
+                <div>
+                    <div class="account-row-label">Verification Codes</div>
+                    <div class="account-row-value">{if $user.google_verification || $user.bing_verification}Connected{else}Verify your domain{/if}</div>
+                </div>
+            </div>
+            <i class="fa-solid fa-chevron-right account-row-chevron"></i>
         </div>
     </div>
 </div>
@@ -440,6 +456,52 @@
             {else}
             <i class="fa-solid fa-chevron-right account-row-chevron"></i>
             {/if}
+        </div>
+        <div class="account-row" style="cursor:default">
+            <div class="account-row-left">
+                <i class="fa-solid fa-hand-holding-dollar icon-lg" style="color:#059669"></i>
+                <div>
+                    <div class="account-row-label">Pay on Delivery</div>
+                    <div class="account-row-value">Collect payment when order is delivered</div>
+                </div>
+            </div>
+            <label class="toggle-switch" onclick="event.stopPropagation()">
+                <input type="checkbox" id="codEnabledToggle" {if $user.cod_enabled}checked{/if}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="account-row" id="setupMpesaBtn">
+            <div class="account-row-left">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><circle cx="12" cy="12" r="12" fill="#4CAF50"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="white">M</text></svg>
+                <div>
+                    <div class="account-row-label">M-Pesa</div>
+                    <div class="account-row-value" id="mpesaStatusDisplay">{if $user.mpesa_shortcode}Connected{else}Not connected{/if}</div>
+                </div>
+            </div>
+            {if $user.mpesa_shortcode}
+            <label class="toggle-switch" onclick="event.stopPropagation()">
+                <input type="checkbox" id="mpesaEnabledToggle" {if $user.mpesa_enabled}checked{/if}>
+                <span class="toggle-slider"></span>
+            </label>
+            {else}
+            <i class="fa-solid fa-chevron-right account-row-chevron"></i>
+            {/if}
+        </div>
+    </div>
+</div>
+
+{* --- Install App --- *}
+<div class="dash-form" style="padding-top:0">
+    <div class="form-section">
+        <div class="account-row" id="addToHomescreenBtn">
+            <div class="account-row-left">
+                <i class="fa-solid fa-mobile-screen icon-lg" style="color:var(--color-accent)"></i>
+                <div>
+                    <div class="account-row-label">Add to Homescreen</div>
+                    <div class="account-row-value">Use your dashboard like an app</div>
+                </div>
+            </div>
+            <i class="fa-solid fa-chevron-right account-row-chevron"></i>
         </div>
     </div>
 </div>
@@ -509,18 +571,55 @@ function shopUrl(sub) {
 }
 $(function() {
     // --- Copy shop sitemap URL ---
-    $('#copyShopSitemapBtn').on('click', function() {
+    $('#copyShopSitemapBtn').on('click', function() {ldelim}
         var url = $('#shopSitemapUrl').val();
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(url).then(function() {
+        if (navigator.clipboard) {ldelim}
+            navigator.clipboard.writeText(url).then(function() {ldelim}
                 TinyShop.toast('Sitemap URL copied');
-            });
-        } else {
+            {rdelim});
+        {rdelim} else {ldelim}
             $('#shopSitemapUrl').select();
             document.execCommand('copy');
             TinyShop.toast('Sitemap URL copied');
-        }
-    });
+        {rdelim}
+    {rdelim});
+
+    // --- Verification codes modal ---
+    $('#verificationCodesBtn').on('click', function() {ldelim}
+        var html = '<form id="verificationForm" autocomplete="off">' +
+            '<div class="form-group">' +
+                '<label for="googleVerCode">Google</label>' +
+                '<input type="text" class="form-control" id="googleVerCode" placeholder="Paste verification code" value="{$user.google_verification|escape:"javascript"}" autocomplete="off">' +
+                '<p class="form-hint">From <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> &rarr; Settings &rarr; Ownership verification &rarr; HTML tag</p>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="bingVerCode">Bing</label>' +
+                '<input type="text" class="form-control" id="bingVerCode" placeholder="Paste verification code" value="{$user.bing_verification|escape:"javascript"}" autocomplete="off">' +
+                '<p class="form-hint">From <a href="https://www.bing.com/webmasters" target="_blank" rel="noopener">Bing Webmaster Tools</a> &rarr; Add site &rarr; HTML meta tag</p>' +
+            '</div>' +
+            '<button type="submit" class="btn btn-block btn-primary" id="saveVerBtn">Save</button>' +
+        '</form>';
+        TinyShop.openModal('Verification Codes', html);
+
+        $('#verificationForm').on('submit', function(e) {ldelim}
+            e.preventDefault();
+            var $btn = $('#saveVerBtn').prop('disabled', true).text('Saving...');
+            TinyShop.api('PUT', '/api/shop', {ldelim}
+                google_verification: $('#googleVerCode').val().trim(),
+                bing_verification: $('#bingVerCode').val().trim()
+            {rdelim}).done(function() {ldelim}
+                TinyShop.toast('Verification codes saved');
+                TinyShop.closeModal();
+                // Update the row status text
+                var hasAny = $('#googleVerCode').val().trim() || $('#bingVerCode').val().trim();
+                $('#verificationCodesBtn .account-row-value').text(hasAny ? 'Connected' : 'Verify your domain');
+            {rdelim}).fail(function(xhr) {ldelim}
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to save';
+                TinyShop.toast(msg, 'error');
+                $btn.prop('disabled', false).text('Save');
+            {rdelim});
+        {rdelim});
+    {rdelim});
 
     // --- Gateway enable/disable toggles ---
     $('#stripeEnabledToggle').on('change', function() {
@@ -537,6 +636,23 @@ $(function() {
         $('#paypalEnabled').val(enabled);
         TinyShop.api('PUT', '/api/shop', { paypal_enabled: enabled }).done(function() {
             TinyShop.toast(enabled ? 'PayPal enabled' : 'PayPal disabled');
+        }).fail(function() {
+            TinyShop.toast('Failed to update', 'error');
+        });
+    });
+    $('#codEnabledToggle').on('change', function() {
+        var enabled = this.checked ? 1 : 0;
+        TinyShop.api('PUT', '/api/shop', { cod_enabled: enabled }).done(function() {
+            TinyShop.toast(enabled ? 'Pay on Delivery enabled' : 'Pay on Delivery disabled');
+        }).fail(function() {
+            TinyShop.toast('Failed to update', 'error');
+        });
+    });
+    $('#mpesaEnabledToggle').on('change', function() {
+        var enabled = this.checked ? 1 : 0;
+        $('#mpesaEnabled').val(enabled);
+        TinyShop.api('PUT', '/api/shop', { mpesa_enabled: enabled }).done(function() {
+            TinyShop.toast(enabled ? 'M-Pesa enabled' : 'M-Pesa disabled');
         }).fail(function() {
             TinyShop.toast('Failed to update', 'error');
         });
@@ -747,6 +863,116 @@ $(function() {
         });
     });
 
+    // --- Setup M-Pesa (modal) ---
+    $('#setupMpesaBtn').on('click', function() {
+        var currentShortcode = $('#mpesaShortcode').val();
+        var currentKey = $('#mpesaConsumerKey').val();
+        var currentSecret = $('#mpesaConsumerSecret').val();
+        var currentPasskey = $('#mpesaPasskey').val();
+        var currentMode = $('#mpesaMode').val();
+        var isConnected = currentShortcode !== '';
+
+        var html = '<form id="mpesaSetupForm" autocomplete="off">' +
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">' +
+                '<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#4CAF50"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="white">M</text></svg>' +
+                '<span style="font-weight:700;font-size:1rem">M-Pesa</span>' +
+                (isConnected ? '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:#ECFDF5;color:#059669;border-radius:6px;font-size:0.625rem;font-weight:700"><i class="fa-solid fa-check" style="font-size:8px"></i> Connected</span>' : '') +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalMpesaShortcode">Shortcode (Till / Paybill)</label>' +
+                '<input type="text" class="form-control" id="modalMpesaShortcode" value="' + escapeHtml(currentShortcode) + '" placeholder="e.g. 174379" autocomplete="off" inputmode="numeric">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalMpesaKey">Consumer Key</label>' +
+                '<input type="text" class="form-control" id="modalMpesaKey" value="' + escapeHtml(currentKey) + '" placeholder="From Daraja portal" autocomplete="off">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalMpesaSecret">Consumer Secret</label>' +
+                '<div class="password-field"><input type="password" class="form-control" id="modalMpesaSecret" value="' + escapeHtml(currentSecret) + '" placeholder="From Daraja portal" autocomplete="off">' +
+                '<button type="button" class="password-toggle" onclick="togglePw(this)" aria-label="Show password"><i class="fa-solid fa-eye eye-open"></i><i class="fa-solid fa-eye-slash eye-closed" style="display:none"></i></button></div>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="modalMpesaPasskey">Passkey</label>' +
+                '<div class="password-field"><input type="password" class="form-control" id="modalMpesaPasskey" value="' + escapeHtml(currentPasskey) + '" placeholder="STK Push passkey" autocomplete="off">' +
+                '<button type="button" class="password-toggle" onclick="togglePw(this)" aria-label="Show password"><i class="fa-solid fa-eye eye-open"></i><i class="fa-solid fa-eye-slash eye-closed" style="display:none"></i></button></div>' +
+            '</div>' +
+            '<div class="form-toggle-row" style="margin-bottom:20px">' +
+                '<div>' +
+                    '<div class="form-toggle-label">Live Mode</div>' +
+                    '<p class="form-hint" style="margin-top:2px">Use live credentials for real payments</p>' +
+                '</div>' +
+                '<label class="toggle-switch">' +
+                    '<input type="checkbox" id="modalMpesaMode"' + (currentMode === 'live' ? ' checked' : '') + '>' +
+                    '<span class="toggle-slider"></span>' +
+                '</label>' +
+            '</div>' +
+            '<button type="submit" class="btn-block btn-primary" id="saveMpesaBtn">Save M-Pesa Settings</button>' +
+            (isConnected ? '<button type="button" class="btn-block btn-link mt-sm" id="disconnectMpesaBtn">Disconnect M-Pesa</button>' : '') +
+        '</form>';
+        TinyShop.openModal('M-Pesa Setup', html);
+
+        $('#mpesaSetupForm').on('submit', function(e) {
+            e.preventDefault();
+            var shortcode = $('#modalMpesaShortcode').val().trim();
+            var key = $('#modalMpesaKey').val().trim();
+            var secret = $('#modalMpesaSecret').val().trim();
+            var passkey = $('#modalMpesaPasskey').val().trim();
+            var mode = $('#modalMpesaMode').is(':checked') ? 'live' : 'test';
+            if (!shortcode || !key || !secret || !passkey) {
+                TinyShop.toast('All fields are required', 'error');
+                return;
+            }
+            var $btn = $('#saveMpesaBtn').prop('disabled', true).text('Saving...');
+            TinyShop.api('PUT', '/api/shop', {
+                mpesa_shortcode: shortcode,
+                mpesa_consumer_key: key,
+                mpesa_consumer_secret: secret,
+                mpesa_passkey: passkey,
+                mpesa_mode: mode
+            }).done(function() {
+                $('#mpesaShortcode').val(shortcode);
+                $('#mpesaConsumerKey').val(key);
+                $('#mpesaConsumerSecret').val(secret);
+                $('#mpesaPasskey').val(passkey);
+                $('#mpesaMode').val(mode);
+                $('#mpesaStatusDisplay').text('Connected');
+                TinyShop.toast('M-Pesa connected!');
+                TinyShop.closeModal();
+                setTimeout(function() { location.reload(); }, 400);
+            }).fail(function(xhr) {
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to save';
+                TinyShop.toast(msg, 'error');
+                $btn.prop('disabled', false).text('Save M-Pesa Settings');
+            });
+        });
+
+        $('#disconnectMpesaBtn').on('click', function() {
+            TinyShop.confirm('Disconnect M-Pesa?', 'Customers won\'t be able to pay with M-Pesa.', 'Disconnect', function() {
+                $('#confirmModalOk').prop('disabled', true).text('Disconnecting...');
+                TinyShop.api('PUT', '/api/shop', {
+                    mpesa_shortcode: '',
+                    mpesa_consumer_key: '',
+                    mpesa_consumer_secret: '',
+                    mpesa_passkey: '',
+                    mpesa_mode: 'test'
+                }).done(function() {
+                    $('#mpesaShortcode').val('');
+                    $('#mpesaConsumerKey').val('');
+                    $('#mpesaConsumerSecret').val('');
+                    $('#mpesaPasskey').val('');
+                    $('#mpesaMode').val('test');
+                    $('#mpesaStatusDisplay').text('Not connected');
+                    TinyShop.toast('M-Pesa disconnected');
+                    TinyShop.closeModal();
+                    setTimeout(function() { location.reload(); }, 400);
+                }).fail(function() {
+                    TinyShop.toast('Failed to disconnect', 'error');
+                    TinyShop.closeModal();
+                });
+            }, 'danger');
+        });
+    });
+
     // --- Change Shop URL (modal) ---
     $('#changeSubdomainBtn').on('click', function() {
         var currentVal = $('#subdomain').val();
@@ -801,11 +1027,66 @@ $(function() {
         });
     });
 
+    // --- Add to Homescreen ---
+    $('#addToHomescreenBtn').on('click', function() {
+        var ua = navigator.userAgent || '';
+        var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        var isAndroid = /Android/.test(ua);
+        var isSafari = /Safari/.test(ua) && !/CriOS|Chrome/.test(ua);
+
+        var html = '<div style="padding:4px 0">';
+
+        if (isIOS) {
+            html += '<div class="a2hs-instruction">' +
+                '<div class="a2hs-step-num">1</div>' +
+                '<div class="a2hs-step-text">Tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--color-accent)"></i> at the bottom of Safari</div>' +
+            '</div>' +
+            '<div class="a2hs-instruction">' +
+                '<div class="a2hs-step-num">2</div>' +
+                '<div class="a2hs-step-text">Scroll down and tap <strong>Add to Home Screen</strong></div>' +
+            '</div>' +
+            '<div class="a2hs-instruction">' +
+                '<div class="a2hs-step-num">3</div>' +
+                '<div class="a2hs-step-text">Tap <strong>Add</strong> in the top-right corner</div>' +
+            '</div>';
+            if (!isSafari) {
+                html += '<div style="margin-top:12px;padding:10px 12px;background:var(--color-bg-alt);border-radius:var(--radius-md);font-size:0.8125rem;color:var(--color-text-muted)">' +
+                    '<i class="fa-solid fa-circle-info" style="margin-right:4px"></i> Open this page in <strong>Safari</strong> to add to homescreen' +
+                '</div>';
+            }
+        } else if (isAndroid) {
+            html += '<div class="a2hs-instruction">' +
+                '<div class="a2hs-step-num">1</div>' +
+                '<div class="a2hs-step-text">Tap the <strong>menu</strong> button <i class="fa-solid fa-ellipsis-vertical" style="color:var(--color-accent)"></i> in Chrome</div>' +
+            '</div>' +
+            '<div class="a2hs-instruction">' +
+                '<div class="a2hs-step-num">2</div>' +
+                '<div class="a2hs-step-text">Tap <strong>Add to Home screen</strong></div>' +
+            '</div>' +
+            '<div class="a2hs-instruction">' +
+                '<div class="a2hs-step-num">3</div>' +
+                '<div class="a2hs-step-text">Tap <strong>Add</strong> to confirm</div>' +
+            '</div>';
+        } else {
+            html += '<div class="a2hs-instruction">' +
+                '<div class="a2hs-step-num">1</div>' +
+                '<div class="a2hs-step-text">Click the <strong>install icon</strong> <i class="fa-solid fa-download" style="color:var(--color-accent)"></i> in your browser\'s address bar</div>' +
+            '</div>' +
+            '<div class="a2hs-instruction">' +
+                '<div class="a2hs-step-num">2</div>' +
+                '<div class="a2hs-step-text">Click <strong>Install</strong> to confirm</div>' +
+            '</div>';
+        }
+        html += '</div>';
+
+        TinyShop.openModal('Add to Homescreen', html);
+    });
+
     // --- Change Custom Domain (modal) ---
     $('#changeDomainBtn').on('click', function() {
         if ($(this).data('locked')) {
-            TinyShop.confirm('Upgrade to unlock', 'Custom domains are available on paid plans. Upgrade to connect your own domain.', 'Upgrade', function() {
-                window.location.href = '/dashboard/billing';
+            TinyShop.confirm('Upgrade to unlock', 'Custom domains are available on a higher plan. Upgrade to connect your own domain.', 'Upgrade', function() {
+                TinyShop.navigate('/dashboard/billing');
             });
             return;
         }
@@ -921,8 +1202,8 @@ $(function() {
         e.preventDefault();
         e.stopPropagation();
         var themeName = $(this).data('theme');
-        TinyShop.confirm('Upgrade to unlock', 'The ' + themeName.charAt(0).toUpperCase() + themeName.slice(1) + ' theme is available on paid plans. Upgrade to use all themes.', 'Upgrade', function() {
-            window.location.href = '/dashboard/billing';
+        TinyShop.confirm('Upgrade to unlock', 'The ' + themeName.charAt(0).toUpperCase() + themeName.slice(1) + ' theme is available on a higher plan. Upgrade to use all themes.', 'Upgrade', function() {
+            TinyShop.navigate('/dashboard/billing');
         });
     });
     $('#themePicker').on('change', 'input[name="shop_theme"]', function() {
@@ -931,6 +1212,26 @@ $(function() {
         $cards.removeClass('active');
         $(this).closest('.theme-card').addClass('active');
         TinyShop.api('PUT', '/api/shop', { shop_theme: theme }).done(function() {
+            // Clear SPA cache so shop pages load with the new theme
+            if (TinyShop.spa) TinyShop.spa._cache = {ldelim}{rdelim};
+
+            // Swap body theme class immediately
+            document.body.className = document.body.className.replace(/\btheme-\S+/g, '');
+            if (theme !== 'classic') document.body.classList.add('theme-' + theme);
+
+            // Swap theme CSS link
+            var $themeLink = $('link[href*="/public/css/themes/"]');
+            if (theme !== 'classic') {ldelim}
+                var href = '/public/css/themes/' + theme + '{$min}.css?v={$asset_v}';
+                if ($themeLink.length) {ldelim}
+                    $themeLink.attr('href', href);
+                {rdelim} else {ldelim}
+                    $('<link rel="stylesheet">').attr('href', href).appendTo('head');
+                {rdelim}
+            {rdelim} else {ldelim}
+                $themeLink.remove();
+            {rdelim}
+
             TinyShop.toast('Theme updated!');
         }).fail(function(xhr) {
             var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to update theme';
@@ -994,7 +1295,7 @@ $(function() {
         var $btn = $('#saveShopBtn').prop('disabled', true).text('Saving...');
         var data = {};
         // Payment fields are excluded — managed in their own modals
-        var paymentFields = ['stripe_public_key', 'stripe_secret_key', 'stripe_mode', 'paypal_client_id', 'paypal_secret', 'paypal_mode'];
+        var paymentFields = ['stripe_public_key', 'stripe_secret_key', 'stripe_mode', 'paypal_client_id', 'paypal_secret', 'paypal_mode', 'mpesa_shortcode', 'mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey', 'mpesa_mode'];
         $(this).serializeArray().forEach(function(item) {
             if (paymentFields.indexOf(item.name) === -1) {
                 data[item.name] = item.value;

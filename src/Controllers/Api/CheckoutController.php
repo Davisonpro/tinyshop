@@ -133,8 +133,27 @@ final class CheckoutController
         if (empty($customerEmail) || !filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
             return $this->json($response, ['error' => true, 'message' => 'A valid email is required'], 422);
         }
-        if (!in_array($gateway, ['stripe', 'paypal'], true)) {
+        if (!in_array($gateway, ['stripe', 'paypal', 'cod', 'mpesa'], true)) {
             return $this->json($response, ['error' => true, 'message' => 'Please select a payment method'], 422);
+        }
+
+        // Validate M-Pesa phone number
+        $mpesaPhone = '';
+        if ($gateway === 'mpesa') {
+            $mpesaPhone = trim($data['mpesa_phone'] ?? '');
+            if (empty($mpesaPhone)) {
+                return $this->json($response, ['error' => true, 'message' => 'Phone number is required for M-Pesa'], 422);
+            }
+            $mpesaPhone = preg_replace('/[\s\-]/', '', $mpesaPhone);
+            if (str_starts_with($mpesaPhone, '0')) {
+                $mpesaPhone = '254' . substr($mpesaPhone, 1);
+            }
+            if (str_starts_with($mpesaPhone, '+')) {
+                $mpesaPhone = substr($mpesaPhone, 1);
+            }
+            if (!preg_match('/^254[0-9]{9}$/', $mpesaPhone)) {
+                return $this->json($response, ['error' => true, 'message' => 'Enter a valid Kenyan phone number'], 422);
+            }
         }
 
         $shop = $this->userModel->findById($shopId);
@@ -148,6 +167,14 @@ final class CheckoutController
         }
         if ($gateway === 'paypal' && (empty($shop['paypal_enabled']) || empty($shop['paypal_client_id']) || empty($shop['paypal_secret']))) {
             return $this->json($response, ['error' => true, 'message' => 'PayPal is not configured for this shop'], 422);
+        }
+        if ($gateway === 'cod' && empty($shop['cod_enabled'])) {
+            return $this->json($response, ['error' => true, 'message' => 'Pay on Delivery is not available'], 422);
+        }
+        if ($gateway === 'mpesa' && (empty($shop['mpesa_enabled']) || empty($shop['mpesa_shortcode'])
+            || empty($shop['mpesa_consumer_key']) || empty($shop['mpesa_consumer_secret'])
+            || empty($shop['mpesa_passkey']))) {
+            return $this->json($response, ['error' => true, 'message' => 'M-Pesa is not configured for this shop'], 422);
         }
 
         // Validate and build order items
@@ -229,8 +256,84 @@ final class CheckoutController
         // Create order items
         $this->orderItemModel->createBatch($orderId, $orderItems);
 
-        // Stock is decremented only after payment confirmation (handleReturn / webhooks)
-        // to prevent permanent stock loss on abandoned or failed checkouts.
+        // COD: confirm immediately (no payment redirect needed)
+        if ($gateway === 'cod') {
+            $this->decrementStockForOrder($orderId);
+            $this->incrementCouponUsage([
+                'user_id' => $shopId,
+                'coupon_code' => $couponCode ?: null,
+            ]);
+            $this->sendOrderEmails(
+                array_merge(['id' => $orderId], $this->orderModel->findById($orderId)),
+                $shop
+            );
+
+            $this->logger->info('checkout.order_created', [
+                'order_id' => $orderId,
+                'order_number' => $orderNumber,
+                'gateway' => 'cod',
+                'amount' => $finalAmount,
+                'discount' => $discountAmount,
+            ]);
+
+            return $this->json($response, [
+                'success' => true,
+                'order_url' => '/order/' . $orderNumber,
+                'order_number' => $orderNumber,
+            ]);
+        }
+
+        // M-Pesa: initiate STK push, return polling info (no redirect)
+        if ($gateway === 'mpesa') {
+            $host = $request->getUri()->getScheme() . '://' . $request->getUri()->getHost();
+            $port = $request->getUri()->getPort();
+            if ($port && $port !== 80 && $port !== 443) {
+                $host .= ':' . $port;
+            }
+            $callbackUrl = $host . '/webhook/mpesa';
+            $mpesaSandbox = ($shop['mpesa_mode'] ?? 'test') === 'test';
+
+            try {
+                $stkResult = $this->payment->initiateStkPush(
+                    $shop['mpesa_consumer_key'],
+                    $shop['mpesa_consumer_secret'],
+                    $shop['mpesa_shortcode'],
+                    $shop['mpesa_passkey'],
+                    $mpesaPhone,
+                    $finalAmount,
+                    $callbackUrl,
+                    $orderNumber,
+                    'Payment',
+                    $mpesaSandbox
+                );
+
+                $this->orderModel->update($orderId, [
+                    'payment_intent_id' => $stkResult['CheckoutRequestID'] ?? '',
+                ]);
+            } catch (\Throwable $e) {
+                $this->logger->error('checkout.mpesa_stk_error', [
+                    'order_id' => $orderId,
+                    'error' => $e->getMessage(),
+                ]);
+                return $this->json($response, ['error' => true, 'message' => $e->getMessage()], 500);
+            }
+
+            $this->logger->info('checkout.order_created', [
+                'order_id' => $orderId,
+                'order_number' => $orderNumber,
+                'gateway' => 'mpesa',
+                'amount' => $finalAmount,
+            ]);
+
+            return $this->json($response, [
+                'success' => true,
+                'gateway' => 'mpesa',
+                'order_number' => $orderNumber,
+                'poll_url' => '/api/checkout/status?order=' . $orderNumber,
+            ]);
+        }
+
+        // Online payment: stock is decremented after payment confirmation (handleReturn / webhooks)
 
         // Build return/cancel URLs
         $host = $request->getUri()->getScheme() . '://' . $request->getUri()->getHost();
@@ -366,6 +469,31 @@ final class CheckoutController
         return $response->withHeader('Location', $confirmUrl)->withStatus(302);
     }
 
+    /**
+     * GET /api/checkout/status?order={orderNumber}
+     * Returns current order status for polling (used by M-Pesa flow).
+     */
+    public function checkStatus(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $orderNumber = $params['order'] ?? '';
+
+        if (empty($orderNumber)) {
+            return $this->json($response, ['error' => true, 'message' => 'Missing order number'], 400);
+        }
+
+        $order = $this->orderModel->findByOrderNumber($orderNumber);
+        if (!$order) {
+            return $this->json($response, ['error' => true, 'message' => 'Order not found'], 404);
+        }
+
+        return $this->json($response, [
+            'status' => $order['status'],
+            'order_number' => $order['order_number'],
+            'order_url' => '/order/' . $order['order_number'],
+        ]);
+    }
+
     private function incrementCouponUsage(array $order): void
     {
         $couponCode = $order['coupon_code'] ?? '';
@@ -404,7 +532,7 @@ final class CheckoutController
             // Email to seller
             $this->mailer->sendNewOrderNotification(
                 $shop['email'] ?? '',
-                $shop['store_name'] ?? $shop['name'] ?? '',
+                $shop['store_name'] ?? '',
                 $order,
                 $items,
                 $shop

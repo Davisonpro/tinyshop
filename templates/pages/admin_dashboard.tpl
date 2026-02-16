@@ -52,6 +52,18 @@
             </div>
             <strong>Sellers</strong>
         </a>
+        <a href="/admin/plans" class="action-card">
+            <div class="action-icon green">
+                <i class="fa-solid fa-tags icon-lg"></i>
+            </div>
+            <strong>Plans</strong>
+        </a>
+        <a href="/admin/help" class="action-card">
+            <div class="action-icon pink">
+                <i class="fa-solid fa-circle-question icon-lg"></i>
+            </div>
+            <strong>Help Center</strong>
+        </a>
         <a href="/admin/settings" class="action-card">
             <div class="action-icon blue">
                 <i class="fa-solid fa-gear icon-lg"></i>

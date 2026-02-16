@@ -49,7 +49,7 @@
                             {else}
                                 <span class="badge badge-muted">Hidden</span>
                             {/if}
-                            {if $product.is_sold}<span class="badge badge-orange">Sold</span>{/if}
+                            {if $product.is_sold}<span class="badge badge-orange">Sold out</span>{/if}
                         </td>
                         <td><small>{$product.created_at|date_format:"%b %e, %Y"}</small></td>
                         <td>
