@@ -68,6 +68,7 @@ final class AdminController
         private readonly Category $categoryModel,
         private readonly ProductImage $productImageModel,
         private readonly ImporterFactory $importerFactory,
+        private readonly \TinyShop\Services\Importers\WooCommerceImporter $wooImporter,
         private readonly HttpClient $httpClient,
         private readonly Mailer $mailer,
         private readonly Upload $upload,
@@ -1093,8 +1094,19 @@ final class AdminController
 
     public function fetchImport(Request $request, Response $response): Response
     {
-        $data = (array) $request->getParsedBody();
-        $url  = trim($data['url'] ?? '');
+        $data     = (array) $request->getParsedBody();
+        $url      = trim($data['url'] ?? '');
+        $pasteHtml = trim($data['html'] ?? '');
+
+        // Paste-HTML mode: admin pasted page source (Cloudflare fallback)
+        if ($pasteHtml !== '') {
+            try {
+                $result = $this->wooImporter->fetchFromHtml($pasteHtml);
+                return $this->json($response, ['success' => true, 'product' => $result->toArray()]);
+            } catch (\Throwable $e) {
+                return $this->json($response, ['error' => true, 'message' => $e->getMessage()], 422);
+            }
+        }
 
         if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
             return $this->json($response, ['error' => true, 'message' => 'Please enter a valid product URL'], 422);

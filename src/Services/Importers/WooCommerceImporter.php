@@ -47,6 +47,17 @@ final class WooCommerceImporter implements ImporterInterface
         $html = $this->lastHtml ?? $this->http->get($url);
         $this->lastHtml = null;
 
+        return $this->parseHtml($html);
+    }
+
+    /** Parse pre-supplied HTML (for paste-mode when server can't fetch the URL). */
+    public function fetchFromHtml(string $html): ImportResult
+    {
+        return $this->parseHtml($html);
+    }
+
+    private function parseHtml(string $html): ImportResult
+    {
         libxml_use_internal_errors(true);
         $doc = new DOMDocument();
         $doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
@@ -303,11 +314,8 @@ final class WooCommerceImporter implements ImporterInterface
     {
         $categories = [];
 
-        // 1. Breadcrumb — /product-category/ links in common breadcrumb containers
-        $nodes = $xpath->query(
-            '//*[contains(@class,"woocommerce-breadcrumb") or contains(@class,"breadcrumbs")]'
-            . '//a[contains(@href,"/product-category/")]'
-        );
+        // 1. WooCommerce breadcrumb only (strict: avoids matching nav/sidebar/footer)
+        $nodes = $xpath->query('//*[contains(@class,"woocommerce-breadcrumb")]//a[contains(@href,"/product-category/")]');
         if ($nodes !== false) {
             foreach ($nodes as $node) {
                 $name = trim($node->textContent);

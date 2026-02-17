@@ -10,7 +10,7 @@ final class HttpClient
 {
     private const TIMEOUT = 15;
 
-    private const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    private const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
 
     /** Fetch URL body as string. */
     public function get(string $url): string
@@ -26,13 +26,25 @@ final class HttpClient
             CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_USERAGENT      => self::USER_AGENT,
             CURLOPT_HTTPHEADER     => [
-                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7',
-                'Accept-Language: en-US,en;q=0.9',
+                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language: en-GB,en-US;q=0.9,en;q=0.8',
+                'Cache-Control: no-cache',
+                'Connection: keep-alive',
+                'Pragma: no-cache',
+                'Upgrade-Insecure-Requests: 1',
+                'sec-ch-ua: "Google Chrome";v="145", "Chromium";v="145", "Not-A.Brand";v="24"',
+                'sec-ch-ua-mobile: ?0',
+                'sec-ch-ua-platform: "macOS"',
+                'Sec-Fetch-Dest: document',
+                'Sec-Fetch-Mode: navigate',
+                'Sec-Fetch-Site: none',
+                'Sec-Fetch-User: ?1',
             ],
             CURLOPT_COOKIEJAR      => sys_get_temp_dir() . '/tinyshop_import_cookies.txt',
             CURLOPT_COOKIEFILE     => sys_get_temp_dir() . '/tinyshop_import_cookies.txt',
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_ENCODING       => '',
+            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_2_0,
         ];
 
         // Use system CA bundle if available (common on cPanel/shared hosts)

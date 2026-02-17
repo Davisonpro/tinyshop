@@ -30,6 +30,17 @@
             </div>
             <p class="form-hint">Paste any product link from a supported store</p>
         </div>
+        <div id="pasteHtmlWrap" style="display:none">
+            <div class="form-group">
+                <label>Page source <span style="font-weight:400;color:var(--color-text-muted)">(fallback)</span></label>
+                <textarea id="pasteHtml" class="form-control" rows="5" placeholder="Right-click the product page > View Page Source > Select All > Paste here"></textarea>
+                <p class="form-hint">The site blocked our server. Open the product page in your browser, copy the page source, and paste it above.</p>
+                <button type="button" id="parseHtmlBtn" class="btn btn-primary import-fetch-btn" style="margin-top:8px">
+                    <span class="parse-btn-label"><i class="fa-solid fa-code"></i> Parse</span>
+                    <span class="parse-btn-loading" style="display:none"><span class="btn-spinner"></span> Parsing...</span>
+                </button>
+            </div>
+        </div>
     </div>
 
     {* Step 2: Preview (hidden until fetch) *}
@@ -287,15 +298,56 @@ var _sellersData = [{foreach $sellers as $s}{ldelim}"id":{$s.id},"store_name":"{
                 fetchedData = res.product;
                 renderPreview(res.product);
                 $('#importPreview').show();
+                $('#pasteHtmlWrap').hide();
             })
             .fail(function(xhr) {
                 var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to fetch product';
-                TinyShop.toast(msg, 'error');
+                // Show paste-HTML fallback when server can't reach the site
+                if (msg.indexOf('403') !== -1 || msg.indexOf('HTTP') !== -1 || msg.indexOf('failed') !== -1) {
+                    $('#pasteHtmlWrap').show();
+                    TinyShop.toast('Site blocked our server. Paste the page source below.', 'error');
+                } else {
+                    TinyShop.toast(msg, 'error');
+                }
             })
             .always(function() {
                 $btn.prop('disabled', false);
                 $btn.find('.fetch-btn-loading').hide();
                 $btn.find('.fetch-btn-label').show();
+            });
+    });
+
+    // ── Parse pasted HTML ──
+    $('#parseHtmlBtn').on('click', function() {
+        var html = $('#pasteHtml').val().trim();
+        if (!html || html.length < 100) {
+            TinyShop.toast('Please paste the full page source', 'error');
+            return;
+        }
+
+        var $btn = $(this);
+        $btn.prop('disabled', true);
+        $btn.find('.parse-btn-label').hide();
+        $btn.find('.parse-btn-loading').show();
+        $('#importPreview').hide();
+        fetchedData = null;
+
+        TinyShop.api('POST', '/api/admin/import/fetch', { html: html })
+            .done(function(res) {
+                fetchedData = res.product;
+                renderPreview(res.product);
+                $('#importPreview').show();
+                $('#pasteHtmlWrap').hide();
+                $('#pasteHtml').val('');
+            })
+            .fail(function(xhr) {
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to parse HTML';
+                TinyShop.toast(msg, 'error');
+            })
+            .always(function() {
+                $btn.prop('disabled', false);
+                $btn.find('.parse-btn-loading').hide();
+                $btn.find('.parse-btn-label').show();
             });
     });
 
