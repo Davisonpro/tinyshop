@@ -10,6 +10,8 @@ use TinyShop\Models\Setting;
 
 final class View
 {
+    public const ASSET_VERSION = '1.0.1';
+
     private readonly Smarty $smarty;
     private readonly string $baseTemplatesDir;
     private readonly bool $minifyHtml;
@@ -25,16 +27,7 @@ final class View
         $this->smarty->setCaching(Smarty::CACHING_OFF);
         $this->smarty->setCompileCheck(Smarty::COMPILECHECK_ON);
 
-        // Asset versioning for cache-busting (based on newest asset file)
-        $publicDir = dirname($config->uploadDir());
-        $latestMtime = max(
-            (int) @filemtime($publicDir . '/css/app.css'),
-            (int) @filemtime($publicDir . '/js/app.js'),
-            (int) @filemtime($publicDir . '/css/dashboard.css'),
-            (int) @filemtime($publicDir . '/css/admin.css'),
-        );
-        $assetVersion = substr(md5((string) $latestMtime), 0, 8);
-        $this->smarty->assign('asset_v', $assetVersion);
+        $this->smarty->assign('asset_v', self::ASSET_VERSION);
 
         // Minified asset suffix: ".min" in production, "" in debug
         $this->smarty->assign('min', $config->isDebug() ? '' : '.min');

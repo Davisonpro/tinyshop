@@ -1558,3 +1558,118 @@ a.help-admin-article:hover .help-admin-article-arrow {
 .permalink-input:focus {
     box-shadow: none !important;
 }
+
+/* ============================================================
+   Product Import Tool
+   ============================================================ */
+.import-url-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.import-url-row .form-control {
+    width: 100%;
+}
+.import-fetch-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 20px;
+    white-space: nowrap;
+    border-radius: $radius-card;
+    font-weight: 600;
+    min-height: 50px;
+    width: 100%;
+}
+.import-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px 20px;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+.import-picker-info {
+    flex: 1;
+    min-width: 0;
+}
+.import-picker-info span:first-child {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9375rem;
+}
+.import-picker-sub {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.import-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.import-cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: $radius-pill;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    background: var(--color-bg-secondary);
+    color: var(--color-text);
+}
+.import-cat-chip i {
+    font-size: 0.625rem;
+    color: var(--color-text-muted);
+}
+.import-variations-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--color-bg-secondary);
+    border-radius: $radius-card;
+    overflow: hidden;
+}
+.import-var-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 16px;
+    background: var(--color-bg);
+}
+.import-var-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+}
+.import-var-price {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+}
+.import-source-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+}
+.import-source-row i {
+    font-size: 0.75rem;
+}
+
+/* Import tool dark mode */
+[data-theme="dark"] .import-cat-chip {
+    background: $dark-elevated;
+}
+[data-theme="dark"] .import-picker-sub {
+    color: $tab-hover;
+}
