@@ -309,38 +309,20 @@ final class WooCommerceImporter implements ImporterInterface
         return $images;
     }
 
+    /** Names that WooCommerce assigns by default — never useful as imported categories. */
+    private const JUNK_CATEGORIES = ['default category', 'uncategorized'];
+
     /** @return string[] */
     private function extractCategories(DOMXPath $xpath, array $ld): array
     {
-        $categories = [];
-
-        // 1. WooCommerce breadcrumb only (strict: avoids matching nav/sidebar/footer)
-        $nodes = $xpath->query('//*[contains(@class,"woocommerce-breadcrumb")]//a[contains(@href,"/product-category/")]');
-        if ($nodes !== false) {
-            foreach ($nodes as $node) {
-                $name = trim($node->textContent);
-                if ($name !== '' && !in_array($name, $categories, true)) {
-                    $categories[] = $name;
-                }
-            }
-        }
+        // 1. Breadcrumb containers — scoped per-container so nav/sidebar can't pollute
+        $categories = $this->extractCategoriesFromBreadcrumbs($xpath);
         if (!empty($categories)) {
             return $categories;
         }
 
         // 2. JSON-LD Product category field
-        if (isset($ld['category'])) {
-            $ldCat = is_string($ld['category']) ? $ld['category'] : ($ld['category']['name'] ?? '');
-            if ($ldCat !== '') {
-                $parts = preg_split('/\s*[>,]\s*/', $ldCat);
-                foreach ($parts as $part) {
-                    $part = trim($part);
-                    if ($part !== '' && !in_array($part, $categories, true)) {
-                        $categories[] = $part;
-                    }
-                }
-            }
-        }
+        $categories = $this->extractCategoriesFromLdProduct($ld);
         if (!empty($categories)) {
             return $categories;
         }
@@ -351,20 +333,147 @@ final class WooCommerceImporter implements ImporterInterface
             return $categories;
         }
 
-        // 4. posted_in scoped to .summary (avoids related products)
-        $nodes = $xpath->query(
-            '//div[contains(@class,"summary")]//*[contains(@class,"posted_in")]//a[contains(@href,"/product-category/")]'
-        );
-        if ($nodes !== false) {
-            foreach ($nodes as $node) {
-                $name = trim($node->textContent);
-                if ($name !== '' && !in_array($name, $categories, true)) {
-                    $categories[] = $name;
+        // 4. Inline JS tracking data (WebEngage, GTM dataLayer)
+        $categories = $this->extractCategoriesFromTrackingJs($xpath);
+        if (!empty($categories)) {
+            return $categories;
+        }
+
+        // 5. posted_in links (any scope, filter junk)
+        $categories = $this->extractCategoriesFromPostedIn($xpath);
+        if (!empty($categories)) {
+            return $categories;
+        }
+
+        return [];
+    }
+
+    /**
+     * Extract categories from breadcrumb containers.
+     * Checks each container individually and picks the one with 1–8 category links
+     * (breadcrumbs are small; nav/sidebar widgets have 10+).
+     */
+    private function extractCategoriesFromBreadcrumbs(DOMXPath $xpath): array
+    {
+        $selectors = [
+            '//*[contains(@class,"woocommerce-breadcrumb")]',
+            '//*[contains(@class,"breadcrumbs-container")]',
+            '//*[contains(@class,"breadcrumb-trail")]',
+            '//*[contains(@class,"breadcrumbs")]',
+        ];
+
+        foreach ($selectors as $selector) {
+            $containers = $xpath->query($selector);
+            if ($containers === false) {
+                continue;
+            }
+
+            foreach ($containers as $container) {
+                // Scoped search: .//a limits to THIS container's descendants
+                $links = $xpath->query('.//a[contains(@href,"/product-category/")]', $container);
+                if ($links === false || $links->length === 0) {
+                    continue;
+                }
+
+                $cats = [];
+                foreach ($links as $link) {
+                    $name = trim($link->textContent);
+                    if ($name !== '' && !$this->isJunkCategory($name) && !in_array($name, $cats, true)) {
+                        $cats[] = $name;
+                    }
+                }
+
+                // Breadcrumbs have 1–8 category links; skip containers with more (likely nav)
+                if (!empty($cats) && count($cats) <= 8) {
+                    return $cats;
                 }
             }
         }
 
+        return [];
+    }
+
+    /** Extract category from JSON-LD Product data. */
+    private function extractCategoriesFromLdProduct(array $ld): array
+    {
+        if (!isset($ld['category'])) {
+            return [];
+        }
+
+        $ldCat = is_string($ld['category']) ? $ld['category'] : ($ld['category']['name'] ?? '');
+        if ($ldCat === '') {
+            return [];
+        }
+
+        $categories = [];
+        $parts = preg_split('/\s*[>,]\s*/', $ldCat);
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part !== '' && !$this->isJunkCategory($part) && !in_array($part, $categories, true)) {
+                $categories[] = $part;
+            }
+        }
+
         return $categories;
+    }
+
+    /** Extract category from inline JS tracking (WebEngage, GTM dataLayer). */
+    private function extractCategoriesFromTrackingJs(DOMXPath $xpath): array
+    {
+        $scripts = $xpath->query('//script[not(@src)]');
+        if ($scripts === false) {
+            return [];
+        }
+
+        foreach ($scripts as $script) {
+            $js = $script->textContent;
+
+            // WebEngage: "Category": "MacBooks"
+            if (preg_match('/"Category"\s*:\s*"([^"]+)"/', $js, $m)) {
+                $cat = trim($m[1]);
+                if ($cat !== '' && !$this->isJunkCategory($cat)) {
+                    return [$cat];
+                }
+            }
+        }
+
+        return [];
+    }
+
+    /** Extract categories from .posted_in links, filtering out junk. */
+    private function extractCategoriesFromPostedIn(DOMXPath $xpath): array
+    {
+        // Try scoped to .summary first, then unscoped
+        $queries = [
+            '//div[contains(@class,"summary")]//*[contains(@class,"posted_in")]//a',
+            '//*[contains(@class,"posted_in")]//a',
+        ];
+
+        foreach ($queries as $query) {
+            $nodes = $xpath->query($query);
+            if ($nodes === false || $nodes->length === 0) {
+                continue;
+            }
+
+            $cats = [];
+            foreach ($nodes as $node) {
+                $name = trim($node->textContent);
+                if ($name !== '' && !$this->isJunkCategory($name) && !in_array($name, $cats, true)) {
+                    $cats[] = $name;
+                }
+            }
+
+            if (!empty($cats)) {
+                return $cats;
+            }
+        }
+
+        return [];
+    }
+
+    private function isJunkCategory(string $name): bool
+    {
+        return in_array(strtolower($name), self::JUNK_CATEGORIES, true);
     }
 
     /** Extract categories from JSON-LD BreadcrumbList (Yoast/RankMath). */
