@@ -346,7 +346,25 @@ final class WooCommerceImporter implements ImporterInterface
         }
 
         // 3. JSON-LD BreadcrumbList (Yoast/RankMath)
-        return $this->extractCategoriesFromLdBreadcrumb($xpath);
+        $categories = $this->extractCategoriesFromLdBreadcrumb($xpath);
+        if (!empty($categories)) {
+            return $categories;
+        }
+
+        // 4. posted_in scoped to .summary (avoids related products)
+        $nodes = $xpath->query(
+            '//div[contains(@class,"summary")]//*[contains(@class,"posted_in")]//a[contains(@href,"/product-category/")]'
+        );
+        if ($nodes !== false) {
+            foreach ($nodes as $node) {
+                $name = trim($node->textContent);
+                if ($name !== '' && !in_array($name, $categories, true)) {
+                    $categories[] = $name;
+                }
+            }
+        }
+
+        return $categories;
     }
 
     /** Extract categories from JSON-LD BreadcrumbList (Yoast/RankMath). */
