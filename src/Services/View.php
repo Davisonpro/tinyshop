@@ -25,9 +25,15 @@ final class View
         $this->smarty->setCaching(Smarty::CACHING_OFF);
         $this->smarty->setCompileCheck(Smarty::COMPILECHECK_ON);
 
-        // Asset versioning for cache-busting
-        $cssPath = dirname($config->uploadDir()) . '/css/app.css';
-        $assetVersion = substr(md5((string) @filemtime($cssPath)), 0, 8);
+        // Asset versioning for cache-busting (based on newest asset file)
+        $publicDir = dirname($config->uploadDir());
+        $latestMtime = max(
+            (int) @filemtime($publicDir . '/css/app.css'),
+            (int) @filemtime($publicDir . '/js/app.js'),
+            (int) @filemtime($publicDir . '/css/dashboard.css'),
+            (int) @filemtime($publicDir . '/css/admin.css'),
+        );
+        $assetVersion = substr(md5((string) $latestMtime), 0, 8);
         $this->smarty->assign('asset_v', $assetVersion);
 
         // Minified asset suffix: ".min" in production, "" in debug
