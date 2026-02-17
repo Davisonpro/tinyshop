@@ -269,6 +269,43 @@ final class Upload
         }
     }
 
+    /** Store a local file (e.g. downloaded image) — runs MIME check, WebP conversion, S3. */
+    public function storeFromPath(string $localPath, string $originalName): string
+    {
+        if (!is_file($localPath)) {
+            throw new RuntimeException('File not found: ' . $localPath);
+        }
+
+        $realMime = $this->detectMime($localPath);
+        if ($realMime !== null && !in_array($realMime, $this->allowedTypes, true)) {
+            @unlink($localPath);
+            throw new RuntimeException('File type not allowed: ' . $realMime);
+        }
+
+        $effectiveMime = $realMime ?? 'application/octet-stream';
+
+        if (!is_dir($this->uploadDir)) {
+            mkdir($this->uploadDir, 0755, true);
+        }
+
+        $baseName = bin2hex(random_bytes(16));
+        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION)) ?: 'jpg';
+        $name = $baseName . '.' . $ext;
+        $destPath = $this->uploadDir . '/' . $name;
+
+        copy($localPath, $destPath);
+        @unlink($localPath);
+
+        $converted = $this->convertToWebP($destPath, $baseName, $effectiveMime);
+        if ($converted !== null) {
+            $webpName = $baseName . '.webp';
+            $webpPath = $this->uploadDir . '/' . $webpName;
+            return $this->finalize($webpPath, $webpName, 'image/webp', $destPath);
+        }
+
+        return $this->finalize($destPath, $name, $effectiveMime);
+    }
+
     /* ── WebP conversion ── */
 
     private function convertToWebP(string $sourcePath, string $baseName, string $mime): ?string

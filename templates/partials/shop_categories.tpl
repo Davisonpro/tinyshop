@@ -19,6 +19,22 @@
     {/foreach}
 </nav>
 
+{* Subcategory pill tabs — shown when parent has children *}
+{foreach $category_tree as $parent}
+    {if !empty($parent.children)}
+        {assign var="allIds" value=$parent.id}
+        {foreach $parent.children as $child}
+            {assign var="allIds" value="`$allIds`,`$child.id`"}
+        {/foreach}
+        <nav class="subcategory-tabs" data-parent-slug="{$parent.slug|escape}" style="display:none">
+            <button class="category-tab category-tab-sub active" data-category="{$allIds}" data-slug="{$parent.slug|escape}">All</button>
+            {foreach $parent.children as $child}
+                <button class="category-tab category-tab-sub" data-category="{$child.id}" data-slug="{$child.slug|escape}">{$child.name|escape}</button>
+            {/foreach}
+        </nav>
+    {/if}
+{/foreach}
+
 {* Image cards — rendered if images exist, themes hide via CSS if not wanted *}
 {if $has_cat_images}
 <div class="category-cards-scroll" id="categoryCards">

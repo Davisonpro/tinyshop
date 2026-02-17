@@ -1781,6 +1781,7 @@ body.page-dashboard {
 .rich-editor-content ol {
   padding-left: 22px;
   margin: 6px 0;
+  list-style: revert;
 }
 
 .rich-editor-content li {

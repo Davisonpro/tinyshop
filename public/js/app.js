@@ -632,6 +632,36 @@ TinyShop.initShop = function() {
     });
     if (category === "all") $("#categoryCards .category-card").first().addClass("active");
   }
+  function showSubcategoryRow(parentSlug) {
+    $(".subcategory-tabs").hide();
+    if (parentSlug) {
+      var $row = $('.subcategory-tabs[data-parent-slug="' + parentSlug + '"]');
+      if ($row.length) {
+        $row.show();
+        $row.find(".category-tab-sub").removeClass("active").first().addClass("active");
+      }
+    }
+  }
+  function activateSubcategoryBySlug(childSlug) {
+    var $subPill = $('.subcategory-tabs .category-tab-sub[data-slug="' + childSlug + '"]');
+    if ($subPill.length) {
+      var $row = $subPill.closest(".subcategory-tabs");
+      var parentSlug = $row.data("parent-slug");
+      $(".subcategory-tabs").hide();
+      $row.show();
+      $row.find(".category-tab-sub").removeClass("active");
+      $subPill.addClass("active");
+      var $parentTab = $('#categoryTabs .category-tab[data-slug="' + parentSlug + '"]');
+      if ($parentTab.length) {
+        $("#categoryTabs .category-tab").removeClass("active");
+        $parentTab.addClass("active");
+        $("#categoryCards .category-card").removeClass("active");
+        $('#categoryCards .category-card[data-slug="' + parentSlug + '"]').addClass("active");
+      }
+      return true;
+    }
+    return false;
+  }
   function filterByCategory(category, slug) {
     state.category = category;
     state.categorySlug = category === "all" ? "" : slug || "";
@@ -643,6 +673,11 @@ TinyShop.initShop = function() {
       state.search = "";
     }
     syncCategoryUI(category);
+    if (category === "all") {
+      showSubcategoryRow(null);
+    } else {
+      showSubcategoryRow(slug);
+    }
     fetchProducts({ offset: 0 });
   }
   $("#categoryTabs").on("click", ".category-tab", function() {
@@ -652,6 +687,25 @@ TinyShop.initShop = function() {
   $("#categoryCards").on("click", ".category-card", function() {
     scrollIntoCenter(this);
     filterByCategory(String($(this).data("category")), $(this).data("slug") || "");
+  });
+  $(document).on("click", ".category-tab-sub", function() {
+    var $row = $(this).closest(".subcategory-tabs");
+    $row.find(".category-tab-sub").removeClass("active");
+    $(this).addClass("active");
+    scrollIntoCenter(this);
+    var category = String($(this).data("category"));
+    var slug = String($(this).data("slug") || "");
+    state.category = category;
+    state.categorySlug = slug;
+    state.offset = 0;
+    var $si = $("#searchInput");
+    if ($si.length && $si.val()) {
+      $si.val("");
+      $("#searchClear").removeClass("visible");
+      state.search = "";
+    }
+    fetchProducts({ offset: 0 });
+    updateUrl();
   });
   var $searchToggle = $("#searchToggle");
   var $shopSearch = $("#shopSearch");
@@ -743,15 +797,23 @@ TinyShop.initShop = function() {
   var needsFetch = false;
   var serverCategory = $shopPage.data("active-category");
   var serverSlug = $shopPage.data("active-slug");
+  var serverParent = $shopPage.data("active-parent");
   if (serverCategory) {
-    var $matchTab = $('#categoryTabs .category-tab[data-slug="' + serverSlug + '"]');
-    if ($matchTab.length) {
-      state.category = String($matchTab.data("category"));
-    } else {
+    if (serverParent && parseInt(serverParent, 10) > 0) {
+      activateSubcategoryBySlug(String(serverSlug));
       state.category = String(serverCategory);
+      state.categorySlug = String(serverSlug || "");
+    } else {
+      var $matchTab = $('#categoryTabs .category-tab[data-slug="' + serverSlug + '"]');
+      if ($matchTab.length) {
+        state.category = String($matchTab.data("category"));
+      } else {
+        state.category = String(serverCategory);
+      }
+      state.categorySlug = String(serverSlug || "");
+      syncCategoryUI(state.category);
+      showSubcategoryRow(String(serverSlug));
     }
-    state.categorySlug = String(serverSlug || "");
-    syncCategoryUI(state.category);
   }
   var urlCategory = urlParams.get("category");
   if (urlCategory && !serverCategory) {

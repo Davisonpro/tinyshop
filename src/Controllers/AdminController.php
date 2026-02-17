@@ -9,9 +9,11 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Enums\UserRole;
+use TinyShop\Models\Category;
 use TinyShop\Models\HelpArticle;
 use TinyShop\Models\HelpCategory;
 use TinyShop\Models\Page;
+use TinyShop\Models\ProductImage;
 use TinyShop\Models\User;
 use TinyShop\Models\Product;
 use TinyShop\Models\Order;
@@ -20,6 +22,8 @@ use TinyShop\Models\Setting;
 use TinyShop\Models\ShopView;
 use TinyShop\Models\Subscription;
 use TinyShop\Services\Auth;
+use TinyShop\Services\Importers\HttpClient;
+use TinyShop\Services\Importers\ImporterFactory;
 use TinyShop\Services\Mailer;
 use TinyShop\Services\Upload;
 use TinyShop\Services\Validation;
@@ -61,6 +65,10 @@ final class AdminController
         private readonly HelpCategory $helpCategoryModel,
         private readonly HelpArticle $helpArticleModel,
         private readonly Page $pageModel,
+        private readonly Category $categoryModel,
+        private readonly ProductImage $productImageModel,
+        private readonly ImporterFactory $importerFactory,
+        private readonly HttpClient $httpClient,
         private readonly Mailer $mailer,
         private readonly Upload $upload,
         private readonly Validation $validation,
@@ -1068,6 +1076,205 @@ final class AdminController
         ]);
 
         return $this->json($response, ['success' => true]);
+    }
+
+    // ── Product Import ──
+
+    public function import(Request $request, Response $response): Response
+    {
+        $sellers = $this->userModel->findSellers(500, 0);
+
+        return $this->view->render($response, 'pages/admin_import.tpl', [
+            'page_title'  => 'Import Product',
+            'active_page' => 'import',
+            'sellers'     => $sellers,
+        ]);
+    }
+
+    public function fetchImport(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $url  = trim($data['url'] ?? '');
+
+        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+            return $this->json($response, ['error' => true, 'message' => 'Please enter a valid product URL'], 422);
+        }
+
+        try {
+            $importer = $this->importerFactory->resolve($url);
+            $result   = $importer->fetch($url);
+            return $this->json($response, ['success' => true, 'product' => $result->toArray()]);
+        } catch (\Throwable $e) {
+            return $this->json($response, ['error' => true, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function saveImport(Request $request, Response $response): Response
+    {
+        $data     = (array) $request->getParsedBody();
+        $sellerId = (int) ($data['seller_id'] ?? 0);
+        $title    = trim($data['title'] ?? '');
+        $price    = (float) ($data['price'] ?? 0);
+
+        if ($sellerId === 0) {
+            return $this->json($response, ['error' => true, 'message' => 'Please select a seller'], 422);
+        }
+
+        $seller = $this->userModel->findById($sellerId);
+        if (!$seller) {
+            return $this->json($response, ['error' => true, 'message' => 'Seller not found'], 404);
+        }
+
+        if ($title === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Product title is required'], 422);
+        }
+
+        // Resolve / create category hierarchy — match existing before creating
+        $categoryId = null;
+        $categories = $data['categories'] ?? [];
+        if (!empty($categories) && is_array($categories)) {
+            $parentId = null;
+            foreach ($categories as $catName) {
+                $catName = trim($catName);
+                if ($catName === '') {
+                    continue;
+                }
+
+                // Try matching by name (case-insensitive) + parent, then by slug, then globally
+                $existing = $this->categoryModel->findByUserNameAndParent($sellerId, $catName, $parentId);
+                if ($existing) {
+                    $categoryId = (int) $existing['id'];
+                } else {
+                    $categoryId = $this->categoryModel->create([
+                        'user_id'   => $sellerId,
+                        'parent_id' => $parentId,
+                        'name'      => $catName,
+                    ]);
+                }
+                $parentId = $categoryId;
+            }
+        }
+
+        // Download and store images
+        $imageUrls = [];
+        $remoteImages = $data['images'] ?? [];
+        if (is_array($remoteImages)) {
+            foreach ($remoteImages as $imgUrl) {
+                $stored = $this->downloadAndStoreImage($imgUrl);
+                if ($stored !== null) {
+                    $imageUrls[] = $stored;
+                }
+            }
+        }
+
+        $comparePrice = isset($data['compare_price']) && $data['compare_price'] !== '' && $data['compare_price'] !== null
+            ? (float) $data['compare_price'] : null;
+
+        // Convert flat WooCommerce variations to TinyShop grouped format
+        // From: [{name, price, attributes: {Group: Value}}]
+        // To:   [{name: "Group", options: [{value: "Value", price: N}]}]
+        $variations = null;
+        if (!empty($data['variations']) && is_array($data['variations'])) {
+            $grouped = $this->convertToGroupedVariations($data['variations']);
+            $variations = $this->validation->sanitizeVariations($grouped);
+        }
+
+        $slug = $this->validation->slug($title);
+        $slug = $this->productModel->ensureUniqueSlug($sellerId, $slug);
+
+        $productId = $this->productModel->create([
+            'user_id'        => $sellerId,
+            'category_id'    => $categoryId,
+            'name'           => $title,
+            'slug'           => $slug,
+            'description'    => trim($data['description'] ?? ''),
+            'price'          => $price,
+            'compare_price'  => $comparePrice,
+            'image_url'      => $imageUrls[0] ?? null,
+            'sort_order'     => 0,
+            'is_sold'        => 0,
+            'stock_quantity'  => null,
+            'is_featured'    => 0,
+            'variations'     => $variations,
+        ]);
+
+        // Sync product images
+        if (!empty($imageUrls)) {
+            $this->productImageModel->sync($productId, $imageUrls);
+        }
+
+        $this->logger->info('admin.product_imported', [
+            'admin_id'   => $this->auth->userId(),
+            'seller_id'  => $sellerId,
+            'product_id' => $productId,
+            'title'      => $title,
+        ]);
+
+        return $this->json($response, [
+            'success'    => true,
+            'product_id' => $productId,
+            'message'    => 'Product imported successfully',
+        ], 201);
+    }
+
+    /**
+     * Convert flat WooCommerce-style variations into TinyShop grouped format.
+     *
+     * Input:  [{name: "A / B", price: 100, attributes: {"Size": "A", "Color": "B"}}]
+     * Output: [{name: "Size", options: [{value: "A", price: 100}]}, {name: "Color", options: [{value: "B"}]}]
+     *
+     * @return array[]
+     */
+    private function convertToGroupedVariations(array $flatVariations): array
+    {
+        // Collect unique values per group and track min price for each value
+        $groups = [];      // groupName => [value => minPrice]
+        $groupOrder = [];   // preserve attribute order
+
+        foreach ($flatVariations as $v) {
+            $attributes = $v['attributes'] ?? [];
+            $price = $v['price'] ?? null;
+
+            foreach ($attributes as $groupName => $value) {
+                if (!isset($groups[$groupName])) {
+                    $groups[$groupName] = [];
+                    $groupOrder[] = $groupName;
+                }
+
+                // Track the minimum price for this option value
+                if (!isset($groups[$groupName][$value])) {
+                    $groups[$groupName][$value] = $price;
+                } elseif ($price !== null && ($groups[$groupName][$value] === null || $price < $groups[$groupName][$value])) {
+                    $groups[$groupName][$value] = $price;
+                }
+            }
+        }
+
+        $result = [];
+        foreach ($groupOrder as $name) {
+            $options = [];
+            foreach ($groups[$name] as $value => $price) {
+                $opt = ['value' => (string) $value];
+                if ($price !== null) {
+                    $opt['price'] = $price;
+                }
+                $options[] = $opt;
+            }
+            $result[] = ['name' => $name, 'options' => $options];
+        }
+
+        return $result;
+    }
+
+    private function downloadAndStoreImage(string $url): ?string
+    {
+        try {
+            $tmpPath  = $this->httpClient->download($url);
+            $filename = basename(parse_url($url, PHP_URL_PATH) ?? 'image.jpg');
+            return $this->upload->storeFromPath($tmpPath, $filename);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     private function httpPing(string $url): bool

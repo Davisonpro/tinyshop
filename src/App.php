@@ -152,7 +152,7 @@ final class App
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #F9FAFB; color: #1F2937; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
                 .error-wrap { text-align: center; max-width: 420px; width: 100%; }
-                .error-icon { font-size: 3rem; margin-bottom: 16px; }
+                .error-icon { margin-bottom: 16px; }
                 .error-title { font-size: 1.375rem; font-weight: 700; margin-bottom: 8px; }
                 .error-text { font-size: 0.9375rem; color: #6B7280; line-height: 1.6; margin-bottom: 24px; }
                 .error-btn { display: inline-block; padding: 12px 28px; background: #111827; color: #fff; border-radius: 10px; text-decoration: none; font-size: 0.9375rem; font-weight: 600; }
@@ -161,7 +161,7 @@ final class App
         </head>
         <body>
             <div class="error-wrap">
-                <div class="error-icon">&#9888;&#65039;</div>
+                <div class="error-icon"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
                 <h1 class="error-title">Something went wrong</h1>
                 <p class="error-text">We hit an unexpected error. Please try again or go back to the homepage.</p>
                 <a href="/" class="error-btn">Go to homepage</a>

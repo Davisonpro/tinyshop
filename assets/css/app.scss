@@ -1073,6 +1073,43 @@ textarea.form-control {
     color: #fff;
 }
 
+/* Subcategory Tabs — second row beneath parent pills */
+.subcategory-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    @include hide-scrollbar;
+    padding: 0 0 var(--spacing-sm);
+    margin-top: -4px;
+    scroll-padding: 0 var(--spacing-md);
+}
+
+.category-tab-sub {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    @include tap-reset;
+}
+
+.category-tab-sub:active {
+    transform: scale(0.95);
+}
+
+.category-tab-sub.active {
+    background: var(--color-text);
+    color: var(--color-bg);
+    border-color: var(--color-text);
+}
+
 /* Category Image Cards — horizontal scroll */
 .category-cards-scroll {
     display: flex;
@@ -1777,10 +1814,15 @@ a.product-card {
     margin: 12px 0 4px;
 }
 .product-info-desc h3:first-child { margin-top: 0; }
-.product-info-desc ul,
+.product-info-desc ul {
+    padding-left: 20px;
+    margin: 8px 0;
+    list-style: disc;
+}
 .product-info-desc ol {
     padding-left: 20px;
     margin: 8px 0;
+    list-style: decimal;
 }
 .product-info-desc li { margin-bottom: 2px; }
 .product-info-desc p { margin: 0 0 8px; }

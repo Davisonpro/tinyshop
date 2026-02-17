@@ -70,6 +70,10 @@ final class ShopController
 
         $shopId = (int) $shop['id'];
 
+        // Fetch categories early — needed for resolving active category children
+        $categories = $this->categoryModel->findByUser($shopId);
+        $categoryTree = $this->categoryModel->findByUserAsTree($shopId);
+
         // Resolve category from slug
         $activeCategory = null;
         $activeCategoryIds = null;
@@ -82,7 +86,15 @@ final class ShopController
                     ['page_title' => 'Category Not Found']
                 );
             }
-            $activeCategoryIds = (string) $activeCategory['id'];
+            // Include parent + all children so subcategory products appear
+            $catId = (int) $activeCategory['id'];
+            $ids = [$catId];
+            foreach ($categories as $cat) {
+                if ((int) ($cat['parent_id'] ?? 0) === $catId) {
+                    $ids[] = (int) $cat['id'];
+                }
+            }
+            $activeCategoryIds = implode(',', $ids);
         }
 
         $products = $this->productModel->findActiveByUserPaginated($shopId, self::PRODUCTS_PER_PAGE, 0, null, $activeCategoryIds);
@@ -94,8 +106,6 @@ final class ShopController
         unset($p);
 
         $products = Hooks::applyFilter('shop.products', $products, $shop);
-        $categories = $this->categoryModel->findByUser($shopId);
-        $categoryTree = $this->categoryModel->findByUserAsTree($shopId);
 
         $currency = $shop['currency'] ?? self::DEFAULT_CURRENCY;
         $currencySymbol = self::resolveCurrencySymbol($currency);

@@ -64,6 +64,12 @@
             </div>
             <strong>Help Center</strong>
         </a>
+        <a href="/admin/import" class="action-card">
+            <div class="action-icon orange">
+                <i class="fa-solid fa-file-import icon-lg"></i>
+            </div>
+            <strong>Import</strong>
+        </a>
         <a href="/admin/pages" class="action-card">
             <div class="action-icon teal">
                 <i class="fa-solid fa-file-lines icon-lg"></i>
@@ -77,7 +83,7 @@
             <strong>Settings</strong>
         </a>
         <a href="/logout" class="action-card">
-            <div class="action-icon orange">
+            <div class="action-icon red">
                 <i class="fa-solid fa-right-from-bracket icon-lg"></i>
             </div>
             <strong>Logout</strong>

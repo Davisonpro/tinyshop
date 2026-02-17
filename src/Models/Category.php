@@ -43,6 +43,58 @@ final class Category
         return $row ?: null;
     }
 
+    /**
+     * Find a category by name (case-insensitive) under a specific parent.
+     * Tries exact name match first, then slug match as fallback.
+     */
+    public function findByUserNameAndParent(int $userId, string $name, ?int $parentId): ?array
+    {
+        // Exact name match (case-insensitive) under this parent
+        $sql = 'SELECT * FROM categories WHERE user_id = ? AND LOWER(name) = LOWER(?)';
+        $params = [$userId, trim($name)];
+
+        if ($parentId === null) {
+            $sql .= ' AND parent_id IS NULL';
+        } else {
+            $sql .= ' AND parent_id = ?';
+            $params[] = $parentId;
+        }
+
+        $stmt = $this->db->prepare($sql . ' LIMIT 1');
+        $stmt->execute($params);
+        $row = $stmt->fetch();
+        if ($row) {
+            return $row;
+        }
+
+        // Slug match under this parent (handles "Smart Phones" matching "smart-phones")
+        $slug = self::generateSlug($name);
+        $sql2 = 'SELECT * FROM categories WHERE user_id = ? AND slug = ?';
+        $params2 = [$userId, $slug];
+
+        if ($parentId === null) {
+            $sql2 .= ' AND parent_id IS NULL';
+        } else {
+            $sql2 .= ' AND parent_id = ?';
+            $params2[] = $parentId;
+        }
+
+        $stmt2 = $this->db->prepare($sql2 . ' LIMIT 1');
+        $stmt2->execute($params2);
+        $row2 = $stmt2->fetch();
+        if ($row2) {
+            return $row2;
+        }
+
+        // Last resort: name match anywhere for this user (ignore parent)
+        $stmt3 = $this->db->prepare(
+            'SELECT * FROM categories WHERE user_id = ? AND LOWER(name) = LOWER(?) LIMIT 1'
+        );
+        $stmt3->execute([$userId, trim($name)]);
+        $row3 = $stmt3->fetch();
+        return $row3 ?: null;
+    }
+
     public function findByUserAsTree(int $userId): array
     {
         $all = $this->findByUser($userId);
