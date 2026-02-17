@@ -160,7 +160,7 @@
                 </div>
                 <label class="toggle-switch">
                     <input type="checkbox" id="allowRegistration" data-key="allow_registration" {if $settings.allow_registration == '1'}checked{/if}>
-                    <span class="toggle-track"></span>
+                    <span class="toggle-slider"></span>
                 </label>
             </div>
         </div>
@@ -173,7 +173,7 @@
                 </div>
                 <label class="toggle-switch">
                     <input type="checkbox" id="maintenanceMode" data-key="maintenance_mode" {if $settings.maintenance_mode == '1'}checked{/if}>
-                    <span class="toggle-track"></span>
+                    <span class="toggle-slider"></span>
                 </label>
             </div>
         </div>
@@ -354,6 +354,23 @@
         </div>
     </div>
 </div>
+
+{* --- Preferences --- *}
+<div class="dash-form" style="padding-top:0">
+    <div class="form-section">
+        <div class="form-section-title">Preferences</div>
+        <div class="form-toggle-row">
+            <div>
+                <div class="form-toggle-label">Dark mode</div>
+                <p class="form-hint" style="margin-top:2px">Use a darker look for the admin panel</p>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="darkModeToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+</div>
 {/block}
 
 {block name="extra_scripts"}
@@ -368,6 +385,15 @@ function togglePw(btn) {ldelim}
 {rdelim}
 
 (function() {ldelim}
+    // --- Dark mode toggle ---
+    var $darkToggle = $('#darkModeToggle');
+    $darkToggle.prop('checked', document.documentElement.getAttribute('data-theme') === 'dark');
+    $darkToggle.on('change', function() {ldelim}
+        var theme = this.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    {rdelim});
+
     var $form = $('#settingsForm');
 
     $form.on('submit', function(e) {ldelim}

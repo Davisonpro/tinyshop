@@ -100,6 +100,8 @@
             {/if}
         </div>
 
+        {include file="partials/product_whatsapp.tpl"}
+
         {* Variations *}
         {if !empty($product.variations_data)}
         <div class="product-variations" id="productVariations">

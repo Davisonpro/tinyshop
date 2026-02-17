@@ -422,6 +422,7 @@ final class ShopController
             'name'             => $shopName,
             'short_name'       => mb_substr($shopName, 0, 12),
             'description'      => $shop['shop_tagline'] ?: 'Browse products from ' . $shopName,
+            'id'               => '/',
             'start_url'        => '/',
             'display'          => 'standalone',
             'background_color' => '#F5F5F7',
@@ -431,13 +432,17 @@ final class ShopController
 
         if ($icon) {
             $manifest['icons'] = [
-                ['src' => $icon, 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
-                ['src' => $icon, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+                ['src' => $icon, 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => $icon, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => $icon, 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
+                ['src' => $icon, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
             ];
         } else {
             $manifest['icons'] = [
-                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
-                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
+                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
             ];
         }
 

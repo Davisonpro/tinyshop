@@ -64,6 +64,12 @@
             </div>
             <strong>Help Center</strong>
         </a>
+        <a href="/admin/pages" class="action-card">
+            <div class="action-icon teal">
+                <i class="fa-solid fa-file-lines icon-lg"></i>
+            </div>
+            <strong>Pages</strong>
+        </a>
         <a href="/admin/settings" class="action-card">
             <div class="action-icon blue">
                 <i class="fa-solid fa-gear icon-lg"></i>

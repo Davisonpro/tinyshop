@@ -29,6 +29,10 @@
                 <span class="sd-status-dot"></span>
                 {if $seller.is_active}Active{else}Suspended{/if}
             </button>
+            <button type="button" class="sd-status-btn sd-showcase-btn{if $seller.is_showcased} showcased{/if}" id="showcaseToggle" data-id="{$seller.id}" data-showcased="{$seller.is_showcased}">
+                <i class="fa-solid fa-star"></i>
+                {if $seller.is_showcased}Featured{else}Feature{/if}
+            </button>
         </div>
     </div>
 
@@ -146,6 +150,31 @@
             .fail(function(xhr) {ldelim}
                 var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to update status';
                 TinyShop.toast(msg, 'error');
+            {rdelim})
+            .always(function() {ldelim}
+                $el.prop('disabled', false);
+            {rdelim});
+    {rdelim});
+
+    // Showcase toggle
+    $('#showcaseToggle').on('click', function() {ldelim}
+        var $el = $(this);
+        var id = $el.data('id');
+        var current = String($el.data('showcased')) === '1';
+        var newState = !current;
+
+        $el.prop('disabled', true);
+        TinyShop.api('PUT', '/api/admin/sellers/' + id + '/toggle', {ldelim} is_showcased: newState ? 1 : 0 {rdelim})
+            .done(function(res) {ldelim}
+                if (res.success) {ldelim}
+                    $el.data('showcased', newState ? '1' : '0');
+                    $el.toggleClass('showcased', newState);
+                    $el.html('<i class="fa-solid fa-star"></i> ' + (newState ? 'Featured' : 'Feature'));
+                    TinyShop.toast(newState ? 'Shop featured on landing page' : 'Shop removed from landing page');
+                {rdelim}
+            {rdelim})
+            .fail(function(xhr) {ldelim}
+                TinyShop.toast('Failed to update', 'error');
             {rdelim})
             .always(function() {ldelim}
                 $el.prop('disabled', false);

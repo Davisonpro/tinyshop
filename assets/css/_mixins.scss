@@ -1,0 +1,110 @@
+// ============================================================
+// Mixins
+// ============================================================
+
+@use 'variables' as *;
+
+// ── Text Truncation (single-line) ──
+@mixin truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Multi-line Truncation ──
+@mixin line-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ── Flex Center ──
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ── Hide Scrollbar ──
+@mixin hide-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+// ── Tap Highlight Reset ──
+@mixin tap-reset {
+  -webkit-tap-highlight-color: transparent;
+}
+
+// ── Cover Image ──
+@mixin cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+// ── Active Press Feedback ──
+@mixin press($scale: 0.97) {
+  &:active {
+    transform: scale($scale);
+  }
+}
+
+// ── Focus Ring ──
+@mixin focus-ring($color: $focus-ring-color) {
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px $color;
+  }
+}
+
+// ── Bottom Sheet Overlay ──
+@mixin overlay-backdrop($z: 200) {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: $z;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s;
+
+  &.active {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+// ── iOS-style Card List ──
+@mixin card-list($gap: 2px) {
+  display: flex;
+  flex-direction: column;
+  gap: $gap;
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+// ── Shimmer Loading ──
+@mixin shimmer {
+  background: linear-gradient(90deg, var(--color-bg-alt) 25%, var(--color-bg-secondary) 50%, var(--color-bg-alt) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+// ── Breakpoint Helpers ──
+@mixin tablet {
+  @media (min-width: $bp-tablet) { @content; }
+}
+
+@mixin desktop {
+  @media (min-width: $bp-desktop) { @content; }
+}
+
+@mixin wide {
+  @media (min-width: $bp-wide) { @content; }
+}

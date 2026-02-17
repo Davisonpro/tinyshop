@@ -99,6 +99,8 @@
             {/if}
         </div>
 
+        {include file="partials/product_whatsapp.tpl"}
+
         {* Variations — square blocks, uppercase, thick borders *}
         {if !empty($product.variations_data)}
         <div class="product-variations" id="productVariations">

@@ -77,7 +77,7 @@
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" id="artPublished" {if !$is_edit || $article.is_published}checked{/if}>
-                <span class="toggle-track"></span>
+                <span class="toggle-slider"></span>
             </label>
         </div>
     </div>

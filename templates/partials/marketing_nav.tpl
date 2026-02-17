@@ -82,9 +82,9 @@
 
     backdrop.addEventListener('click', closeMenu);
 
-    // Close on link click
     menu.querySelectorAll('a').forEach(function(link) {ldelim}
         link.addEventListener('click', closeMenu);
     {rdelim});
+
 {rdelim})();
 </script>

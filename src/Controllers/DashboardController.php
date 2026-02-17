@@ -195,6 +195,7 @@ final class DashboardController
 
         // Add computed fields for template display
         $plans = array_map(function (array $plan): array {
+            $plan['feature_list'] = $plan['features'] ? json_decode($plan['features'], true) : [];
             $plan['all_themes'] = $plan['allowed_themes'] === null;
             $plan['custom_domain'] = (bool) $plan['custom_domain_allowed'];
             $plan['coupons'] = (bool) $plan['coupons_allowed'];

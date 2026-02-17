@@ -21,6 +21,8 @@
                 <div class="plan-card-info">
                     <h3 class="plan-card-name">{$plan.name|escape}</h3>
                     {if $plan.is_default}<span class="plan-badge plan-badge-default">Default</span>{/if}
+                    {if $plan.is_featured}<span class="plan-badge plan-badge-featured">Featured</span>{/if}
+                    {if $plan.badge_text}<span class="plan-badge plan-badge-custom">{$plan.badge_text|escape}</span>{/if}
                     {if !$plan.is_active}<span class="plan-badge plan-badge-inactive">Inactive</span>{/if}
                 </div>
                 <button type="button" class="plan-card-edit" data-edit="{$plan.id}" aria-label="Edit plan">
@@ -46,18 +48,12 @@
                     <i class="fa-solid fa-box"></i>
                     {if $plan.max_products}{$plan.max_products} products{else}Unlimited products{/if}
                 </span>
+                {if $plan.cta_text}
                 <span class="plan-feature">
-                    <i class="fa-solid fa-palette"></i>
-                    {if $plan.allowed_themes}Limited themes{else}All themes{/if}
+                    <i class="fa-solid fa-arrow-pointer"></i>
+                    CTA: {$plan.cta_text|escape}
                 </span>
-                <span class="plan-feature">
-                    <i class="fa-solid fa-globe"></i>
-                    {if $plan.custom_domain_allowed}Custom domain{else}No custom domain{/if}
-                </span>
-                <span class="plan-feature">
-                    <i class="fa-solid fa-tag"></i>
-                    {if $plan.coupons_allowed}Coupons{else}No coupons{/if}
-                </span>
+                {/if}
             </div>
             <div class="plan-card-footer">
                 <span class="plan-card-subs">{$plan.subscriber_count} subscriber{if $plan.subscriber_count != 1}s{/if}</span>
@@ -78,6 +74,10 @@
 (function() {ldelim}
     var plans = {$plans|json_encode};
 
+    function esc(str) {ldelim}
+        return (str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    {rdelim}
+
     function openPlanForm(plan) {ldelim}
         var isEdit = !!plan;
         var p = plan || {ldelim}{rdelim};
@@ -88,16 +88,22 @@
         {rdelim}
         var allThemes = themes === null;
 
+        // Parse existing features
+        var features = [];
+        if (p.features) {ldelim}
+            try {ldelim} features = JSON.parse(p.features); {rdelim} catch(e) {ldelim}{rdelim}
+        {rdelim}
+
         var validThemes = ['classic','bloom','ember','ivory','monaco','obsidian','volt','halloween'];
 
         var html = '<form id="planForm" autocomplete="off">'
             + '<div class="form-group">'
             + '<label for="planName">Plan Name</label>'
-            + '<input type="text" class="form-control" id="planName" value="' + (p.name || '').replace(/"/g, '&quot;') + '" placeholder="e.g. Pro" required>'
+            + '<input type="text" class="form-control" id="planName" value="' + esc(p.name) + '" placeholder="e.g. Pro" required>'
             + '</div>'
             + '<div class="form-group">'
             + '<label for="planDesc">Description</label>'
-            + '<input type="text" class="form-control" id="planDesc" value="' + (p.description || '').replace(/"/g, '&quot;') + '" placeholder="Short description" maxlength="300">'
+            + '<input type="text" class="form-control" id="planDesc" value="' + esc(p.description) + '" placeholder="Short description" maxlength="300">'
             + '</div>'
             + '<div class="form-group settings-inline-group">'
             + '<div class="settings-inline-field">'
@@ -120,7 +126,42 @@
         {rdelim}
 
         html += '</select></div>'
-            + '<div class="form-section-title mt-md"><i class="fa-solid fa-sliders icon-xs"></i> Features</div>'
+            + '<div class="form-section-title mt-md"><i class="fa-solid fa-bullhorn icon-xs"></i> Pricing Page</div>'
+            + '<div class="form-group">'
+            + '<label for="planCtaText">Button Text</label>'
+            + '<input type="text" class="form-control" id="planCtaText" value="' + esc(p.cta_text) + '" placeholder="e.g. Start Free, Upgrade to Pro" maxlength="100">'
+            + '</div>'
+            + '<div class="form-group">'
+            + '<label for="planBadgeText">Badge Text</label>'
+            + '<input type="text" class="form-control" id="planBadgeText" value="' + esc(p.badge_text) + '" placeholder="e.g. Most popular (leave empty for none)" maxlength="50">'
+            + '</div>'
+            + '<div class="form-group">'
+            + '<div class="settings-toggle-row"><div class="settings-toggle-info"><span class="settings-toggle-label">Highlighted</span><span class="settings-toggle-desc">Make this plan stand out on pricing page</span></div>'
+            + '<label class="toggle-switch"><input type="checkbox" id="planFeatured"' + (p.is_featured ? ' checked' : '') + '><span class="toggle-slider"></span></label></div>'
+            + '</div>'
+
+            + '<div class="form-section-title mt-md"><i class="fa-solid fa-list-check icon-xs"></i> Features List</div>'
+            + '<p class="form-hint">These appear as bullet points on the pricing page.</p>'
+            + '<div id="featuresEditor">';
+
+        if (features.length > 0) {ldelim}
+            for (var f = 0; f < features.length; f++) {ldelim}
+                html += '<div class="feature-row">'
+                    + '<input type="text" class="form-control feature-input" value="' + esc(features[f]) + '" placeholder="e.g. Unlimited products">'
+                    + '<button type="button" class="feature-remove" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>'
+                    + '</div>';
+            {rdelim}
+        {rdelim} else {ldelim}
+            html += '<div class="feature-row">'
+                + '<input type="text" class="form-control feature-input" value="" placeholder="e.g. Unlimited products">'
+                + '<button type="button" class="feature-remove" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>'
+                + '</div>';
+        {rdelim}
+
+        html += '</div>'
+            + '<button type="button" class="btn-text" id="addFeatureBtn"><i class="fa-solid fa-plus"></i> Add feature</button>'
+
+            + '<div class="form-section-title mt-md"><i class="fa-solid fa-sliders icon-xs"></i> Limits</div>'
             + '<div class="form-group">'
             + '<label for="planMaxProducts">Max Products</label>'
             + '<input type="number" class="form-control" id="planMaxProducts" value="' + (p.max_products !== null && p.max_products !== undefined ? p.max_products : '') + '" min="1" placeholder="Leave empty for unlimited">'
@@ -141,19 +182,19 @@
         html += '</div></div>'
             + '<div class="form-group">'
             + '<div class="settings-toggle-row"><div class="settings-toggle-info"><span class="settings-toggle-label">Custom Domain</span></div>'
-            + '<label class="toggle-switch"><input type="checkbox" id="planCustomDomain"' + (p.custom_domain_allowed ? ' checked' : '') + '><span class="toggle-track"></span></label></div>'
+            + '<label class="toggle-switch"><input type="checkbox" id="planCustomDomain"' + (p.custom_domain_allowed ? ' checked' : '') + '><span class="toggle-slider"></span></label></div>'
             + '</div>'
             + '<div class="form-group">'
             + '<div class="settings-toggle-row"><div class="settings-toggle-info"><span class="settings-toggle-label">Coupons</span></div>'
-            + '<label class="toggle-switch"><input type="checkbox" id="planCoupons"' + (p.coupons_allowed ? ' checked' : '') + '><span class="toggle-track"></span></label></div>'
+            + '<label class="toggle-switch"><input type="checkbox" id="planCoupons"' + (p.coupons_allowed ? ' checked' : '') + '><span class="toggle-slider"></span></label></div>'
             + '</div>'
             + '<div class="form-group">'
             + '<div class="settings-toggle-row"><div class="settings-toggle-info"><span class="settings-toggle-label">Default Plan</span><span class="settings-toggle-desc">Given to new sellers on signup</span></div>'
-            + '<label class="toggle-switch"><input type="checkbox" id="planDefault"' + (p.is_default ? ' checked' : '') + '><span class="toggle-track"></span></label></div>'
+            + '<label class="toggle-switch"><input type="checkbox" id="planDefault"' + (p.is_default ? ' checked' : '') + '><span class="toggle-slider"></span></label></div>'
             + '</div>'
             + '<div class="form-group">'
             + '<div class="settings-toggle-row"><div class="settings-toggle-info"><span class="settings-toggle-label">Active</span></div>'
-            + '<label class="toggle-switch"><input type="checkbox" id="planActive"' + (p.is_active !== undefined ? (p.is_active ? ' checked' : '') : ' checked') + '><span class="toggle-track"></span></label></div>'
+            + '<label class="toggle-switch"><input type="checkbox" id="planActive"' + (p.is_active !== undefined ? (p.is_active ? ' checked' : '') : ' checked') + '><span class="toggle-slider"></span></label></div>'
             + '</div>'
             + '<div class="form-group">'
             + '<label for="planSortOrder">Sort Order</label>'
@@ -175,9 +216,37 @@
             $('#themeCheckboxes').toggle(this.value === 'select');
         {rdelim});
 
+        // Add feature row
+        $('#addFeatureBtn').on('click', function() {ldelim}
+            $('#featuresEditor').append(
+                '<div class="feature-row">'
+                + '<input type="text" class="form-control feature-input" value="" placeholder="e.g. Priority support">'
+                + '<button type="button" class="feature-remove" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>'
+                + '</div>'
+            );
+        {rdelim});
+
+        // Remove feature row
+        $(document).on('click', '.feature-remove', function() {ldelim}
+            var $editor = $('#featuresEditor');
+            if ($editor.find('.feature-row').length > 1) {ldelim}
+                $(this).closest('.feature-row').remove();
+            {rdelim} else {ldelim}
+                $(this).siblings('.feature-input').val('');
+            {rdelim}
+        {rdelim});
+
         // Save handler
         $('#planForm').on('submit', function(e) {ldelim}
             e.preventDefault();
+
+            // Collect features
+            var featuresList = [];
+            $('.feature-input').each(function() {ldelim}
+                var v = $(this).val().trim();
+                if (v) featuresList.push(v);
+            {rdelim});
+
             var formData = {ldelim}
                 name: $('#planName').val().trim(),
                 description: $('#planDesc').val().trim(),
@@ -187,6 +256,10 @@
                 max_products: $('#planMaxProducts').val() || null,
                 custom_domain_allowed: $('#planCustomDomain').is(':checked') ? 1 : 0,
                 coupons_allowed: $('#planCoupons').is(':checked') ? 1 : 0,
+                features: featuresList,
+                cta_text: $('#planCtaText').val().trim(),
+                badge_text: $('#planBadgeText').val().trim(),
+                is_featured: $('#planFeatured').is(':checked') ? 1 : 0,
                 is_default: $('#planDefault').is(':checked') ? 1 : 0,
                 is_active: $('#planActive').is(':checked') ? 1 : 0,
                 sort_order: parseInt($('#planSortOrder').val()) || 0

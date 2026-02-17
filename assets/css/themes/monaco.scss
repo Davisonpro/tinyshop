@@ -1,0 +1,1604 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+/* ============================================================
+   MONACO — Premium Luxury. Haute Couture. Gold on Cream.
+   Think: Chanel, Cartier, Tom Ford, Bottega Veneta, Hermes, The Row.
+   Perfect for: high-end fashion, jewelry, watches, luxury goods,
+   designer accessories, bespoke ateliers.
+
+   Design philosophy: Luxury is restraint. No shadows — confidence
+   needs no depth tricks. Squared edges — because perfection does
+   not round its corners. Gold speaks quietly on warm cream. Every
+   letter is uppercase and generously spaced, like an engraving on
+   a gold clasp. Georgia serif throughout — the typography of legacy.
+
+   Layout: Grand centered header — logo as emblem, name as title
+   card, tagline as whispered promise. Gold-outlined text pills for
+   contact. Portrait 3:4 product images. "Collection" label on cards.
+   Gold underline category tabs. Flat, assured, unwavering.
+
+   Template overrides: shop_header.tpl, product_card.tpl
+   ============================================================ */
+
+
+/* ============================================================
+   1. THEME VARIABLES — The Luxury Palette
+   ============================================================ */
+
+.theme-monaco {
+    --color-primary: #1A1A1A;
+    --color-primary-hover: #333333;
+    --color-accent: #D49A0A;
+    --color-accent-hover: #B58208;
+    --color-bg: #FDFCF8;
+    --color-bg-alt: #F6F3EB;
+    --color-bg-secondary: #EDE8DC;
+    --color-bg-elevated: #FDFCF8;
+    --color-border: #DDD8C8;
+    --color-text: #1A1A1A;
+    --color-text-muted: #55493A;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+
+/* ============================================================
+   2. PAGE BACKGROUNDS — Warm Cream Canvas
+   ============================================================ */
+
+.theme-monaco .shop-page,
+.theme-monaco .product-page {
+    background: var(--color-bg);
+}
+
+
+/* ============================================================
+   3. SHOP HEADER — Grand Centered Layout
+   Text-align center. Logo alone as emblem. Name below as title
+   card. Tagline as whispered italic promise. Gold bottom border
+   separates the maison from the collection.
+   ============================================================ */
+
+.theme-monaco .shop-header {
+    text-align: center;
+    padding: var(--spacing-md) 0 var(--spacing-md);
+    border-bottom: 1px solid var(--color-accent);
+    margin-bottom: var(--spacing-md);
+}
+
+
+/* ============================================================
+   4. LOGO — 88px Emblem with Gold Frame
+   Gold border, gold shadow halo, 2px radius — a house crest.
+   Placeholder: dark bg, gold text, Georgia serif at 2.25rem.
+   ============================================================ */
+
+.theme-monaco .shop-logo {
+    max-height: 88px;
+    width: auto;
+    margin: 0 auto var(--spacing-md);
+    object-fit: contain;
+}
+
+.theme-monaco .shop-logo-placeholder {
+    width: 88px;
+    height: 88px;
+    margin: 0 auto var(--spacing-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary);
+    color: var(--color-accent);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 2.25rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+}
+
+
+/* ============================================================
+   5. SHOP NAME — Georgia Serif, Uppercase, Wide Spacing
+   400 weight — luxury never shouts. 1.625rem — commanding but
+   refined. 0.14em letter-spacing — like engraved gold lettering.
+   ============================================================ */
+
+.theme-monaco .shop-name {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-weight: 600;
+    font-size: 1.625rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    line-height: 1.2;
+    margin-bottom: 6px;
+}
+
+
+/* ============================================================
+   6. TAGLINE — Italic Whisper
+   Understated. 0.03em spacing. Muted gold-brown. 0.875rem.
+   The quiet confidence of a house motto.
+   ============================================================ */
+
+.theme-monaco .shop-tagline {
+    font-style: italic;
+    font-size: 0.875rem;
+    letter-spacing: 0.03em;
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   7. CONTACT — Gold-Outlined Text Pills
+   Transparent bg, 1px solid gold border, gold text, 2px radius.
+   0.625rem, 0.08em spacing, uppercase, 500 weight. No icons —
+   just text, like gilt-edged business cards.
+   Hover: gold fill floods in, text turns white.
+   ============================================================ */
+
+.theme-monaco .shop-contact {
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-sm);
+}
+
+.theme-monaco .shop-contact a {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    border-radius: 2px;
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 6px 14px;
+    text-decoration: none;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+.theme-monaco .shop-contact a:hover {
+    background: var(--color-accent);
+    color: #FFFFFF;
+}
+
+/* Hide SVG icons in contact — text-only luxury */
+.theme-monaco .shop-contact a svg {
+    display: none;
+}
+
+
+/* ============================================================
+   8. SEARCH TOGGLE — Inline Pill Matching Contact Style
+   Not a circle — a pill. 2px radius. Gold outlined. Inline with
+   contact row. Consistent with the maison's visual language.
+   ============================================================ */
+
+.theme-monaco .shop-search-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: auto;
+    min-width: 36px;
+    min-height: 30px;
+    background: transparent;
+    border: 1px solid var(--color-accent);
+    border-radius: 2px;
+    color: var(--color-accent);
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+.theme-monaco .shop-search-toggle:hover {
+    background: var(--color-accent);
+    color: #FFFFFF;
+}
+
+.theme-monaco .shop-search-toggle:active {
+    transform: scale(0.96);
+}
+
+
+/* ============================================================
+   9. SHARE BUTTON — Same Gold-Outlined Pill
+   Consistency is the hallmark of a luxury house.
+   ============================================================ */
+
+.theme-monaco .shop-share-btn {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    border-radius: 2px;
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+.theme-monaco .shop-share-btn:hover {
+    background: var(--color-accent);
+    color: #FFFFFF;
+}
+
+
+/* ============================================================
+   10. SOCIAL — Centered, Gold Icons, Transparent Background
+   2px radius hover. Gold icon color. The social presence of
+   a maison is understated but unmistakable.
+   ============================================================ */
+
+.theme-monaco .shop-social {
+    justify-content: center;
+    gap: 6px;
+    margin-top: var(--spacing-xs);
+}
+
+.theme-monaco .shop-social a {
+    color: var(--color-accent);
+    background: transparent;
+    border-radius: 2px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.theme-monaco .shop-social a:hover {
+    background: var(--color-bg-alt);
+    color: var(--color-accent-hover);
+}
+
+
+/* ============================================================
+   11. SEARCH INPUT — Warm Alt Background, Georgia Serif
+   2px radius. Gold focus ring. The search bar of a concierge.
+   ============================================================ */
+
+.theme-monaco .shop-search-input {
+    background: var(--color-bg-alt);
+    border: 1px solid var(--color-border);
+    border-radius: 2px;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 0.875rem;
+    letter-spacing: 0.01em;
+    color: var(--color-text);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-monaco .shop-search-input:focus {
+    box-shadow: 0 0 0 2px var(--color-accent);
+    background: var(--color-bg);
+    border-color: var(--color-accent);
+    outline: none;
+}
+
+.theme-monaco .shop-search-icon {
+    color: var(--color-text-muted);
+}
+
+.theme-monaco .shop-search-clear {
+    color: var(--color-text-muted);
+}
+
+
+/* ============================================================
+   12. CATEGORIES — Gold-Bordered Circle Thumbnails
+   Hide pill tabs. Show image cards as circular gold-bordered
+   thumbnails — like a jewelry display case. Each category is
+   a small medallion with a portrait image inside a gold ring.
+   Serif labels beneath in micro uppercase.
+   ============================================================ */
+
+/* ── Announcement Bar ────────────────────────────────────── */
+.theme-monaco .announcement-bar {
+    background: var(--color-accent);
+    color: #fff;
+    border-radius: 2px;
+    margin: 0 0 12px;
+    font-family: Georgia, 'Times New Roman', serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Hide pill tabs, show image cards */
+.theme-monaco .category-tabs {
+    display: none !important;
+}
+.theme-monaco .category-cards-scroll {
+    display: flex !important;
+    gap: 14px;
+    padding: 0 var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    @include hide-scrollbar;
+}
+
+/* Category card — vertical column, no bg, no border on card itself */
+.theme-monaco .category-card {
+    width: 64px;
+    flex-shrink: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    gap: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+/* Category image — circular with gold border */
+.theme-monaco .category-card img {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-accent);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Category icon fallback — circular with gold border */
+.theme-monaco .category-card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--color-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Category label — micro serif uppercase */
+.theme-monaco .category-card-name {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    line-height: 1.2;
+    @include truncate;
+    max-width: 64px;
+    text-align: center;
+    transition: color 0.25s ease;
+}
+
+/* Active state — brighter gold ring with subtle glow */
+.theme-monaco .category-card.active img,
+.theme-monaco .category-card.active .category-card-icon {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(212,154,10,0.18);
+}
+
+.theme-monaco .category-card.active .category-card-name {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+/* Hover state */
+.theme-monaco .category-card:hover img,
+.theme-monaco .category-card:hover .category-card-icon {
+    box-shadow: 0 0 0 2px rgba(212,154,10,0.12);
+}
+
+/* Keep pill tab styles for edge-case (tabs-only, no images) */
+.theme-monaco .category-tabs.category-tabs-only {
+    display: flex !important;
+    gap: 0;
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-md);
+}
+
+.theme-monaco .category-tab {
+    border: none;
+    border-radius: 0;
+    padding: 10px 14px;
+    margin: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    transition: color 0.25s ease, border-color 0.25s ease;
+}
+
+.theme-monaco .category-tab:hover {
+    color: var(--color-accent);
+    background: transparent;
+}
+
+.theme-monaco .category-tab.active {
+    background: transparent;
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   13. PRODUCT COUNT — Uppercase Census
+   0.1em spacing. 0.625rem. Centered. The quiet count of a
+   curated collection.
+   ============================================================ */
+
+.theme-monaco .product-count {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.theme-monaco .product-toolbar {
+    margin-bottom: var(--spacing-sm);
+}
+.theme-monaco .product-sort {
+    border-radius: 2px;
+    border-color: var(--color-accent);
+    background: transparent;
+    color: var(--color-text);
+    font-family: Georgia, 'Times New Roman', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.75rem;
+}
+
+
+/* ============================================================
+   14. PRODUCT GRID — 20px Gap, Generous Breathing Room
+   ============================================================ */
+
+.theme-monaco .product-grid {
+    gap: 14px;
+    padding: var(--spacing-sm) 0 var(--spacing-lg);
+}
+
+
+/* ============================================================
+   15. PRODUCT CARDS — Gold Accent Border on Hover
+   1px border. 2px radius. No shadow at rest — luxury is flat
+   and assured. Gold box-shadow on hover (subtle halo). 3:4
+   portrait images — the proportions of a fashion editorial.
+   ============================================================ */
+
+.theme-monaco .product-card {
+    border: 1px solid var(--color-border);
+    border-radius: 2px;
+    background: var(--color-bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.theme-monaco .product-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: 0 4px 20px rgba(184,134,11,0.08);
+}
+
+.theme-monaco .product-card:active {
+    transform: scale(0.98);
+}
+
+/* 3:4 portrait images — fashion editorial proportions */
+.theme-monaco .product-card-img {
+    border-radius: 2px 2px 0 0;
+    background: var(--color-bg-alt);
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+}
+
+.theme-monaco .product-card-img img {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+.theme-monaco .product-card-body {
+    padding: 12px 12px 14px;
+}
+
+
+/* ============================================================
+   16. PRODUCT CARD LABEL — "Collection" Couture Marker
+   0.5625rem. 0.16em spacing. Uppercase. Gold color. The quiet
+   declaration that this is not mere merchandise — it is a
+   collection piece.
+   ============================================================ */
+
+.theme-monaco .product-card-label {
+    display: block;
+    font-size: 0.5625rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+
+/* ============================================================
+   17. PRODUCT TITLE — Georgia Serif, 400 Weight
+   Understated elegance. The product name is stated, not sold.
+   ============================================================ */
+
+.theme-monaco .product-title {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    line-height: 1.4;
+    margin-bottom: 4px;
+}
+
+
+/* ============================================================
+   18. PRODUCT PRICE — Gold Accent, 600 Weight
+   The price is a statement, rendered in gold.
+   ============================================================ */
+
+.theme-monaco .product-price {
+    color: var(--color-accent);
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+}
+
+.theme-monaco .product-price .price-compare {
+    color: var(--color-text-muted);
+    font-weight: 400;
+    font-size: 0.75rem;
+    text-decoration: line-through;
+}
+
+.theme-monaco .product-price .price-sale {
+    color: var(--color-accent);
+}
+
+
+/* ============================================================
+   19. BADGES — Zero Radius, Uppercase, Gold Sale
+   0 radius — square authority. 0.1em spacing. 0.5625rem.
+   Sale badge: gold bg. Sold badge: muted.
+   ============================================================ */
+
+.theme-monaco .product-badge {
+    border-radius: 0;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.5625rem;
+    font-weight: 600;
+    padding: 3px 8px;
+}
+
+.theme-monaco .product-badge-sale {
+    background: var(--color-accent);
+    color: #FFFFFF;
+}
+
+.theme-monaco .product-badge-sold {
+    background: rgba(26,26,26,0.65);
+    backdrop-filter: blur(4px);
+    color: #FFFFFF;
+}
+
+.theme-monaco .product-badge-featured {
+    background: var(--color-primary);
+    color: var(--color-accent);
+}
+
+
+/* ============================================================
+   20. PRODUCT DETAIL — Haute Couture Typography
+   .product-info-name: Georgia serif, 1.5rem, 400, 0.03em.
+   .price-current: gold, 600. .product-detail-badge: 0 radius.
+   ============================================================ */
+
+.theme-monaco .product-gallery {
+    background: var(--color-bg-alt);
+}
+
+.theme-monaco .product-gallery-slide {
+    background: var(--color-bg-alt);
+}
+
+.theme-monaco .product-info {
+    padding-top: var(--spacing-lg);
+}
+
+.theme-monaco .product-info-name {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+    color: var(--color-text);
+    margin-bottom: var(--spacing-sm);
+}
+
+.theme-monaco .product-info-price {
+    margin-bottom: var(--spacing-md);
+}
+
+.theme-monaco .product-info-price .price-current {
+    color: var(--color-accent);
+    font-weight: 600;
+    font-size: 1.25rem;
+    letter-spacing: 0.02em;
+}
+
+.theme-monaco .product-info-price .price-compare {
+    color: var(--color-text-muted);
+    font-weight: 400;
+}
+
+.theme-monaco .product-info-price .price-sale {
+    color: var(--color-accent);
+}
+
+.theme-monaco .product-detail-badge {
+    border-radius: 0;
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.theme-monaco .badge-sold {
+    background: var(--color-primary);
+    color: var(--color-bg);
+}
+
+.theme-monaco .badge-featured {
+    background: var(--color-primary);
+    color: var(--color-accent);
+}
+
+
+/* ============================================================
+   21. DISCOUNT BADGE — Gold, Zero Radius, Uppercase
+   0.08em spacing. The mark of an exceptional offer from the
+   maison — rare, like everything else.
+   ============================================================ */
+
+.theme-monaco .price-discount-badge {
+    background: var(--color-accent);
+    color: #FFFFFF;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.625rem;
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   22. GALLERY — Navigation & Dots
+   .product-nav-btn: 2px radius. .gallery-dot.active: gold.
+   ============================================================ */
+
+.theme-monaco .product-nav-btn {
+    border-radius: 2px;
+    background: rgba(26,26,26,0.15);
+    backdrop-filter: blur(6px);
+    color: var(--color-text);
+    transition: background 0.2s ease;
+}
+
+.theme-monaco .product-nav-btn:hover {
+    background: rgba(26,26,26,0.3);
+}
+
+.theme-monaco .gallery-dot {
+    background: rgba(184,134,11,0.25);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.theme-monaco .gallery-dot.active {
+    background: var(--color-accent);
+    transform: scale(1.15);
+}
+
+
+/* ============================================================
+   23. VARIATIONS — 2px Radius, Gold Selected
+   Gold border on selected. Gold fill. 0.04em spacing. Uppercase.
+   0.6875rem. The selection of options as deliberate as choosing
+   a gemstone setting.
+   ============================================================ */
+
+.theme-monaco .product-variations {
+    border-top-color: var(--color-border);
+}
+
+.theme-monaco .product-variation-label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.theme-monaco .product-variation-option {
+    border: 1px solid var(--color-border);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--color-text);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    padding: 9px 16px;
+    transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease;
+}
+
+.theme-monaco .product-variation-option:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.theme-monaco .product-variation-option.selected {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.theme-monaco .product-variation-option.selected small {
+    color: rgba(255,255,255,0.75);
+}
+
+
+/* ============================================================
+   24. DESCRIPTION — 1.8 Line-Height, Cream Gradient Fade
+   0.9375rem. The product story told with editorial spacing.
+   Gold toggle color — inviting deeper reading.
+   ============================================================ */
+
+.theme-monaco .product-info-desc {
+    line-height: 1.8;
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    letter-spacing: 0.005em;
+}
+
+.theme-monaco .product-info-desc:not(.expanded)::after {
+    background: linear-gradient(transparent, var(--color-bg));
+}
+
+.theme-monaco .product-desc-toggle {
+    color: var(--color-accent);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.theme-monaco .product-desc-toggle:hover {
+    color: var(--color-accent-hover);
+}
+
+
+/* ============================================================
+   25. CTA — Gold, 2px Radius, Commanding
+   0.08em spacing. Uppercase. 600 weight. 0.875rem. The final
+   gold invitation. Cream gradient before.
+   ============================================================ */
+
+.theme-monaco .sticky-cta {
+    background: var(--color-bg);
+}
+
+/* ── Cart Components ───────────────────────────────────────── */
+.theme-monaco .cart-qty-selector {
+    border-radius: 2px;
+    border-color: var(--color-accent);
+}
+.theme-monaco .cart-checkout-btn {
+    border-radius: 2px;
+    font-family: Georgia, 'Times New Roman', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.875rem;
+}
+.theme-monaco .cart-drawer {
+    border-radius: 2px 2px 0 0;
+}
+
+.theme-monaco .sticky-cta::before {
+    background: linear-gradient(transparent, var(--color-bg));
+}
+
+.theme-monaco .sticky-cta .btn {
+    background: var(--color-accent);
+    color: #FFFFFF;
+    border-radius: 2px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 0.875rem;
+    box-shadow: none;
+    padding: 15px 24px;
+    transition: background 0.25s ease;
+}
+
+.theme-monaco .sticky-cta .btn:hover {
+    background: var(--color-accent-hover);
+}
+
+
+/* ============================================================
+   26. MORE PRODUCTS — Georgia Serif Title, Gold Prices
+   400 weight. 0.08em spacing. Uppercase. 0.75rem. Muted color.
+   2px radius images. Gold prices. Continues the collection.
+   ============================================================ */
+
+.theme-monaco .more-products {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--spacing-xl);
+}
+
+.theme-monaco .more-products-title {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-md);
+}
+
+.theme-monaco .more-product-img {
+    border-radius: 2px;
+    background: var(--color-bg-alt);
+}
+
+.theme-monaco .more-product-name {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: var(--color-text);
+    letter-spacing: 0.01em;
+}
+
+.theme-monaco .more-product-price {
+    color: var(--color-accent);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* ── Load More ────────────────────────────────────────────── */
+.theme-monaco .load-more-btn {
+    border-radius: 2px;
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    font-family: Georgia, 'Times New Roman', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+/* ── Floating Contact CTA ─────────────────────────────────── */
+.theme-monaco .floating-contact-cta .btn {
+    border-radius: 2px;
+    font-family: Georgia, 'Times New Roman', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+
+/* ============================================================
+   27. FOOTER — Italic, Gold Border-Top, Centered
+   0.02em spacing. The colophon of the maison.
+   ============================================================ */
+
+.theme-monaco .shop-footer {
+    font-style: italic;
+    letter-spacing: 0.02em;
+    border-top: 1px solid var(--color-accent);
+    padding-top: var(--spacing-lg);
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.theme-monaco .shop-footer a {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.theme-monaco .shop-footer a:hover {
+    color: var(--color-accent-hover);
+}
+
+
+/* ============================================================
+   28. SHARE SHEET — Cream Background, 2px Radius Top
+   ============================================================ */
+
+.theme-monaco .share-sheet {
+    background: var(--color-bg);
+    border-radius: 2px 2px 0 0;
+}
+
+.theme-monaco .share-sheet-title {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 400;
+    color: var(--color-text);
+}
+
+.theme-monaco .share-sheet-option {
+    border-radius: 2px;
+    transition: background 0.2s ease;
+}
+
+.theme-monaco .share-sheet-option:hover {
+    background: var(--color-bg-alt);
+}
+
+.theme-monaco .share-sheet-cancel {
+    border-radius: 2px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+
+/* ============================================================
+   29. TOAST — Gold Background
+   ============================================================ */
+
+.theme-monaco .toast-success {
+    background: var(--color-accent);
+    color: #FFFFFF;
+    border-radius: 2px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+
+
+/* ── Mobile cart FAB — dark bg for visibility on white images ── */
+.theme-monaco .mobile-cart-fab {
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    border-radius: 2px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+
+/* ============================================================
+   30. BUTTON OVERRIDES — Gold Accent
+   ============================================================ */
+
+.theme-monaco .btn-primary {
+    background: var(--color-accent);
+    color: #FFFFFF;
+    border-radius: 2px;
+    box-shadow: none;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.theme-monaco .btn-primary:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+}
+
+.theme-monaco .btn-outline {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    border-radius: 2px;
+}
+
+.theme-monaco .btn-outline:hover:not(:disabled) {
+    background: var(--color-accent);
+    color: #FFFFFF;
+    border-color: var(--color-accent);
+}
+
+
+/* ============================================================
+   31. EMPTY STATE — Refined Messaging
+   ============================================================ */
+
+.theme-monaco .search-empty-title {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--color-text);
+}
+
+.theme-monaco .search-empty-hint {
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    letter-spacing: 0.01em;
+}
+
+
+/* ============================================================
+   32. COLLECTION TITLE — "The Collection" Above Grid
+   Centered, uppercase, gold, 0.6875rem. The declaration that
+   what follows is not inventory — it is a curated collection.
+   ============================================================ */
+
+.theme-monaco .monaco-collection-title {
+    text-align: center;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-accent, #B8860B);
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+
+/* ============================================================
+   33. PIECE LABEL — "Collection Piece" on Product Detail
+   Left-aligned, uppercase, gold. The quiet marker that this
+   object belongs to the maison's curated body of work.
+   ============================================================ */
+
+.theme-monaco .monaco-piece-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-accent, #B8860B);
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-align: left;
+}
+
+
+/* ============================================================
+   34. DECORATIVE GOLD DIVIDER — Between Logo and Name
+   A restrained gold line — 24px wide, 1px tall. The visual
+   punctuation of a luxury house. Centered below the emblem.
+   ============================================================ */
+
+.theme-monaco .monaco-divider {
+    width: 24px;
+    height: 1px;
+    background: var(--color-accent, #B8860B);
+    margin: var(--spacing-sm) auto;
+}
+
+
+/* ============================================================
+   35. CARD ACCENT LINE — Gold Top-Border in Card Body
+   A fine gold stroke above the "Collection" label. 20px wide,
+   1px tall. The finishing touch on each product card.
+   ============================================================ */
+
+.theme-monaco .monaco-card-accent {
+    width: 20px;
+    height: 2px;
+    background: var(--color-accent, #B8860B);
+    margin-bottom: 8px;
+}
+
+
+/* ============================================================
+   36. SPACIOUS GRID — 20px Gap for Breathing Room
+   The Monaco grid demands generous spacing between pieces.
+   ============================================================ */
+
+.theme-monaco .monaco-grid {
+    gap: 14px;
+}
+
+
+/* ============================================================
+   37. CARD BODY PADDING — Refined Spacing
+   More generous padding in the card body for the Monaco
+   treatment. The content needs room to breathe.
+   ============================================================ */
+
+.theme-monaco .product-card-body {
+    padding: 14px 14px 16px;
+}
+
+
+/* ============================================================
+   38. CTA — Gold, Uppercase, No Icons, Squared
+   The Monaco CTA hides all SVG icons. Text-only. The gold
+   button speaks for itself. Georgia serif for authority.
+   ============================================================ */
+
+.theme-monaco .sticky-cta .btn {
+    font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+.theme-monaco .sticky-cta .btn-whatsapp { background: $whatsapp; color: #fff; }
+
+.theme-monaco .product-whatsapp-cta {
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 15px 24px;
+}
+
+/* ============================================================
+   39. PRODUCT TOOLBAR — Centered Count
+   The product count is centered and uppercase for Monaco.
+   ============================================================ */
+
+.theme-monaco .product-toolbar {
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.theme-monaco .product-count {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
+
+/* ============================================================
+   40. FOOTER — Gold Top Border, Italic Serif, Centered
+   The colophon of the maison rendered in Georgia serif.
+   ============================================================ */
+
+.theme-monaco .shop-footer {
+    border-top: 1px solid var(--color-accent, #B8860B);
+    font-style: italic;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    text-align: center;
+}
+
+
+/* ============================================================
+   42. DESKTOP HEADER & FOOTER — The Maison Online
+   ============================================================ */
+@include desktop {
+    .theme-monaco .desktop-header {
+        background: var(--color-bg);
+        box-shadow: none;
+        border-bottom: 1px solid var(--color-accent);
+    }
+    .theme-monaco .desktop-header-logo {
+    }
+    .theme-monaco .desktop-header-logo-placeholder {
+        border-radius: 2px;
+        background: var(--color-primary);
+        color: var(--color-accent);
+        border: 2px solid var(--color-accent);
+        font-family: 'Georgia', 'Times New Roman', serif;
+    }
+    .theme-monaco .desktop-header-name {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    .theme-monaco .desktop-header-tagline {
+        font-style: italic;
+        letter-spacing: 0.03em;
+    }
+    .theme-monaco .desktop-header-link {
+        color: var(--color-text-muted);
+        font-size: 0.6875rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+        border: 1px solid transparent;
+        border-radius: 2px;
+    }
+    .theme-monaco .desktop-header-link:hover {
+        color: var(--color-accent);
+        background: transparent;
+        border-color: var(--color-accent);
+    }
+    .theme-monaco .desktop-header-btn {
+        border-radius: 2px;
+        color: var(--color-accent);
+    }
+    .theme-monaco .desktop-header-btn:hover {
+        background: var(--color-accent);
+        color: #fff;
+    }
+    .theme-monaco .desktop-header-cart {
+        border-radius: 2px;
+        background: transparent;
+        border: 1px solid var(--color-accent);
+        color: var(--color-accent);
+    }
+    .theme-monaco .desktop-header-cart:hover {
+        background: var(--color-accent);
+        color: #fff;
+    }
+    .theme-monaco .desktop-header-btn .cart-badge {
+        background: var(--color-accent);
+        border-radius: 2px;
+    }
+
+    .theme-monaco .desktop-footer {
+        background: var(--color-bg);
+        border-top: 1px solid var(--color-accent);
+    }
+    .theme-monaco .desktop-footer-name {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-size: 0.875rem;
+    }
+    .theme-monaco .desktop-footer-tagline {
+        font-style: italic;
+        letter-spacing: 0.03em;
+    }
+    .theme-monaco .desktop-footer-logo {
+    }
+    .theme-monaco .desktop-footer-logo-placeholder {
+        background: var(--color-primary);
+        color: var(--color-accent);
+        font-family: 'Georgia', 'Times New Roman', serif;
+    }
+    .theme-monaco .desktop-footer-heading {
+        color: var(--color-accent);
+        letter-spacing: 0.14em;
+        font-family: 'Georgia', 'Times New Roman', serif;
+    }
+    .theme-monaco .desktop-footer-social a {
+        border-radius: 2px;
+        background: transparent;
+        border: 1px solid var(--color-accent);
+        color: var(--color-accent);
+    }
+    .theme-monaco .desktop-footer-social a:hover {
+        background: var(--color-accent);
+        color: #fff;
+    }
+    .theme-monaco .desktop-footer-links a:hover {
+        color: var(--color-accent);
+    }
+    .theme-monaco .desktop-footer-links a:hover i {
+        color: var(--color-accent);
+    }
+    .theme-monaco .desktop-footer-bottom {
+        border-top-color: var(--color-accent);
+        font-style: italic;
+        font-family: 'Georgia', 'Times New Roman', serif;
+        letter-spacing: 0.02em;
+    }
+}
+
+/* ============================================================
+   41. DARK MODE — The Evening Collection
+   The same maison, after hours. Gold brightens to #D4A03A on
+   deep warm charcoal. Cream text on obsidian backgrounds.
+   The luxury is undiminished by darkness.
+   ============================================================ */
+
+@media (prefers-color-scheme: dark) {
+
+    /* ── Dark Variables ── */
+    .theme-monaco {
+        --color-accent: #E4B040;
+        --color-accent-hover: #CFA035;
+        --color-bg: #121110;
+        --color-bg-alt: #1C1A16;
+        --color-bg-secondary: #242018;
+        --color-bg-elevated: #1C1A16;
+        --color-border: #302A20;
+        --color-text: #ECE8DC;
+        --color-text-muted: #B0A58D;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+        --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    /* ── Dark Page Backgrounds ── */
+    .theme-monaco .shop-page,
+    .theme-monaco .product-page {
+        background: var(--color-bg);
+    }
+
+    .theme-monaco .shop-logo-placeholder {
+        background: var(--color-bg-alt);
+        color: var(--color-accent);
+    }
+
+    /* ── Dark Header Border ── */
+    .theme-monaco .shop-header {
+        border-bottom-color: var(--color-accent);
+    }
+
+    /* ── Dark Contact Pills ── */
+    .theme-monaco .shop-contact a {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+    }
+    .theme-monaco .shop-contact a:hover {
+        background: var(--color-accent);
+        color: #121110;
+    }
+
+    /* ── Dark Search Toggle ── */
+    .theme-monaco .shop-search-toggle {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+    }
+    .theme-monaco .shop-search-toggle:hover {
+        background: var(--color-accent);
+        color: #121110;
+    }
+
+    /* ── Dark Share Button ── */
+    .theme-monaco .shop-share-btn {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+    }
+    .theme-monaco .shop-share-btn:hover {
+        background: var(--color-accent);
+        color: #121110;
+    }
+
+    /* ── Dark Search Input ── */
+    .theme-monaco .shop-search-input {
+        background: var(--color-bg-alt);
+        border-color: var(--color-border);
+        color: var(--color-text);
+    }
+    .theme-monaco .shop-search-input:focus {
+        box-shadow: 0 0 0 2px var(--color-accent);
+        background: var(--color-bg);
+        border-color: var(--color-accent);
+    }
+
+    /* ── Dark Category Circles ── */
+    .theme-monaco .category-card img {
+        border-color: var(--color-accent);
+    }
+    .theme-monaco .category-card-icon {
+        border-color: var(--color-accent);
+        background: var(--color-bg-alt);
+        color: var(--color-text-muted);
+    }
+    .theme-monaco .category-card.active img,
+    .theme-monaco .category-card.active .category-card-icon {
+        box-shadow: 0 0 0 2px rgba(228,176,64,0.18);
+    }
+    .theme-monaco .category-card:hover img,
+    .theme-monaco .category-card:hover .category-card-icon {
+        box-shadow: 0 0 0 2px rgba(228,176,64,0.12);
+    }
+
+    /* ── Dark Category Tabs (fallback) ── */
+    .theme-monaco .category-tabs.category-tabs-only {
+        border-bottom-color: var(--color-border);
+    }
+
+    /* ── Dark Product Cards ── */
+    .theme-monaco .product-card {
+        background: var(--color-bg-elevated);
+        border-color: var(--color-border);
+    }
+    .theme-monaco .product-card:hover {
+        border-color: var(--color-accent);
+        box-shadow: 0 4px 20px rgba(212,160,58,0.06);
+    }
+
+    /* ── Dark Product Card Image Placeholder ── */
+    .theme-monaco .product-card-img {
+        background: var(--color-bg-alt);
+    }
+
+    /* ── Dark Gallery Nav ── */
+    .theme-monaco .product-nav-btn {
+        background: rgba(0, 0, 0, 0.3);
+        color: #fff;
+    }
+    .theme-monaco .product-nav-btn:hover {
+        background: rgba(0, 0, 0, 0.45);
+    }
+
+    /* ── Dark Gallery Dots ── */
+    .theme-monaco .gallery-dot {
+        background: rgba(212,160,58,0.25);
+    }
+    .theme-monaco .gallery-dot.active {
+        background: var(--color-accent);
+    }
+
+    /* ── Dark Badges ── */
+    .theme-monaco .product-badge-sale {
+        background: var(--color-accent);
+        color: #121110;
+    }
+    .theme-monaco .product-badge-sold {
+        background: rgba(232,228,216,0.12);
+        backdrop-filter: blur(4px);
+    }
+    .theme-monaco .product-badge-featured {
+        background: var(--color-text);
+        color: var(--color-bg);
+    }
+    .theme-monaco .price-discount-badge {
+        background: var(--color-accent);
+        color: #121110;
+    }
+    .theme-monaco .badge-sold {
+        background: var(--color-text);
+        color: var(--color-bg);
+    }
+    .theme-monaco .badge-featured {
+        background: var(--color-text);
+        color: var(--color-bg);
+    }
+
+    /* ── Dark Variation Options ── */
+    .theme-monaco .product-variation-option {
+        border-color: var(--color-border);
+        color: var(--color-text);
+        background: transparent;
+    }
+    .theme-monaco .product-variation-option:hover {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+    }
+    .theme-monaco .product-variation-option.selected {
+        border-color: var(--color-accent);
+        background: var(--color-accent);
+        color: #121110;
+    }
+    .theme-monaco .product-variation-option.selected small {
+        color: rgba(18,17,16,0.7);
+    }
+
+    /* ── Dark Description Fade ── */
+    .theme-monaco .product-info-desc:not(.expanded)::after {
+        background: linear-gradient(transparent, var(--color-bg));
+    }
+
+    /* ── Dark CTA ── */
+    .theme-monaco .sticky-cta {
+        background: var(--color-bg);
+    }
+    .theme-monaco .sticky-cta::before {
+        background: linear-gradient(transparent, var(--color-bg));
+    }
+    .theme-monaco .sticky-cta .btn {
+        background: var(--color-accent);
+        color: #121110;
+    }
+    .theme-monaco .sticky-cta .btn:hover {
+        background: var(--color-accent-hover);
+    }
+    .theme-monaco .sticky-cta .btn-whatsapp { background: $whatsapp; color: #fff; }
+
+    /* ── Dark Buttons ── */
+    .theme-monaco .btn-primary {
+        background: var(--color-accent);
+        color: #121110;
+    }
+    .theme-monaco .btn-primary:hover:not(:disabled) {
+        background: var(--color-accent-hover);
+    }
+    .theme-monaco .btn-outline {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+    }
+    .theme-monaco .btn-outline:hover:not(:disabled) {
+        background: var(--color-accent);
+        color: #121110;
+    }
+
+    /* ── Dark More Products ── */
+    .theme-monaco .more-products {
+        border-top-color: var(--color-border);
+    }
+    .theme-monaco .more-product-img {
+        background: var(--color-bg-alt);
+    }
+
+    /* ── Dark Gallery Background ── */
+    .theme-monaco .product-gallery {
+        background: var(--color-bg-alt);
+    }
+    .theme-monaco .product-gallery-slide {
+        background: var(--color-bg-alt);
+    }
+
+    /* ── Dark Share Sheet ── */
+    .theme-monaco .share-sheet {
+        background: var(--color-bg-alt);
+    }
+    .theme-monaco .share-sheet-option:hover {
+        background: var(--color-bg-secondary);
+    }
+
+    /* ── Dark Toast ── */
+    .theme-monaco .toast-success {
+        background: var(--color-accent);
+        color: #121110;
+    }
+
+    /* ── Dark Footer ── */
+    .theme-monaco .shop-footer {
+        border-top-color: var(--color-accent);
+    }
+    .theme-monaco .shop-footer a {
+        color: var(--color-accent);
+    }
+
+    /* ── Dark Collection Title ── */
+    .theme-monaco .monaco-collection-title {
+        color: var(--color-accent);
+    }
+
+    /* ── Dark Piece Label ── */
+    .theme-monaco .monaco-piece-label {
+        color: var(--color-accent);
+    }
+
+    /* ── Dark Divider ── */
+    .theme-monaco .monaco-divider {
+        background: var(--color-accent);
+    }
+
+    /* ── Dark Card Accent ── */
+    .theme-monaco .monaco-card-accent {
+        background: var(--color-accent);
+    }
+
+    /* ── Dark CTA Button ── */
+    .theme-monaco .sticky-cta .btn {
+        background: var(--color-accent);
+        color: #121110;
+    }
+    .theme-monaco .sticky-cta .btn-whatsapp { background: $whatsapp; color: #fff; }
+
+    /* Desktop dark mode */
+    @include desktop {
+        .theme-monaco .desktop-header {
+            border-bottom-color: var(--color-accent);
+        }
+        .theme-monaco .desktop-header-logo {
+        }
+        .theme-monaco .desktop-footer {
+            border-top-color: var(--color-accent);
+        }
+        .theme-monaco .desktop-footer-logo {
+        }
+        .theme-monaco .desktop-footer-social a {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+        .theme-monaco .desktop-footer-social a:hover {
+            background: var(--color-accent);
+            color: #121110;
+        }
+    }
+}

@@ -3,7 +3,7 @@
  * Cache-first for static assets, stale-while-revalidate for pages.
  * Offline fallback page when network is unavailable.
  */
-var CACHE_NAME = 'tinyshop-v3';
+var CACHE_NAME = 'tinyshop-v4';
 var OFFLINE_URL = '/offline.html';
 var STATIC_ASSETS = [
     '/public/css/app.css',
@@ -42,10 +42,12 @@ self.addEventListener('activate', function(e) {
 self.addEventListener('fetch', function(e) {
     var url = new URL(e.request.url);
 
-    // Skip non-GET and API requests
-    if (e.request.method !== 'GET' || url.pathname.startsWith('/api/')) {
-        return;
-    }
+    // Only handle same-origin http(s) GET requests — skip extensions, API, and SPA fragments
+    if (e.request.method !== 'GET') return;
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+    if (url.origin !== self.location.origin) return;
+    if (url.pathname.startsWith('/api/')) return;
+    if (e.request.headers.get('X-SPA') === '1') return;
 
     // Static assets: cache-first
     if (url.pathname.startsWith('/public/')) {
@@ -58,28 +60,6 @@ self.addEventListener('fetch', function(e) {
                     });
                     return res;
                 });
-            })
-        );
-        return;
-    }
-
-    // SPA fragment requests (X-SPA: 1): stale-while-revalidate
-    if (e.request.headers.get('X-SPA') === '1') {
-        e.respondWith(
-            caches.match(e.request).then(function(cached) {
-                var fetchPromise = fetch(e.request).then(function(res) {
-                    if (res.ok) {
-                        var clone = res.clone();
-                        caches.open(CACHE_NAME).then(function(cache) {
-                            cache.put(e.request, clone);
-                        });
-                    }
-                    return res;
-                }).catch(function() {
-                    return cached || new Response('{}', { status: 408 });
-                });
-
-                return cached || fetchPromise;
             })
         );
         return;

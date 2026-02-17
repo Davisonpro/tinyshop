@@ -1,0 +1,79 @@
+// ============================================================
+// Variables
+// ============================================================
+
+// ── Brand Colors ──
+$shade:           #1e2330;
+$chartreuse:      #d2e823;
+$chartreuse-hover:#c8de1f;
+$purple:          #9142eb;
+$purple-light:    #b07cee;
+$purple-bg:       #f0ebff;
+
+// ── Semantic Colors ──
+$ios-red:         #FF3B30;
+$danger:          #DC2626;
+$danger-dark:     #B91C1C;
+$danger-bg:       #FEF2F2;
+$danger-bg-light: #FFF0F0;
+$error:           #EF4444;
+$success:         #059669;
+$success-bg:      #F0FDF4;
+$success-light:   #ECFDF5;
+$warning:         #F59E0B;
+$warning-bg:      #FEF3C7;
+$featured:        #FF9500;
+
+// ── Neutral Colors ──
+$white:           #fff;
+$near-black:      #1A1A1A;
+$text-muted:      #6B7280;
+$border-default:  #E5E7EB;
+$bg-neutral:      #F3F4F6;
+$bg-secondary:    #F5F5F7;
+$separator:       #E5E5EA;
+$chevron:         #C7C7CC;
+$border-light:    #D1D5DB;
+$bg-lighter:      #F0F0F2;
+$tab-inactive:    #AEAEB2;
+$tab-hover:       #8E8E93;
+
+// ── Dark Mode Grays (iOS system) ──
+$dark-bg:         #1C1C1E;
+$dark-elevated:   #2C2C2E;
+$dark-tertiary:   #3A3A3C;
+$dark-quaternary: #48484A;
+$dark-label:      #636366;
+
+// ── Social / Third-Party ──
+$whatsapp:        #25D366;
+$whatsapp-hover:  #1EBE5D;
+$facebook:        #1877F2;
+$twitter-dark:    #0F1419;
+$stripe:          #635BFF;
+$paypal:          #003087;
+
+// ── Focus Ring ──
+$focus-ring-color: rgba(0, 102, 255, 0.1);
+
+// ── Breakpoints ──
+$bp-mobile:       480px;
+$bp-tablet-sm:    640px;
+$bp-tablet:       768px;
+$bp-desktop-sm:   960px;
+$bp-desktop:      1024px;
+$bp-desktop-lg:   1280px;
+$bp-wide:         1600px;
+
+// ── Border Radius (hardcoded values used alongside CSS vars) ──
+$radius-card:     14px;
+$radius-section:  18px;
+$radius-sheet:    22px;
+$radius-pill:     99px;
+
+// ── Transitions ──
+$transition-fast: all 0.15s ease;
+$transition-base: all 0.2s ease;
+$transition-slow: all 0.3s ease;
+$spring:          cubic-bezier(0.34, 1.56, 0.64, 1);
+$sheet-ease:      cubic-bezier(0.32, 0.72, 0, 1);

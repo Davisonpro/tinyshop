@@ -64,8 +64,9 @@ final class Plan
         $stmt = $this->db->prepare(
             'INSERT INTO plans (name, slug, description, price_monthly, price_yearly, currency,
                 max_products, allowed_themes, custom_domain_allowed, coupons_allowed,
+                features, cta_text, badge_text, is_featured,
                 is_default, is_active, sort_order)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $data['name'],
@@ -78,6 +79,10 @@ final class Plan
             $data['allowed_themes'] ?? null,
             $data['custom_domain_allowed'] ?? 0,
             $data['coupons_allowed'] ?? 0,
+            $data['features'] ?? null,
+            $data['cta_text'] ?? null,
+            $data['badge_text'] ?? null,
+            $data['is_featured'] ?? 0,
             $data['is_default'] ?? 0,
             $data['is_active'] ?? 1,
             $data['sort_order'] ?? 0,
@@ -97,6 +102,7 @@ final class Plan
         $allowed = [
             'name', 'slug', 'description', 'price_monthly', 'price_yearly', 'currency',
             'max_products', 'allowed_themes', 'custom_domain_allowed', 'coupons_allowed',
+            'features', 'cta_text', 'badge_text', 'is_featured',
             'is_default', 'is_active', 'sort_order',
         ];
 

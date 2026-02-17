@@ -21,20 +21,24 @@ final class SpaResponse implements MiddlewareInterface
 {
     /** Core assets loaded on every page — no need to send in SPA responses. */
     private const CORE_STYLES = [
-        '/public/css/app.css',
-        '/public/css/marketing.css',
-        '/public/css/fontawesome.min.css',
+        '/public/css/app',
+        '/public/css/marketing',
+        '/public/css/fontawesome',
         'fonts.googleapis.com',
     ];
 
     private const CORE_SCRIPTS = [
-        '/public/js/jquery.min.js',
-        '/public/js/app.js',
+        '/public/js/jquery',
+        '/public/js/app',
     ];
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);
+
+        // Tell browsers/CDNs that responses differ based on X-SPA header.
+        // Without this, a prefetch (JSON) can pollute the cache for normal navigation (HTML).
+        $response = $response->withHeader('Vary', 'X-SPA');
 
         if ($request->getHeaderLine('X-SPA') !== '1') {
             return $response;
@@ -52,7 +56,8 @@ final class SpaResponse implements MiddlewareInterface
                     ->withBody($stream)
                     ->withStatus(200)
                     ->withHeader('Content-Type', 'application/json; charset=utf-8')
-                    ->withHeader('X-SPA-Fragment', '1');
+                    ->withHeader('X-SPA-Fragment', '1')
+                    ->withHeader('Cache-Control', 'no-store');
             }
         }
 
@@ -176,6 +181,7 @@ final class SpaResponse implements MiddlewareInterface
         return $response
             ->withBody($stream)
             ->withHeader('Content-Type', 'application/json; charset=utf-8')
-            ->withHeader('X-SPA-Fragment', '1');
+            ->withHeader('X-SPA-Fragment', '1')
+            ->withHeader('Cache-Control', 'no-store');
     }
 }

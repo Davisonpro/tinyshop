@@ -207,7 +207,7 @@ final class User
             'cod_enabled',
             'mpesa_shortcode', 'mpesa_consumer_key', 'mpesa_consumer_secret',
             'mpesa_passkey', 'mpesa_mode', 'mpesa_enabled',
-            'payment_mode',
+            'payment_mode', 'is_showcased',
             'show_store_name', 'show_tagline', 'show_search',
             'show_categories', 'show_sort_toolbar', 'show_desktop_footer',
             'announcement_text',
@@ -307,6 +307,19 @@ final class User
      * Returns an array of uploaded file URLs for cleanup, or false on failure.
      * @return string[]|false
      */
+    public function findShowcased(int $limit = 12): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, store_name, subdomain, shop_logo, shop_tagline
+             FROM users
+             WHERE is_showcased = 1 AND is_active = 1 AND subdomain IS NOT NULL
+             ORDER BY RAND()
+             LIMIT ?'
+        );
+        $stmt->execute([$limit]);
+        return $stmt->fetchAll();
+    }
+
     public function deleteAccount(int $id): array|false
     {
         // Collect file URLs before deleting rows

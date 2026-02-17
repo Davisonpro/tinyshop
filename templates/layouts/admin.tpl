@@ -3,6 +3,7 @@
 {block name="body_class"}page-dashboard page-admin{/block}
 
 {block name="head"}
+    {$allow_dark = true}
     {include file="partials/head.tpl"}
     <link rel="stylesheet" href="/public/css/dashboard{$min}.css?v={$asset_v}">
     <link rel="stylesheet" href="/public/css/admin{$min}.css?v={$asset_v}">

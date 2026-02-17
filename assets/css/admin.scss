@@ -1,0 +1,1521 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+/* ============================================================
+   TinyShop — Admin Panel Styles
+   Uses the same dashboard shell (bottom tabs, mobile-first).
+   Only admin-specific overrides here.
+   ============================================================ */
+
+/* Admin avatar */
+.admin-avatar {
+    background: linear-gradient(135deg, $danger-bg, #FEE2E2);
+    color: $ios-red;
+}
+
+/* 3-per-row stat grid for admin */
+.admin-stats-3 {
+    display: flex;
+    flex-wrap: nowrap;
+}
+.admin-stats-3 .stat-card {
+    flex: 1 1 0;
+    min-width: 0;
+}
+.admin-stats-row-2 {
+    margin-top: 4px;
+}
+
+/* Data table */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.data-table th,
+.data-table td {
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.data-table th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    background: var(--color-bg-alt);
+}
+
+.data-table tbody tr:hover {
+    background: var(--color-bg-alt);
+}
+
+/* ============================================================
+   Sellers List — Card-based layout
+   ============================================================ */
+.sellers-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: var(--radius-full);
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-left: 8px;
+}
+
+.sellers-toolbar {
+    padding: 0 20px 14px;
+}
+
+.sellers-search-form {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.sellers-search-icon {
+    position: absolute;
+    left: 14px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    pointer-events: none;
+}
+.sellers-search-input {
+    width: 100%;
+    height: 42px;
+    padding: 0 36px 0 38px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-family: inherit;
+    background: var(--color-bg);
+    color: var(--color-text);
+    transition: border-color 0.15s;
+}
+.sellers-search-input:focus {
+    outline: none;
+    border-color: var(--color-text-muted);
+}
+.sellers-search-input::placeholder {
+    color: var(--color-text-muted);
+}
+.sellers-search-clear {
+    position: absolute;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border-radius: 50%;
+}
+.sellers-search-clear:hover {
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+}
+
+.sellers-list-wrap {
+    padding: 0 20px 20px;
+}
+
+/* Empty state */
+.sellers-empty {
+    text-align: center;
+    padding: 48px 20px;
+}
+.sellers-empty-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    border-radius: 16px;
+    background: var(--color-bg-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--color-text-muted);
+}
+.sellers-empty h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+}
+.sellers-empty p {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+/* Seller cards */
+.sellers-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.seller-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--color-bg);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.1s;
+    @include tap-reset;
+}
+.seller-card:active {
+    background: var(--color-bg-alt);
+}
+
+.seller-card-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.seller-card-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.seller-card-avatar.suspended {
+    background: var(--color-border);
+    color: var(--color-text-muted);
+}
+
+.seller-card-info {
+    min-width: 0;
+}
+.seller-card-name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    @include truncate;
+}
+.seller-card-email {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    @include truncate;
+}
+
+.seller-card-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.seller-status-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    background: $danger-bg;
+    color: $danger;
+}
+.seller-status-pill.active {
+    background: $success-bg;
+    color: $success;
+}
+
+.seller-card-chevron {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+/* Pagination */
+.sellers-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 20px 0 4px;
+}
+.sellers-page-btn {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 12px;
+    transition: all 0.15s;
+}
+.sellers-page-btn:active {
+    background: var(--color-bg-alt);
+    transform: scale(0.95);
+}
+.sellers-page-btn.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+.sellers-page-info {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+/* ============================================================
+   Seller Detail
+   ============================================================ */
+.sd-wrap {
+    padding: 0 20px 20px;
+}
+
+.sd-profile {
+    text-align: center;
+    padding: 8px 0 20px;
+}
+.sd-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.375rem;
+    margin-bottom: 12px;
+}
+.sd-avatar.suspended {
+    background: var(--color-border);
+    color: var(--color-text-muted);
+}
+.sd-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+.sd-email {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin: 0 0 2px;
+}
+.sd-domain {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+.sd-status-row {
+    margin-top: 12px;
+}
+.sd-status-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: var(--radius-full);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: $danger-bg;
+    color: $danger;
+}
+.sd-status-btn.active {
+    background: $success-bg;
+    color: $success;
+}
+.sd-status-btn:active {
+    transform: scale(0.95);
+}
+.sd-status-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+    transform: none;
+}
+.sd-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* Stats */
+.sd-stats {
+    display: flex;
+    gap: 2px;
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+.sd-stat {
+    flex: 1;
+    text-align: center;
+    padding: 16px 8px;
+    background: var(--color-bg);
+}
+.sd-stat-num {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+.sd-stat-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+/* Detail rows */
+.sd-details {
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+.sd-detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 16px;
+    font-size: 0.875rem;
+    background: var(--color-bg);
+}
+.sd-detail-row + .sd-detail-row {
+    border-top: 1px solid var(--color-border);
+}
+.sd-detail-label {
+    color: var(--color-text-muted);
+}
+.sd-detail-value {
+    font-weight: 600;
+}
+
+/* Action rows */
+.sd-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+.sd-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--color-bg);
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.1s;
+    @include tap-reset;
+}
+.sd-action-btn:active {
+    background: var(--color-bg-alt);
+}
+.sd-action-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.sd-action-icon.blue {
+    background: #EFF6FF;
+    color: #2563EB;
+}
+.sd-action-icon.red {
+    background: $danger-bg;
+    color: $danger;
+}
+.sd-action-text {
+    flex: 1;
+    min-width: 0;
+}
+.sd-action-title {
+    display: block;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+.sd-action-btn.danger .sd-action-title {
+    color: $danger;
+}
+.sd-action-desc {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 1px;
+}
+.sd-action-chevron {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+/* Product list */
+.sd-section {
+    margin-top: 10px;
+}
+.sd-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.sd-section-header h3 {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    margin: 0;
+}
+.sd-section-count {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    background: var(--color-bg-alt);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+
+.sd-product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+.sd-product {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--color-bg);
+}
+.sd-product-info {
+    min-width: 0;
+    flex: 1;
+}
+.sd-product-name {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-decoration: none;
+    @include truncate;
+}
+a.sd-product-name:hover {
+    color: var(--color-accent);
+}
+.sd-product-price {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+.sd-product-badges {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.badge-green {
+    background: $success-bg;
+    color: $success;
+}
+.badge-orange {
+    background: #FFF7ED;
+    color: #EA580C;
+}
+.badge-muted {
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+}
+.badge-purple {
+    background: #F5F3FF;
+    color: #7C3AED;
+}
+.badge-red {
+    background: $danger-bg;
+    color: $danger;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 0;
+}
+.pagination-info {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+}
+
+/* Admin toolbar (search + filters) */
+.admin-toolbar {
+    padding: 0 20px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.admin-search {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+}
+.admin-search .form-control-sm {
+    height: 36px;
+    font-size: 0.8125rem;
+    padding-right: 30px;
+}
+.admin-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border-radius: 50%;
+}
+.admin-search-clear:hover {
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+}
+
+/* Admin list wrapper */
+.admin-list-wrap {
+    padding: 0 20px 20px;
+}
+
+/* Icon buttons */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+}
+.btn-icon:hover {
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+}
+
+.admin-actions {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+}
+
+/* Quick action icon colors */
+.action-icon.blue {
+    background: #EFF6FF;
+    color: #2563EB;
+}
+.action-icon.green {
+    background: $success-bg;
+    color: $success;
+}
+
+/* Button extras — admin-specific overrides */
+.page-admin .btn-sm {
+    padding: 6px 14px;
+    font-size: 0.8125rem;
+    border-radius: var(--radius-md);
+}
+/* Admin overrides — .btn base provides display, cursor, transition, font-family */
+.page-admin .btn-outline {
+    border: 1px solid var(--color-border);
+    background: none;
+    color: var(--color-text);
+    text-decoration: none;
+}
+.page-admin .btn-sm.btn-outline {
+    width: auto;
+    min-height: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: var(--radius-md);
+}
+.page-admin .btn-outline:hover {
+    background: var(--color-bg-alt);
+}
+.page-admin .btn-danger {
+    background: $danger;
+    color: #fff;
+}
+.page-admin .btn-danger:hover {
+    background: $danger-dark;
+}
+
+/* Modal confirm actions */
+.modal-confirm-text {
+    margin-bottom: 20px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+.modal-confirm-actions {
+    display: flex;
+    gap: 10px;
+}
+.modal-confirm-actions .btn {
+    flex: 1;
+    min-height: 48px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ============================================================
+   Settings Page
+   Uses .form-section cards from dashboard.css.
+   Only settings-specific overrides here.
+   ============================================================ */
+
+/* Inline fields (e.g. Port + Encryption side by side) */
+.settings-inline-group {
+    display: flex;
+    gap: 12px;
+}
+.settings-inline-field {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Toggle row: label + description left, switch right */
+.settings-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+.settings-toggle-info {
+    flex: 1;
+    min-width: 0;
+}
+.settings-toggle-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+.settings-toggle-desc {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+/* Toggle switch — uses .toggle-slider from dashboard.scss */
+
+/* Password field with toggle visibility */
+.password-field {
+    position: relative;
+}
+.password-field .form-control {
+    padding-right: 44px;
+}
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.password-toggle:hover {
+    color: var(--color-text);
+}
+
+/* Test email button */
+.btn-test-email {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--color-primary);
+    background: none;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-test-email:hover {
+    background: var(--color-primary);
+    color: #fff;
+}
+.btn-test-email:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Admin copy button — tighter for desktop admin UI (.settings-copy-row base in dashboard.css) */
+.page-admin .btn-copy {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.page-admin .btn-copy:hover {
+    color: var(--color-text);
+    border-color: var(--color-text-muted);
+}
+
+/* Spinner for async buttons */
+.btn-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   Dark mode overrides
+   ============================================================ */
+[data-theme="dark"] .admin-avatar {
+    background: linear-gradient(135deg, #3C1414, #451A1A);
+    color: #F87171;
+}
+
+[data-theme="dark"] .badge-green {
+    background: #14532D;
+    color: #4ADE80;
+}
+[data-theme="dark"] .badge-orange {
+    background: #431407;
+    color: #FB923C;
+}
+[data-theme="dark"] .badge-muted {
+    background: $dark-elevated;
+    color: $tab-hover;
+}
+[data-theme="dark"] .badge-purple {
+    background: #2E1065;
+    color: #A78BFA;
+}
+[data-theme="dark"] .badge-red {
+    background: #3C1414;
+    color: #F87171;
+}
+
+/* Seller cards dark */
+[data-theme="dark"] .seller-status-pill {
+    background: #3C1414;
+    color: #F87171;
+}
+[data-theme="dark"] .seller-status-pill.active {
+    background: #14532D;
+    color: #4ADE80;
+}
+[data-theme="dark"] .seller-card-avatar.suspended,
+[data-theme="dark"] .sd-avatar.suspended {
+    background: $dark-tertiary;
+    color: $tab-hover;
+}
+[data-theme="dark"] .sd-status-btn {
+    background: #3C1414;
+    color: #F87171;
+}
+[data-theme="dark"] .sd-status-btn.active {
+    background: #14532D;
+    color: #4ADE80;
+}
+[data-theme="dark"] .sd-action-icon.blue {
+    background: #1E293B;
+    color: #60A5FA;
+}
+[data-theme="dark"] .sd-action-icon.red {
+    background: #3C1414;
+    color: #F87171;
+}
+[data-theme="dark"] .sd-action-btn.danger .sd-action-title {
+    color: #F87171;
+}
+
+
+[data-theme="dark"] .gateway-status-badge {
+    background: rgba(5, 150, 105, 0.15);
+    color: #34D399;
+}
+
+/* Plan cards dark mode */
+[data-theme="dark"] .plan-feature i {
+    background: rgba(64, 156, 255, 0.15);
+    color: #409CFF;
+}
+[data-theme="dark"] .plan-badge-default {
+    background: var(--color-primary);
+}
+[data-theme="dark"] .plan-badge-inactive {
+    background: $dark-tertiary;
+    border-color: $dark-quaternary;
+}
+[data-theme="dark"] .plan-card-edit {
+    background: $dark-tertiary;
+}
+
+/* Plan form chips dark mode */
+[data-theme="dark"] .plan-checkbox:has(input:checked) {
+    border-color: #409CFF;
+    background: rgba(64, 156, 255, 0.12);
+}
+[data-theme="dark"] .plan-radio:has(input:checked) {
+    background: $dark-tertiary;
+}
+[data-theme="dark"] .page-admin .form-section-title {
+    border-top-color: $dark-quaternary;
+}
+[data-theme="dark"] .feature-remove:hover {
+    background: rgba(239, 68, 68, 0.15);
+}
+[data-theme="dark"] .btn-text {
+    color: #6b8aff;
+}
+
+/* Help admin dark mode */
+[data-theme="dark"] .help-admin-cat-icon {
+    background: rgba(64, 156, 255, 0.15);
+    color: #409CFF;
+}
+[data-theme="dark"] a.help-admin-article {
+    background: $dark-elevated;
+}
+[data-theme="dark"] a.help-admin-article:active {
+    background: $dark-tertiary;
+}
+
+/* Gateway status badge (Connected pill on payment rows) */
+.gateway-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: $success-light;
+    color: $success;
+    border-radius: 6px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+/* Gateway modal header (Stripe/PayPal setup modals) */
+.gateway-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.gateway-modal-header .gateway-brand-name {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+/* ============================================================
+   Plans Page
+   ============================================================ */
+.plan-card {
+    background: var(--color-bg);
+    border-radius: 16px;
+    padding: 0;
+    margin-bottom: 14px;
+    border: 1.5px solid var(--color-border);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.plan-card:active {
+    border-color: var(--color-text-muted);
+}
+.plan-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px 0;
+}
+.plan-card-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.plan-card-name {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    margin: 0;
+}
+.plan-badge {
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: $radius-pill;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+.plan-badge-default {
+    background: var(--color-primary);
+    color: #fff;
+}
+.plan-badge-inactive {
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+}
+.plan-card-edit {
+    background: var(--color-bg-alt);
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+.plan-card-edit:active {
+    background: var(--color-border);
+    color: var(--color-text);
+    transform: scale(0.92);
+}
+.plan-card-pricing {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 8px 18px 4px;
+}
+.plan-card-price {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+.plan-card-cycle {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+.plan-card-yearly {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+.plan-card-desc {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin: 0;
+    padding: 0 18px 10px;
+    line-height: 1.4;
+}
+.plan-card-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: 6px 18px 12px;
+}
+.plan-feature {
+    font-size: 0.75rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 50%;
+    padding: 5px 0;
+}
+.plan-feature i {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 10px;
+    background: rgba(0, 122, 255, 0.08);
+    color: #007AFF;
+}
+.plan-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    padding: 10px 18px;
+    background: var(--color-bg-alt);
+    border-top: 1px solid var(--color-border);
+}
+
+/* Plan form inside modal — segmented control for radios */
+.plan-themes-toggle {
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    background: var(--color-bg-alt);
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 4px;
+}
+.plan-radio {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: all 0.2s;
+    @include tap-reset;
+    text-align: center;
+}
+.plan-radio:has(input:checked) {
+    background: var(--color-bg);
+    color: var(--color-text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.plan-radio input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+/* Plan form — selectable chips for checkboxes */
+.plan-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1.5px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    transition: all 0.15s;
+    @include tap-reset;
+}
+.plan-checkbox:active {
+    transform: scale(0.96);
+}
+.plan-checkbox:has(input:checked) {
+    border-color: var(--color-primary);
+    background: rgba(0, 102, 255, 0.06);
+    color: var(--color-text);
+}
+.plan-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+#themeCheckboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.plan-form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+}
+/* Form section title inside modal */
+.page-admin .form-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 24px 0 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+
+    i {
+        font-size: 0.6875rem;
+        opacity: 0.5;
+    }
+}
+.page-admin .form-section-title:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+/* Feature list editor */
+.feature-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.feature-input {
+    flex: 1;
+    min-width: 0;
+}
+.feature-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+    @include tap-reset;
+
+    &:active {
+        transform: scale(0.92);
+    }
+
+    &:hover {
+        background: rgba(239, 68, 68, 0.08);
+        color: var(--color-error);
+    }
+}
+
+/* Add feature button (text-style) */
+.btn-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0;
+    border: none;
+    background: none;
+    color: var(--color-accent);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    @include tap-reset;
+
+    &:active {
+        opacity: 0.7;
+    }
+
+    i {
+        font-size: 0.6875rem;
+    }
+}
+
+/* ============================================================
+   Desktop App Window — Admin (1024px+)
+   ============================================================ */
+@include desktop {
+    /* Admin sidebar: red accent branding */
+    .page-admin .dash-sidebar-brand svg {
+        color: $ios-red;
+    }
+
+    .page-admin .dash-tab.active {
+        background: rgba(239, 68, 68, 0.1);
+        color: $ios-red;
+    }
+
+}
+
+/* ── Help center admin ── */
+.help-admin-cat {
+    background: var(--color-bg);
+    border-radius: 16px;
+    margin-bottom: 14px;
+    border: 1.5px solid var(--color-border);
+    overflow: hidden;
+}
+.help-admin-cat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 16px 18px;
+}
+.help-admin-cat-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+.help-admin-cat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(0, 122, 255, 0.08);
+    color: #007AFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+.help-admin-cat-name {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+}
+.help-admin-cat-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.help-admin-cat-count {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-bg-alt);
+    padding: 2px 8px;
+    border-radius: $radius-pill;
+    white-space: nowrap;
+}
+.help-admin-cat-desc {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin: 0;
+    padding: 0 18px;
+    line-height: 1.4;
+}
+
+/* Article rows inside category card */
+.help-admin-articles {
+    padding: 8px 10px 10px;
+}
+a.help-admin-article {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    background: var(--color-bg-alt);
+    border-radius: 10px;
+    margin-bottom: 4px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s;
+}
+a.help-admin-article:last-of-type { margin-bottom: 0; }
+a.help-admin-article:active {
+    background: var(--color-border);
+    transform: scale(0.99);
+}
+.help-admin-article-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+.help-admin-article-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    @include truncate;
+}
+.help-admin-article-arrow {
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    transition: transform 0.15s;
+}
+a.help-admin-article:hover .help-admin-article-arrow {
+    transform: translateX(2px);
+}
+.help-admin-cat-empty {
+    padding: 16px 18px;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+/* ── Pages list (grouped card pattern like sellers) ── */
+.pages-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+.page-card-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--color-bg);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.1s;
+    @include tap-reset;
+}
+.page-card-row:active {
+    background: var(--color-bg-alt);
+}
+.page-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(20, 184, 166, 0.1);
+    color: #0D9488;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+.page-card-info {
+    flex: 1;
+    min-width: 0;
+}
+.page-card-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    @include truncate;
+}
+.page-card-slug {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 1px;
+    @include truncate;
+}
+.page-card-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.page-card-chevron {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .page-card-icon {
+    background: rgba(20, 184, 166, 0.15);
+    color: #2DD4BF;
+}
+
+/* Permalink field — wrapper is the visual container */
+.permalink-field {
+    display: flex;
+    align-items: center;
+    background: var(--color-bg-secondary);
+    border: 1.5px solid transparent;
+    border-radius: $radius-card;
+    transition: border-color 0.15s;
+}
+.permalink-field:focus-within {
+    border-color: var(--color-accent);
+}
+.permalink-prefix {
+    padding-left: 14px;
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.permalink-input {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    padding-left: 4px !important;
+    flex: 1;
+    min-width: 0;
+}
+.permalink-input:focus {
+    box-shadow: none !important;
+}

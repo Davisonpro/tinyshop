@@ -29,14 +29,12 @@
 {* ── Plan cards ── *}
 <div class="pricing-cards">
     {foreach $plans as $plan}
-        {* Determine if this is the free plan *}
-        {assign var="is_free" value=(($plan.price_monthly == 0 && $plan.price_yearly == 0) || $plan.price_monthly == 0)}
-        {* Featured = non-free plan marked as default, or first paid plan *}
-        {assign var="is_featured" value=($plan.is_default && !$is_free)}
+        {assign var="is_free" value=($plan.price_monthly == 0 && $plan.price_yearly == 0)}
+        {assign var="is_featured" value=($plan.is_featured)}
 
         <div class="pricing-card{if $is_featured} pricing-card--featured{/if}">
-            {if $is_featured}
-                <span class="pricing-badge">Most popular</span>
+            {if $plan.badge_text}
+                <span class="pricing-badge">{$plan.badge_text|escape}</span>
             {/if}
 
             <h2 class="pricing-plan-name">{$plan.name|escape}</h2>
@@ -70,10 +68,10 @@
 
             {* Yearly note *}
             <p class="pricing-yearly-note" data-monthly>
-                {if !$is_free}
-                    &nbsp;
-                {else}
+                {if $is_free}
                     No credit card needed
+                {else}
+                    &nbsp;
                 {/if}
             </p>
             <p class="pricing-yearly-note" data-yearly style="display:none">
@@ -94,58 +92,58 @@
                 {/if}
             </p>
 
-            {* Features *}
+            {* Features — from pre-decoded feature_list or fallback to structured fields *}
             <ul class="pricing-features">
-                {* Products limit *}
-                <li class="pricing-feature">
-                    <span class="pricing-feature-icon pricing-feature-icon--yes">
-                        <i class="fa-solid fa-check"></i>
-                    </span>
-                    {if $plan.max_products === null}
-                        Unlimited products
-                    {else}
-                        Up to {$plan.max_products|number_format:0} products
-                    {/if}
-                </li>
-
-                {* Shop designs *}
-                <li class="pricing-feature">
-                    <span class="pricing-feature-icon pricing-feature-icon--yes">
-                        <i class="fa-solid fa-check"></i>
-                    </span>
-                    {if $plan.allowed_themes === null || $plan.allowed_themes === ''}
-                        All shop designs
-                    {else}
-                        1 shop design
-                    {/if}
-                </li>
-
-                {* Custom web address *}
-                <li class="pricing-feature{if !$plan.custom_domain_allowed} pricing-feature--disabled{/if}">
-                    <span class="pricing-feature-icon {if $plan.custom_domain_allowed}pricing-feature-icon--yes{else}pricing-feature-icon--no{/if}">
-                        <i class="fa-solid {if $plan.custom_domain_allowed}fa-check{else}fa-xmark{/if}"></i>
-                    </span>
-                    Your own web address
-                </li>
-
-                {* Discount codes *}
-                <li class="pricing-feature{if !$plan.coupons_allowed} pricing-feature--disabled{/if}">
-                    <span class="pricing-feature-icon {if $plan.coupons_allowed}pricing-feature-icon--yes{else}pricing-feature-icon--no{/if}">
-                        <i class="fa-solid {if $plan.coupons_allowed}fa-check{else}fa-xmark{/if}"></i>
-                    </span>
-                    Discount codes
-                </li>
+                {if $plan.feature_list}
+                    {foreach $plan.feature_list as $feature}
+                        <li class="pricing-feature">
+                            <span class="pricing-feature-icon pricing-feature-icon--yes">
+                                <i class="fa-solid fa-check"></i>
+                            </span>
+                            {$feature|escape}
+                        </li>
+                    {/foreach}
+                {else}
+                    {* Fallback: auto-generate from plan fields *}
+                    <li class="pricing-feature">
+                        <span class="pricing-feature-icon pricing-feature-icon--yes">
+                            <i class="fa-solid fa-check"></i>
+                        </span>
+                        {if $plan.max_products === null}Unlimited products{else}Up to {$plan.max_products|number_format:0} products{/if}
+                    </li>
+                    <li class="pricing-feature">
+                        <span class="pricing-feature-icon pricing-feature-icon--yes">
+                            <i class="fa-solid fa-check"></i>
+                        </span>
+                        {if $plan.allowed_themes === null || $plan.allowed_themes === ''}All shop designs{else}1 shop design{/if}
+                    </li>
+                    <li class="pricing-feature{if !$plan.custom_domain_allowed} pricing-feature--disabled{/if}">
+                        <span class="pricing-feature-icon {if $plan.custom_domain_allowed}pricing-feature-icon--yes{else}pricing-feature-icon--no{/if}">
+                            <i class="fa-solid {if $plan.custom_domain_allowed}fa-check{else}fa-xmark{/if}"></i>
+                        </span>
+                        Your own web address
+                    </li>
+                    <li class="pricing-feature{if !$plan.coupons_allowed} pricing-feature--disabled{/if}">
+                        <span class="pricing-feature-icon {if $plan.coupons_allowed}pricing-feature-icon--yes{else}pricing-feature-icon--no{/if}">
+                            <i class="fa-solid {if $plan.coupons_allowed}fa-check{else}fa-xmark{/if}"></i>
+                        </span>
+                        Discount codes
+                    </li>
+                {/if}
             </ul>
 
-            {* CTA *}
-            {if $is_free}
-                <a href="/register" class="pricing-cta pricing-cta--secondary">Get started</a>
-            {else}
-                {if $logged_in}
-                    <a href="/dashboard/billing" class="pricing-cta pricing-cta--primary">Upgrade now</a>
+            {* CTA — from DB or fallback *}
+            {assign var="cta_label" value=$plan.cta_text|default:($is_free ? 'Get started' : 'Upgrade now')}
+            {assign var="cta_style" value=($is_featured ? 'primary' : ($is_free ? 'secondary' : 'primary'))}
+
+            {if $logged_in}
+                {if $is_free}
+                    <a href="/dashboard" class="pricing-cta pricing-cta--{$cta_style}">{$cta_label|escape}</a>
                 {else}
-                    <a href="/register" class="pricing-cta pricing-cta--primary">Upgrade now</a>
+                    <a href="/dashboard/billing" class="pricing-cta pricing-cta--{$cta_style}">{$cta_label|escape}</a>
                 {/if}
+            {else}
+                <a href="/register" class="pricing-cta pricing-cta--{$cta_style}">{$cta_label|escape}</a>
             {/if}
         </div>
     {/foreach}

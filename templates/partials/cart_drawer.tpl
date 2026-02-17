@@ -30,14 +30,4 @@
         </div>
     </div>
 </div>
-<script>
-window._shopId = {$shop.id|escape:'javascript'};
-window._shopCurrency = '{$currency|escape:'javascript'}';
-window._shopCurrencySymbol = '{$currency_symbol|escape:'javascript'}';
-</script>
-<script src="/public/js/cart{$min}.js?v={$asset_v}"></script>
-<script>
-if (typeof $ !== 'undefined') {ldelim} TinyShop.Cart.init({$shop.id|escape:'javascript'}); {rdelim}
-else {ldelim} document.addEventListener('DOMContentLoaded', function() {ldelim} TinyShop.Cart.init({$shop.id|escape:'javascript'}); {rdelim}); {rdelim}
-</script>
 {/if}

@@ -124,6 +124,9 @@ return function (App $app): void {
         $group->get('/help', [AdminController::class, 'help']);
         $group->get('/help/articles/add', [AdminController::class, 'helpArticleForm']);
         $group->get('/help/articles/{id}/edit', [AdminController::class, 'helpArticleForm']);
+        $group->get('/pages', [AdminController::class, 'pages']);
+        $group->get('/pages/add', [AdminController::class, 'pageForm']);
+        $group->get('/pages/{id}/edit', [AdminController::class, 'pageForm']);
     })->add(AdminGuard::class);
 
     // Stop impersonation (needs AuthGuard, not AdminGuard — user is currently a seller)
@@ -210,7 +213,15 @@ return function (App $app): void {
             $admin->post('/help-articles', [AdminController::class, 'createHelpArticle']);
             $admin->put('/help-articles/{id}', [AdminController::class, 'updateHelpArticle']);
             $admin->delete('/help-articles/{id}', [AdminController::class, 'deleteHelpArticle']);
+            $admin->get('/pages', [AdminController::class, 'listPages']);
+            $admin->post('/pages', [AdminController::class, 'createPage']);
+            $admin->put('/pages/{id}', [AdminController::class, 'updatePage']);
+            $admin->delete('/pages/{id}', [AdminController::class, 'deletePage']);
         })->add(AdminGuard::class);
 
     })->add(CsrfGuard::class)->add(JsonResponse::class);
+
+    // ── Dynamic pages (catch-all, must be last) ──
+
+    $app->get('/{slug}', [PageController::class, 'showPage']);
 };

@@ -378,7 +378,7 @@
                 </div>
             </div>
             {if $user.custom_domain}
-            <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#ECFDF5;color:#059669;border-radius:6px;font-size:0.6875rem;font-weight:600">
+            <span class="connected-badge">
                 <i class="fa-solid fa-check icon-xs"></i>
                 Active
             </span>
@@ -490,9 +490,20 @@
     </div>
 </div>
 
-{* --- Install App --- *}
+{* --- Preferences --- *}
 <div class="dash-form" style="padding-top:0">
     <div class="form-section">
+        <div class="form-section-title">Preferences</div>
+        <div class="form-toggle-row">
+            <div>
+                <div class="form-toggle-label">Dark mode</div>
+                <p class="form-hint" style="margin-top:2px">Use a darker look for your dashboard</p>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="darkModeToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
         <div class="account-row" id="addToHomescreenBtn">
             <div class="account-row-left">
                 <i class="fa-solid fa-mobile-screen icon-lg" style="color:var(--color-accent)"></i>
@@ -570,6 +581,15 @@ function shopUrl(sub) {
     return window.location.protocol + '//' + sub + '.' + _baseDomain + port;
 }
 $(function() {
+    // --- Dark mode toggle ---
+    var $darkToggle = $('#darkModeToggle');
+    $darkToggle.prop('checked', document.documentElement.getAttribute('data-theme') === 'dark');
+    $darkToggle.on('change', function() {ldelim}
+        var theme = this.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    {rdelim});
+
     // --- Copy shop sitemap URL ---
     $('#copyShopSitemapBtn').on('click', function() {ldelim}
         var url = $('#shopSitemapUrl').val();
@@ -689,7 +709,7 @@ $(function() {
             '<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">' +
                 '<i class="fa-brands fa-stripe icon-lg" style="color:#635BFF"></i>' +
                 '<span style="font-weight:700;font-size:1rem">Stripe</span>' +
-                (isConnected ? '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:#ECFDF5;color:#059669;border-radius:6px;font-size:0.625rem;font-weight:700"><i class="fa-solid fa-check" style="font-size:8px"></i> Connected</span>' : '') +
+                (isConnected ? '<span class="connected-badge-sm"><i class="fa-solid fa-check"></i> Connected</span>' : '') +
             '</div>' +
             '<div class="form-group">' +
                 '<label for="modalStripePk">Publishable Key</label>' +
@@ -778,7 +798,7 @@ $(function() {
             '<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">' +
                 '<i class="fa-brands fa-paypal icon-lg" style="color:#003087"></i>' +
                 '<span style="font-weight:700;font-size:1rem">PayPal</span>' +
-                (isConnected ? '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:#ECFDF5;color:#059669;border-radius:6px;font-size:0.625rem;font-weight:700"><i class="fa-solid fa-check" style="font-size:8px"></i> Connected</span>' : '') +
+                (isConnected ? '<span class="connected-badge-sm"><i class="fa-solid fa-check"></i> Connected</span>' : '') +
             '</div>' +
             '<div class="form-group">' +
                 '<label for="modalPaypalCid">Client ID</label>' +
@@ -876,7 +896,7 @@ $(function() {
             '<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">' +
                 '<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#4CAF50"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="white">M</text></svg>' +
                 '<span style="font-weight:700;font-size:1rem">M-Pesa</span>' +
-                (isConnected ? '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:#ECFDF5;color:#059669;border-radius:6px;font-size:0.625rem;font-weight:700"><i class="fa-solid fa-check" style="font-size:8px"></i> Connected</span>' : '') +
+                (isConnected ? '<span class="connected-badge-sm"><i class="fa-solid fa-check"></i> Connected</span>' : '') +
             '</div>' +
             '<div class="form-group">' +
                 '<label for="modalMpesaShortcode">Shortcode (Till / Paybill)</label>' +
@@ -1001,12 +1021,12 @@ $(function() {
             if (newVal === currentVal) { TinyShop.closeModal(); return; }
 
             // Confirmation prompt
-            var confirmHtml = '<p style="margin-bottom:16px;color:var(--color-text-muted);font-size:0.9rem;line-height:1.5">Your shop URL will change to:</p>' +
-                '<div style="padding:12px 14px;background:#F5F5F7;border-radius:10px;font-size:0.9375rem;font-weight:600;word-break:break-all;margin-bottom:20px">' + escapeHtml(shopUrl(newVal)) + '</div>' +
-                '<p style="margin-bottom:20px;color:var(--color-text-muted);font-size:0.8125rem;line-height:1.4">Anyone using your old link won\'t be able to find your shop. Make sure to update your links everywhere.</p>' +
-                '<div style="display:flex;gap:10px">' +
-                    '<button type="button" class="btn-block btn-sm" id="urlConfirmCancel" style="flex:1;background:var(--color-bg-secondary);color:var(--color-text)">Cancel</button>' +
-                    '<button type="button" class="btn-block btn-sm btn-primary" id="urlConfirmSave" style="flex:1">Confirm</button>' +
+            var confirmHtml = '<p class="form-hint" style="margin-bottom:16px">Your shop URL will change to:</p>' +
+                '<div class="url-preview">' + escapeHtml(shopUrl(newVal)) + '</div>' +
+                '<p class="form-hint" style="margin-bottom:20px">Anyone using your old link won\'t be able to find your shop. Make sure to update your links everywhere.</p>' +
+                '<div class="confirm-actions">' +
+                    '<button type="button" class="btn-block btn-sm" id="urlConfirmCancel">Cancel</button>' +
+                    '<button type="button" class="btn-block btn-sm btn-primary" id="urlConfirmSave">Confirm</button>' +
                 '</div>';
             TinyShop.openModal('Change Shop URL?', confirmHtml);
 

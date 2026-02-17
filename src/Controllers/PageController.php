@@ -6,10 +6,12 @@ namespace TinyShop\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Exception\HttpNotFoundException;
 use TinyShop\Services\View;
 use TinyShop\Services\Auth;
 use TinyShop\Services\OAuth;
 use TinyShop\Enums\UserRole;
+use TinyShop\Models\Page;
 use TinyShop\Models\Plan;
 use TinyShop\Models\Setting;
 use TinyShop\Models\User;
@@ -22,7 +24,8 @@ final class PageController
         private readonly OAuth $oauth,
         private readonly Plan $planModel,
         private readonly Setting $setting,
-        private readonly User $user
+        private readonly User $user,
+        private readonly Page $pageModel
     ) {}
 
     public function landing(Request $request, Response $response): Response
@@ -32,7 +35,8 @@ final class PageController
         }
 
         return $this->view->render($response, 'pages/landing.tpl', [
-            'page_title' => 'Create Your Shop in Minutes',
+            'page_title'      => 'Create Your Shop in Minutes',
+            'showcased_shops' => $this->user->findShowcased(),
         ]);
     }
 
@@ -151,6 +155,11 @@ final class PageController
     {
         $plans = $this->planModel->findAll();
 
+        foreach ($plans as &$plan) {
+            $plan['feature_list'] = $plan['features'] ? json_decode($plan['features'], true) : [];
+        }
+        unset($plan);
+
         return $this->view->render($response, 'pages/pricing.tpl', [
             'page_title' => 'Pricing',
             'plans'      => $plans,
@@ -183,6 +192,26 @@ final class PageController
         return $response->withHeader('Location', '/login')->withStatus(302);
     }
 
+    public function showPage(Request $request, Response $response, array $args): Response
+    {
+        $slug = $args['slug'] ?? '';
+
+        if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+            throw new HttpNotFoundException($request);
+        }
+
+        $page = $this->pageModel->findBySlug($slug);
+        if ($page === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        return $this->view->render($response, 'pages/page.tpl', [
+            'page_title'       => $page['title'],
+            'meta_description' => $page['meta_description'] ?? '',
+            'page_data'        => $page,
+        ]);
+    }
+
     public function manifest(Request $request, Response $response): Response
     {
         $appName = $this->setting->get('app_name') ?: 'TinyShop';
@@ -191,14 +220,17 @@ final class PageController
             'name'             => $appName,
             'short_name'       => $appName,
             'description'      => 'Create your mobile shop in minutes. Share anywhere.',
+            'id'               => '/dashboard',
             'start_url'        => '/dashboard',
             'display'          => 'standalone',
             'background_color' => '#F5F5F7',
             'theme_color'      => '#111111',
             'orientation'      => 'portrait',
             'icons'            => [
-                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
-                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
+                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
             ],
         ];
 

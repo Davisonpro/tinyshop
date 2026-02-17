@@ -101,19 +101,21 @@
                         </div>
                     </div>
                     <ul class="plan-card-features">
-                        {if $plan.max_products}
-                            <li><i class="fa-solid fa-check"></i> {$plan.max_products} products</li>
+                        {if $plan.feature_list}
+                            {foreach $plan.feature_list as $feature}
+                                <li><i class="fa-solid fa-check"></i> {$feature|escape}</li>
+                            {/foreach}
                         {else}
-                            <li><i class="fa-solid fa-check"></i> Unlimited products</li>
-                        {/if}
-                        {if $plan.all_themes}
-                            <li><i class="fa-solid fa-check"></i> All themes</li>
-                        {/if}
-                        {if $plan.custom_domain}
-                            <li><i class="fa-solid fa-check"></i> Custom domain</li>
-                        {/if}
-                        {if $plan.coupons}
-                            <li><i class="fa-solid fa-check"></i> Coupons</li>
+                            <li><i class="fa-solid fa-check"></i> {if $plan.max_products}{$plan.max_products} products{else}Unlimited products{/if}</li>
+                            {if $plan.all_themes}
+                                <li><i class="fa-solid fa-check"></i> All themes</li>
+                            {/if}
+                            {if $plan.custom_domain}
+                                <li><i class="fa-solid fa-check"></i> Custom domain</li>
+                            {/if}
+                            {if $plan.coupons}
+                                <li><i class="fa-solid fa-check"></i> Coupons</li>
+                            {/if}
                         {/if}
                     </ul>
                     {if $is_current}

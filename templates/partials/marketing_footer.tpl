@@ -17,6 +17,13 @@
                     <a href="mailto:{if $support_email}{$support_email|escape}{else}hello@{$base_domain|default:'tinyshop.com'}{/if}" class="mk-footer-link">Contact us</a>
                 </div>
             </div>
+            <div class="mk-footer-col">
+                <div class="mk-footer-col-title">Legal</div>
+                <div class="mk-footer-col-links">
+                    <a href="/terms" class="mk-footer-link">Terms of Service</a>
+                    <a href="/privacy" class="mk-footer-link">Privacy Policy</a>
+                </div>
+            </div>
         </div>
         <div class="mk-footer-bar">
             <span>&copy; {$smarty.now|date_format:"%Y"} {$app_name}. All rights reserved.</span>

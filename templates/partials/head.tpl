@@ -1,6 +1,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="{if $allow_dark|default:false}light dark{else}light{/if}">
+<script>
+(function(){ldelim}{if $allow_dark|default:false}var t=localStorage.getItem('theme');if(!t)t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t){else}document.documentElement.setAttribute('data-theme','light'){/if}{rdelim})();
+</script>
 <meta name="description" content="{$meta_description|default:$app_name}">
 <title>{$page_title|default:$app_name}</title>
 <link rel="manifest" href="/manifest.json">
@@ -12,7 +15,7 @@
 <link rel="dns-prefetch" href="https://www.google-analytics.com">
 <meta name="theme-color" content="#111111" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="{$app_name|escape}">
 <meta name="csrf-token" content="{$csrf_token|escape}">

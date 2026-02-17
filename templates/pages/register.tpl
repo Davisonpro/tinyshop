@@ -25,6 +25,7 @@
         </div>
     </div>
     <button type="submit" class="btn btn-primary" id="registerBtn">Create My Shop</button>
+    <p class="auth-legal">By signing up, you agree to our <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a>.</p>
 </form>
 
 {if $oauth_google || $oauth_instagram || $oauth_tiktok}

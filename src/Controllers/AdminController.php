@@ -11,6 +11,7 @@ use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Enums\UserRole;
 use TinyShop\Models\HelpArticle;
 use TinyShop\Models\HelpCategory;
+use TinyShop\Models\Page;
 use TinyShop\Models\User;
 use TinyShop\Models\Product;
 use TinyShop\Models\Order;
@@ -59,6 +60,7 @@ final class AdminController
         private readonly Subscription $subscriptionModel,
         private readonly HelpCategory $helpCategoryModel,
         private readonly HelpArticle $helpArticleModel,
+        private readonly Page $pageModel,
         private readonly Mailer $mailer,
         private readonly Upload $upload,
         private readonly Validation $validation,
@@ -211,7 +213,6 @@ final class AdminController
     {
         $id   = (int) $args['id'];
         $data = (array) $request->getParsedBody();
-        $active = !empty($data['is_active']);
 
         // Prevent toggling admin accounts
         $target = $this->userModel->findById($id);
@@ -219,14 +220,21 @@ final class AdminController
             return $this->json($response, ['error' => true, 'message' => 'Cannot modify admin accounts'], 403);
         }
 
-        $this->userModel->toggleActive($id, $active);
+        if (array_key_exists('is_active', $data)) {
+            $active = !empty($data['is_active']);
+            $this->userModel->toggleActive($id, $active);
 
-        $this->logger->info('admin.seller_toggled', [
-            'admin_id'  => $this->auth->userId(),
-            'seller_id' => $id,
-            'is_active' => $active,
-            'ip'        => $request->getServerParams()['REMOTE_ADDR'] ?? '',
-        ]);
+            $this->logger->info('admin.seller_toggled', [
+                'admin_id'  => $this->auth->userId(),
+                'seller_id' => $id,
+                'is_active' => $active,
+                'ip'        => $request->getServerParams()['REMOTE_ADDR'] ?? '',
+            ]);
+        }
+
+        if (array_key_exists('is_showcased', $data)) {
+            $this->userModel->update($id, ['is_showcased' => !empty($data['is_showcased']) ? 1 : 0]);
+        }
 
         return $this->json($response, ['success' => true]);
     }
@@ -463,6 +471,15 @@ final class AdminController
             $allowedThemes = json_encode(array_values(array_filter($themes)));
         }
 
+        // Parse features list
+        $features = null;
+        if (isset($data['features']) && is_array($data['features'])) {
+            $features = json_encode(array_values(array_filter(
+                array_map('trim', $data['features']),
+                fn($f) => $f !== ''
+            )));
+        }
+
         $id = $this->planModel->create([
             'name'                   => $name,
             'slug'                   => $slug,
@@ -474,6 +491,10 @@ final class AdminController
             'allowed_themes'         => $allowedThemes,
             'custom_domain_allowed'  => !empty($data['custom_domain_allowed']) ? 1 : 0,
             'coupons_allowed'        => !empty($data['coupons_allowed']) ? 1 : 0,
+            'features'               => $features,
+            'cta_text'               => trim($data['cta_text'] ?? '') ?: null,
+            'badge_text'             => trim($data['badge_text'] ?? '') ?: null,
+            'is_featured'            => !empty($data['is_featured']) ? 1 : 0,
             'is_default'             => !empty($data['is_default']) ? 1 : 0,
             'is_active'              => isset($data['is_active']) ? (int) (bool) $data['is_active'] : 1,
             'sort_order'             => (int) ($data['sort_order'] ?? 0),
@@ -535,6 +556,21 @@ final class AdminController
 
         if (isset($data['custom_domain_allowed'])) $updates['custom_domain_allowed'] = !empty($data['custom_domain_allowed']) ? 1 : 0;
         if (isset($data['coupons_allowed'])) $updates['coupons_allowed'] = !empty($data['coupons_allowed']) ? 1 : 0;
+
+        if (isset($data['features'])) {
+            if (is_array($data['features'])) {
+                $updates['features'] = json_encode(array_values(array_filter(
+                    array_map('trim', $data['features']),
+                    fn($f) => $f !== ''
+                )));
+            } else {
+                $updates['features'] = null;
+            }
+        }
+        if (isset($data['cta_text'])) $updates['cta_text'] = trim($data['cta_text']) ?: null;
+        if (isset($data['badge_text'])) $updates['badge_text'] = trim($data['badge_text']) ?: null;
+        if (isset($data['is_featured'])) $updates['is_featured'] = !empty($data['is_featured']) ? 1 : 0;
+
         if (isset($data['is_default'])) $updates['is_default'] = !empty($data['is_default']) ? 1 : 0;
         if (isset($data['is_active'])) $updates['is_active'] = (int) (bool) $data['is_active'];
         if (isset($data['sort_order'])) $updates['sort_order'] = (int) $data['sort_order'];
@@ -824,6 +860,155 @@ final class AdminController
             'admin_id'   => $this->auth->userId(),
             'article_id' => $id,
             'title'      => $article['title'],
+        ]);
+
+        return $this->json($response, ['success' => true]);
+    }
+
+    // ── Pages (dynamic content pages) ──
+
+    public function pages(Request $request, Response $response): Response
+    {
+        return $this->view->render($response, 'pages/admin_pages.tpl', [
+            'page_title'  => 'Pages',
+            'active_page' => 'pages',
+            'pages_list'  => $this->pageModel->findAll(),
+        ]);
+    }
+
+    public function pageForm(Request $request, Response $response, array $args = []): Response
+    {
+        $page = null;
+        $isEdit = false;
+
+        if (!empty($args['id'])) {
+            $page = $this->pageModel->findById((int) $args['id']);
+            if (!$page) {
+                return $response->withHeader('Location', '/admin/pages')->withStatus(302);
+            }
+            $isEdit = true;
+        }
+
+        return $this->view->render($response, 'pages/admin_page_form.tpl', [
+            'page_title'  => $isEdit ? 'Edit Page' : 'New Page',
+            'active_page' => 'pages',
+            'page_data'   => $page,
+            'is_edit'     => $isEdit,
+        ]);
+    }
+
+    public function listPages(Request $request, Response $response): Response
+    {
+        return $this->json($response, ['success' => true, 'pages' => $this->pageModel->findAll()]);
+    }
+
+    public function createPage(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $title = trim($data['title'] ?? '');
+
+        if ($title === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Page title is required'], 422);
+        }
+
+        $slug = trim($data['slug'] ?? '');
+        if ($slug === '') {
+            $slug = $this->validation->slug($title);
+        }
+        if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+            return $this->json($response, ['error' => true, 'message' => 'Permalink can only contain lowercase letters, numbers, and hyphens'], 422);
+        }
+        if ($this->pageModel->slugExists($slug)) {
+            return $this->json($response, ['error' => true, 'message' => 'A page with this permalink already exists'], 422);
+        }
+
+        $id = $this->pageModel->create([
+            'title'            => $title,
+            'slug'             => $slug,
+            'content'          => $data['content'] ?? '',
+            'meta_description' => trim($data['meta_description'] ?? ''),
+            'is_published'     => isset($data['is_published']) ? (int) (bool) $data['is_published'] : 1,
+        ]);
+
+        $this->logger->info('admin.page_created', [
+            'admin_id' => $this->auth->userId(),
+            'page_id'  => $id,
+        ]);
+
+        return $this->json($response, ['success' => true, 'page' => $this->pageModel->findById($id)], 201);
+    }
+
+    public function updatePage(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $page = $this->pageModel->findById($id);
+
+        if (!$page) {
+            return $this->json($response, ['error' => true, 'message' => 'Page not found'], 404);
+        }
+
+        $data = (array) $request->getParsedBody();
+        $updates = [];
+
+        if (isset($data['title'])) {
+            $title = trim($data['title']);
+            if ($title === '') {
+                return $this->json($response, ['error' => true, 'message' => 'Page title is required'], 422);
+            }
+            $updates['title'] = $title;
+        }
+
+        if (isset($data['slug'])) {
+            $slug = trim($data['slug']);
+            if ($slug === '') {
+                $slug = $this->validation->slug($updates['title'] ?? $page['title']);
+            }
+            if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+                return $this->json($response, ['error' => true, 'message' => 'Permalink can only contain lowercase letters, numbers, and hyphens'], 422);
+            }
+            if ($this->pageModel->slugExists($slug, $id)) {
+                return $this->json($response, ['error' => true, 'message' => 'A page with this permalink already exists'], 422);
+            }
+            $updates['slug'] = $slug;
+        }
+
+        if (isset($data['content'])) {
+            $updates['content'] = $data['content'];
+        }
+        if (isset($data['meta_description'])) {
+            $updates['meta_description'] = trim($data['meta_description']);
+        }
+        if (isset($data['is_published'])) {
+            $updates['is_published'] = (int) (bool) $data['is_published'];
+        }
+
+        if (!empty($updates)) {
+            $this->pageModel->update($id, $updates);
+        }
+
+        $this->logger->info('admin.page_updated', [
+            'admin_id' => $this->auth->userId(),
+            'page_id'  => $id,
+        ]);
+
+        return $this->json($response, ['success' => true, 'page' => $this->pageModel->findById($id)]);
+    }
+
+    public function deletePage(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $page = $this->pageModel->findById($id);
+
+        if (!$page) {
+            return $this->json($response, ['error' => true, 'message' => 'Page not found'], 404);
+        }
+
+        $this->pageModel->delete($id);
+
+        $this->logger->info('admin.page_deleted', [
+            'admin_id' => $this->auth->userId(),
+            'page_id'  => $id,
+            'title'    => $page['title'],
         ]);
 
         return $this->json($response, ['success' => true]);

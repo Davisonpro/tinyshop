@@ -17,6 +17,7 @@ CREATE TABLE `users` (
     `oauth_id` VARCHAR(255) DEFAULT NULL,
     `role` ENUM('admin','seller') NOT NULL DEFAULT 'seller',
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `is_showcased` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
     `email_verified_at` DATETIME DEFAULT NULL,
     `last_login_at` DATETIME DEFAULT NULL,
     `login_count` INT UNSIGNED NOT NULL DEFAULT 0,
@@ -273,6 +274,10 @@ CREATE TABLE `plans` (
     `allowed_themes` TEXT NULL DEFAULT NULL,
     `custom_domain_allowed` TINYINT(1) NOT NULL DEFAULT 0,
     `coupons_allowed` TINYINT(1) NOT NULL DEFAULT 0,
+    `features` TEXT NULL DEFAULT NULL,
+    `cta_text` VARCHAR(100) NULL DEFAULT NULL,
+    `badge_text` VARCHAR(50) NULL DEFAULT NULL,
+    `is_featured` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
     `is_default` TINYINT(1) NOT NULL DEFAULT 0,
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
     `sort_order` INT UNSIGNED NOT NULL DEFAULT 0,
@@ -407,10 +412,18 @@ INSERT INTO `settings` (`key`, `value`) VALUES
 
 INSERT INTO `plans` (`name`, `slug`, `description`, `price_monthly`, `price_yearly`, `currency`,
     `max_products`, `allowed_themes`, `custom_domain_allowed`, `coupons_allowed`,
+    `features`, `cta_text`, `badge_text`, `is_featured`,
     `is_default`, `sort_order`)
 VALUES
-    ('Free', 'free', 'Get started with the basics', 0, 0, 'KES', 10, '["classic"]', 0, 0, 1, 0),
-    ('Pro', 'pro', 'Everything you need to grow your business', 1000, 10000, 'KES', NULL, NULL, 1, 1, 0, 1);
+    ('Free', 'free', 'Get started with the basics', 0, 0, 'KES', 10, '["classic"]', 0, 0,
+     '["Up to 10 products","1 shop design","Order notifications","Basic analytics","Free forever"]',
+     'Start Free', NULL, 0, 1, 0),
+    ('Pro', 'pro', 'Everything you need to grow', 399, 3990, 'KES', NULL, NULL, 1, 1,
+     '["Unlimited products","All shop designs","Your own web address","Discount codes","Priority support","Advanced analytics","M-Pesa payments"]',
+     'Upgrade to Pro', 'Most popular', 1, 0, 1),
+    ('Premium', 'premium', 'For power sellers who want it all', 699, 6990, 'KES', NULL, NULL, 1, 1,
+     '["Everything in Pro","Dedicated support","Custom integrations","White-label branding","API access"]',
+     'Go Premium', NULL, 0, 0, 2);
 
 INSERT INTO `help_categories` (`name`, `slug`, `icon`, `description`, `sort_order`) VALUES
     ('Getting Started', 'getting-started', 'fa-rocket', 'New to the platform? Start here.', 1),
