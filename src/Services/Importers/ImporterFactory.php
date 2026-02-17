@@ -25,14 +25,27 @@ final class ImporterFactory
     /** Resolve the correct importer for a given URL. */
     public function resolve(string $url): ImporterInterface
     {
+        $errors = [];
+
         foreach ($this->importers as $importer) {
             if ($importer->supports($url)) {
                 return $importer;
             }
+
+            // Collect errors from importers that failed to detect
+            if (method_exists($importer, 'getLastError')) {
+                $err = $importer->getLastError();
+                if ($err !== null) {
+                    $errors[] = $err;
+                }
+            }
         }
 
-        throw new RuntimeException(
-            'No importer available for this URL. Supported: WooCommerce, Shopify stores.'
-        );
+        $msg = 'No importer available for this URL. Supported: WooCommerce, Shopify stores.';
+        if (!empty($errors)) {
+            $msg .= ' (' . implode('; ', $errors) . ')';
+        }
+
+        throw new RuntimeException($msg);
     }
 }

@@ -1777,10 +1777,16 @@ body.page-dashboard {
   margin-top: 0;
 }
 
-.rich-editor-content ul,
+.rich-editor-content ul {
+  padding-left: 22px;
+  margin: 6px 0;
+  list-style: disc;
+}
+
 .rich-editor-content ol {
   padding-left: 22px;
   margin: 6px 0;
+  list-style: decimal;
 }
 
 .rich-editor-content li {

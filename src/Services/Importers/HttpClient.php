@@ -17,7 +17,7 @@ final class HttpClient
     {
         $ch = curl_init();
 
-        curl_setopt_array($ch, [
+        $opts = [
             CURLOPT_URL            => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -33,7 +33,15 @@ final class HttpClient
             CURLOPT_COOKIEFILE     => sys_get_temp_dir() . '/tinyshop_import_cookies.txt',
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_ENCODING       => '',
-        ]);
+        ];
+
+        // Use system CA bundle if available (common on cPanel/shared hosts)
+        $caBundle = self::findCaBundle();
+        if ($caBundle !== null) {
+            $opts[CURLOPT_CAINFO] = $caBundle;
+        }
+
+        curl_setopt_array($ch, $opts);
 
         $body = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -51,6 +59,26 @@ final class HttpClient
         return (string) $body;
     }
 
+    /** Locate a CA certificate bundle on the system. */
+    private static function findCaBundle(): ?string
+    {
+        $paths = [
+            '/etc/ssl/certs/ca-certificates.crt',     // Debian/Ubuntu
+            '/etc/pki/tls/certs/ca-bundle.crt',       // RHEL/CentOS
+            '/etc/ssl/ca-bundle.pem',                  // openSUSE
+            '/etc/ssl/cert.pem',                       // Alpine/macOS
+            '/usr/local/share/certs/ca-root-nss.crt',  // FreeBSD
+        ];
+
+        foreach ($paths as $path) {
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
     /** Download a file to a temporary path. Returns the temp file path. */
     public function download(string $url): string
     {
@@ -63,7 +91,7 @@ final class HttpClient
         }
 
         $ch = curl_init();
-        curl_setopt_array($ch, [
+        $opts = [
             CURLOPT_URL            => $url,
             CURLOPT_FILE           => $fp,
             CURLOPT_FOLLOWLOCATION => true,
@@ -72,7 +100,14 @@ final class HttpClient
             CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_USERAGENT      => self::USER_AGENT,
             CURLOPT_SSL_VERIFYPEER => true,
-        ]);
+        ];
+
+        $caBundle = self::findCaBundle();
+        if ($caBundle !== null) {
+            $opts[CURLOPT_CAINFO] = $caBundle;
+        }
+
+        curl_setopt_array($ch, $opts);
 
         curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);

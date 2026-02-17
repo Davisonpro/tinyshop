@@ -1663,10 +1663,15 @@ body.page-dashboard {
     margin: 8px 0 4px;
 }
 .rich-editor-content h3:first-child { margin-top: 0; }
-.rich-editor-content ul,
+.rich-editor-content ul {
+    padding-left: 22px;
+    margin: 6px 0;
+    list-style: disc;
+}
 .rich-editor-content ol {
     padding-left: 22px;
     margin: 6px 0;
+    list-style: decimal;
 }
 .rich-editor-content li { margin-bottom: 3px; }
 .rich-editor-content p { margin: 0 0 6px; }

@@ -15,17 +15,27 @@ final class WooCommerceImporter implements ImporterInterface
     {
     }
 
+    private ?string $lastError = null;
+
     public function supports(string $url): bool
     {
+        $this->lastError = null;
+
         // Fetch the page and look for WooCommerce markers
         try {
             $html = $this->http->get($url);
             $this->lastHtml = $html;
             return str_contains($html, 'woocommerce')
                 || str_contains($html, 'WooCommerce');
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
             return false;
         }
+    }
+
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
     }
 
     /** Cache HTML from supports() so fetch() doesn't re-download */
@@ -293,8 +303,11 @@ final class WooCommerceImporter implements ImporterInterface
     {
         $categories = [];
 
-        // 1. WooCommerce breadcrumb — /product-category/ links only
-        $nodes = $xpath->query('//*[contains(@class,"woocommerce-breadcrumb")]//a[contains(@href,"/product-category/")]');
+        // 1. Breadcrumb — /product-category/ links in common breadcrumb containers
+        $nodes = $xpath->query(
+            '//*[contains(@class,"woocommerce-breadcrumb") or contains(@class,"breadcrumbs")]'
+            . '//a[contains(@href,"/product-category/")]'
+        );
         if ($nodes !== false) {
             foreach ($nodes as $node) {
                 $name = trim($node->textContent);
@@ -368,11 +381,17 @@ final class WooCommerceImporter implements ImporterInterface
         $categories = [];
         foreach ($items as $item) {
             // Only include items with a /product-category/ URL
-            $url = is_array($item['item'] ?? null) ? ($item['item']['@id'] ?? '') : ($item['item'] ?? '');
+            $itemData = $item['item'] ?? null;
+            $url = is_array($itemData) ? ($itemData['@id'] ?? '') : ((string) ($itemData ?? ''));
             if (!str_contains($url, '/product-category/')) {
                 continue;
             }
+
+            // Name can be at ListItem level or inside the item object (Yoast format)
             $name = trim($item['name'] ?? '');
+            if ($name === '' && is_array($itemData)) {
+                $name = trim($itemData['name'] ?? '');
+            }
             if ($name !== '' && !in_array($name, $categories, true)) {
                 $categories[] = $name;
             }
