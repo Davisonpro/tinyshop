@@ -86,7 +86,7 @@
   flex-direction: column;
   gap: 14px;
   padding: 0 20px 56px;
-  max-width: 960px;
+  max-width: 780px;
   margin: 0 auto;
 }
 
@@ -104,8 +104,6 @@
 
 .pricing-card--featured {
   background: var(--land-shade);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
-  transform: scale(1.02);
 }
 
 .pricing-badge {

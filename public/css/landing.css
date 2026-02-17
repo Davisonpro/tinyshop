@@ -7,7 +7,6 @@
   background: #fff;
 }
 
-
 /* ── Animations ── */
 @keyframes heroFade {
   from {
@@ -93,7 +92,7 @@
 
 /* ── Hero ── */
 .land-hero-wrap {
-  background: var(--land-chartreuse);
+  background: var(--land-forest);
   position: relative;
   overflow: hidden;
 }
@@ -110,8 +109,8 @@
   display: inline-block;
   padding: 8px 18px;
   border-radius: 99px;
-  background: rgba(0, 0, 0, 0.07);
-  color: var(--land-forest);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--land-chartreuse);
   font-size: 0.8125rem;
   font-weight: 700;
   margin-bottom: 24px;
@@ -122,14 +121,14 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.07;
-  color: var(--land-forest);
+  color: #fff;
   margin: 0 0 18px;
 }
 
 .land-hero-sub {
   font-size: 1.0625rem;
   line-height: 1.6;
-  color: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   margin: 0 auto 32px;
   max-width: 440px;
 }
@@ -138,8 +137,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--land-forest);
-  color: #fff;
+  background: var(--land-chartreuse);
+  color: var(--land-shade);
   font-size: 1rem;
   font-weight: 700;
   font-family: inherit;
@@ -152,8 +151,7 @@
 }
 
 .land-cta:hover {
-  background: #1d4215;
-  color: #fff;
+  background: #c8de1f;
 }
 
 .land-cta:active {
@@ -168,7 +166,7 @@
   display: block;
   margin-top: 14px;
   font-size: 0.8125rem;
-  color: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.35);
   font-weight: 500;
 }
 
@@ -191,7 +189,7 @@
   border-radius: 30px;
   padding: 10px;
   position: relative;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
 }
 
 .land-phone-notch {
@@ -398,8 +396,8 @@
 
 /* ── URL strip ── */
 .land-urls-strip {
-  background: var(--land-chartreuse);
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  background: var(--land-forest);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding: 24px 20px 32px;
   text-align: center;
 }
@@ -407,47 +405,36 @@
 .land-urls-label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.35);
   margin-bottom: 12px;
 }
 
 .land-urls {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: 4px;
-}
-
-.land-urls::-webkit-scrollbar {
-  display: none;
 }
 
 .land-url {
   display: inline-block;
-  flex-shrink: 0;
   padding: 9px 16px;
   border-radius: 99px;
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   font-size: 0.8125rem;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.5);
   font-family: var(--font-mono);
   letter-spacing: -0.01em;
-  text-decoration: none;
-  white-space: nowrap;
   transition: background 0.15s ease;
 }
 
 .land-url:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .land-url b {
-  color: var(--land-forest);
+  color: var(--land-chartreuse);
   font-weight: 700;
 }
 
@@ -463,7 +450,7 @@
 }
 
 .land-steps h2 {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: var(--land-shade);
   letter-spacing: -0.03em;
@@ -576,11 +563,11 @@
 }
 
 .land-features h2 {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: var(--land-shade);
   letter-spacing: -0.03em;
-  margin: 0 0 32px;
+  margin: 0 0 8px;
 }
 
 .land-features-sub {
@@ -699,11 +686,11 @@
 }
 
 .land-usecases h2 {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.03em;
-  margin: 0 0 32px;
+  margin: 0 0 8px;
 }
 
 .land-usecases-sub {
@@ -790,11 +777,11 @@
 }
 
 .land-voices h2 {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: var(--land-shade);
   letter-spacing: -0.03em;
-  margin: 0 0 32px;
+  margin: 0 0 28px;
 }
 
 .land-voices-grid {
@@ -905,8 +892,8 @@
   display: inline-block;
   padding: 12px 24px;
   border-radius: 99px;
-  background: var(--land-forest);
-  color: #fff;
+  background: var(--land-chartreuse);
+  color: var(--land-shade);
   font-size: 0.875rem;
   font-weight: 700;
   font-family: inherit;
@@ -916,8 +903,7 @@
 }
 
 .land-bottom-btn:hover {
-  background: #1d4215;
-  color: #fff;
+  background: #c8de1f;
 }
 
 .land-bottom-btn:active {
@@ -961,8 +947,8 @@
   .land-mock-grid {
     gap: 7px;
   }
-  .land-steps h2, .land-features h2, .land-usecases h2, .land-voices h2 {
-    font-size: 2.25rem;
+  .land-steps h2, .land-features h2, .land-usecases h2, .land-social-proof h2 {
+    font-size: 2rem;
   }
   .land-steps-grid {
     flex-direction: row;
@@ -1048,63 +1034,13 @@
   background: #111;
 }
 
-/* Hero — flips to forest bg, chartreuse accents */
+/* Hero */
 [data-theme=dark] .land-hero-wrap {
-  background: var(--land-forest);
-}
-
-[data-theme=dark] .land-badge {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--land-chartreuse);
-}
-
-[data-theme=dark] .land-hero h1 {
-  color: #fff;
-}
-
-[data-theme=dark] .land-hero-sub {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-[data-theme=dark] .land-cta {
-  background: var(--land-chartreuse);
-  color: var(--land-shade);
-}
-
-[data-theme=dark] .land-cta:hover {
-  background: #c8de1f;
-  color: var(--land-shade);
-}
-
-[data-theme=dark] .land-hero-small {
-  color: rgba(255, 255, 255, 0.35);
-}
-
-[data-theme=dark] .land-phone-frame {
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  background: #1a3a12;
 }
 
 [data-theme=dark] .land-urls-strip {
-  background: var(--land-forest);
-  border-top-color: rgba(255, 255, 255, 0.06);
-}
-
-[data-theme=dark] .land-urls-label {
-  color: rgba(255, 255, 255, 0.35);
-}
-
-[data-theme=dark] .land-url {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.5);
-}
-
-[data-theme=dark] .land-url:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.5);
-}
-
-[data-theme=dark] .land-url b {
-  color: var(--land-chartreuse);
+  background: #1a3a12;
 }
 
 /* Steps */
@@ -1240,20 +1176,11 @@
 
 [data-theme=dark] .land-bottom-btn {
   background: var(--land-chartreuse);
-  color: var(--land-shade);
+  color: #1e2330;
 }
 
 [data-theme=dark] .land-bottom-btn:hover {
   background: #c8de1f;
-  color: var(--land-shade);
-}
-
-[data-theme=dark] .land-bottom-text {
-  color: #eee;
-}
-
-[data-theme=dark] .land-bottom-sub {
-  color: #888;
 }
 
 /* Phone */
