@@ -519,11 +519,12 @@
    ========================================================== */
 .theme-ember .product-info-name {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 400;
   letter-spacing: 0.5px;
-  line-height: 1.3;
+  line-height: 1.25;
   color: var(--color-text);
+  word-break: break-word;
 }
 
 .theme-ember .product-info-category {

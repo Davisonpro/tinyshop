@@ -473,11 +473,12 @@
    14. PRODUCT INFO — Clean, price in lime
    ========================================================== */
 .theme-halloween .product-info-name {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  line-height: 1.3;
+  line-height: 1.25;
   color: var(--color-text);
+  word-break: break-word;
 }
 
 .theme-halloween .product-info-price .price-current {

@@ -528,14 +528,15 @@
     margin-bottom: 8px;
 }
 
-/* Product name — LARGE (26px equiv), bold */
+/* Product name — bold */
 .theme-bloom .product-info-name {
-    font-size: 1.625rem;
+    font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--color-text);
-    line-height: 1.15;
+    line-height: 1.2;
     margin-bottom: 12px;
+    word-break: break-word;
 }
 
 /* Price — HUGE (36px equiv), extra bold */
@@ -544,7 +545,7 @@
     gap: 10px;
 }
 .theme-bloom .product-info-price .price-current {
-    font-size: 1.75rem;
+    font-size: 1.25rem;
     font-weight: 800;
     color: var(--color-text);
     letter-spacing: -0.03em;
@@ -555,7 +556,7 @@
 }
 .theme-bloom .product-info-price .price-compare {
     color: var(--color-text-muted);
-    font-size: 1.125rem;
+    font-size: 0.8125rem;
     font-weight: 400;
 }
 
@@ -1153,7 +1154,7 @@
     .theme-bloom .gallery-dot.active { background: var(--color-accent); }
     .theme-bloom .product-nav-btn { background: rgba(0, 0, 0, 0.3); color: #fff; }
 
-    .theme-bloom .product-info-price .price-current { font-size: 1.5rem; color: var(--color-text); }
+    .theme-bloom .product-info-price .price-current { font-size: 1.375rem; color: var(--color-text); }
 
     .theme-bloom .product-variation-option {
         border-color: var(--color-border);

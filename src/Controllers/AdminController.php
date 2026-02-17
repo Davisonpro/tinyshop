@@ -160,12 +160,20 @@ final class AdminController
         }
 
         $products = $this->productModel->findByUser($id);
+        $plans = $this->planModel->findAll();
+
+        $planExpired = false;
+        if (!empty($seller['plan_expires_at'])) {
+            $planExpired = strtotime($seller['plan_expires_at']) < time();
+        }
 
         return $this->view->render($response, 'pages/admin_seller_detail.tpl', [
-            'page_title'  => $seller['store_name'] ?? '',
-            'active_page' => 'sellers',
-            'seller'      => $seller,
-            'products'    => $products,
+            'page_title'   => $seller['store_name'] ?? '',
+            'active_page'  => 'sellers',
+            'seller'       => $seller,
+            'products'     => $products,
+            'plans'        => $plans,
+            'plan_expired' => $planExpired,
         ]);
     }
 
@@ -237,6 +245,54 @@ final class AdminController
         }
 
         return $this->json($response, ['success' => true]);
+    }
+
+    public function updateSellerPlan(Request $request, Response $response, array $args): Response
+    {
+        $id   = (int) $args['id'];
+        $data = (array) $request->getParsedBody();
+
+        $target = $this->userModel->findById($id);
+        if (!$target || ($target['role'] ?? '') === UserRole::Admin->value) {
+            return $this->json($response, ['error' => true, 'message' => 'Cannot modify admin accounts'], 403);
+        }
+
+        $planId = isset($data['plan_id']) ? (int) $data['plan_id'] : null;
+        $planName = 'None';
+        $updates = [];
+
+        if ($planId === null || $planId === 0) {
+            $updates['plan_id'] = null;
+            $updates['plan_expires_at'] = null;
+        } else {
+            $plan = $this->planModel->findById($planId);
+            if (!$plan) {
+                return $this->json($response, ['error' => true, 'message' => 'Plan not found'], 404);
+            }
+            $updates['plan_id'] = $planId;
+            $planName = $plan['name'];
+
+            $expiresAt = trim($data['plan_expires_at'] ?? '');
+            if ($expiresAt !== '') {
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $expiresAt)) {
+                    return $this->json($response, ['error' => true, 'message' => 'Invalid date format'], 422);
+                }
+                $updates['plan_expires_at'] = $expiresAt . ' 23:59:59';
+            } else {
+                $updates['plan_expires_at'] = null;
+            }
+        }
+
+        $this->userModel->update($id, $updates);
+
+        $this->logger->info('admin.seller_plan_changed', [
+            'admin_id'  => $this->auth->userId(),
+            'seller_id' => $id,
+            'plan_id'   => $updates['plan_id'],
+            'ip'        => $request->getServerParams()['REMOTE_ADDR'] ?? '',
+        ]);
+
+        return $this->json($response, ['success' => true, 'plan_name' => $planName]);
     }
 
     public function deleteSeller(Request $request, Response $response, array $args): Response

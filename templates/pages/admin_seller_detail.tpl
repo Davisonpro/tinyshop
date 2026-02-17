@@ -70,10 +70,35 @@
             <span class="sd-detail-label">Currency</span>
             <span class="sd-detail-value">{$seller.currency|default:'KES'}</span>
         </div>
+        <div class="sd-detail-row">
+            <span class="sd-detail-label">Plan</span>
+            <span class="sd-detail-value" id="sellerPlanValue">
+                {assign var="plan_name" value="Free"}
+                {foreach $plans as $p}
+                    {if $p.id == $seller.plan_id}{assign var="plan_name" value=$p.name}{/if}
+                {/foreach}
+                {$plan_name|escape}
+                {if $seller.plan_expires_at}
+                    {if $plan_expired}
+                        <span class="badge badge-orange" style="margin-left:6px">Expired</span>
+                    {else}
+                        <span style="color:var(--color-text-muted);margin-left:6px">until {$seller.plan_expires_at|date_format:"%b %e, %Y"}</span>
+                    {/if}
+                {/if}
+            </span>
+        </div>
     </div>
 
     {* Actions *}
     <div class="sd-actions">
+        <button type="button" class="sd-action-btn" id="changePlanBtn" data-id="{$seller.id}">
+            <div class="sd-action-icon" style="background:linear-gradient(135deg,#EEF2FF,#E0E7FF);color:#6366F1"><i class="fa-solid fa-arrow-up-right-dots"></i></div>
+            <div class="sd-action-text">
+                <span class="sd-action-title">Change plan</span>
+                <span class="sd-action-desc">Update subscription plan</span>
+            </div>
+            <i class="fa-solid fa-chevron-right sd-action-chevron"></i>
+        </button>
         <button type="button" class="sd-action-btn" id="impersonateBtn" data-id="{$seller.id}">
             <div class="sd-action-icon blue"><i class="fa-solid fa-user-secret"></i></div>
             <div class="sd-action-text">
@@ -179,6 +204,78 @@
             .always(function() {ldelim}
                 $el.prop('disabled', false);
             {rdelim});
+    {rdelim});
+
+    // Change plan
+    $('#changePlanBtn').on('click', function() {ldelim}
+        var id = $(this).data('id');
+        var currentPlanId = '{$seller.plan_id|default:0}';
+        var currentExpiry = '{$seller.plan_expires_at|default:""}';
+        if (currentExpiry) {ldelim}
+            currentExpiry = currentExpiry.substring(0, 10);
+        {rdelim}
+
+        var html = '<div class="sd-plan-form">'
+            + '<div class="sd-plan-field">'
+            + '<label for="planSelect">Plan</label>'
+            + '<select id="planSelect" class="sd-plan-select">'
+            + '<option value="0"' + (currentPlanId == '0' || !currentPlanId ? ' selected' : '') + '>Free (no plan)</option>'
+            {foreach $plans as $p}
+            + '<option value="{$p.id}"' + (currentPlanId == '{$p.id}' ? ' selected' : '') + '>{$p.name|escape} &mdash; {$p.currency|default:"KES"} {$p.price_monthly|number_format:0}/mo</option>'
+            {/foreach}
+            + '</select>'
+            + '</div>'
+            + '<div class="sd-plan-field" id="expiryField">'
+            + '<label for="planExpiry">Expires on <span style="color:var(--color-text-muted);font-weight:400">(optional)</span></label>'
+            + '<input type="date" id="planExpiry" class="sd-plan-input" value="' + currentExpiry + '">'
+            + '</div>'
+            + '<button type="button" id="savePlanBtn" class="btn-primary" style="width:100%;margin-top:16px">Save</button>'
+            + '</div>';
+
+        TinyShop.openModal('Change Plan', html);
+
+        function toggleExpiry() {ldelim}
+            var val = $('#planSelect').val();
+            if (val === '0') {ldelim}
+                $('#expiryField').hide();
+                $('#planExpiry').val('');
+            {rdelim} else {ldelim}
+                $('#expiryField').show();
+            {rdelim}
+        {rdelim}
+        toggleExpiry();
+        $('#planSelect').on('change', toggleExpiry);
+
+        $('#savePlanBtn').on('click', function() {ldelim}
+            var $btn = $(this);
+            var planId = parseInt($('#planSelect').val(), 10);
+            var expiry = $('#planExpiry').val() || '';
+
+            $btn.prop('disabled', true).text('Saving...');
+            TinyShop.api('PUT', '/api/admin/sellers/' + id + '/plan', {ldelim}
+                plan_id: planId,
+                plan_expires_at: expiry
+            {rdelim})
+            .done(function(res) {ldelim}
+                if (res.success) {ldelim}
+                    var label = res.plan_name || 'Free';
+                    var expiryHtml = '';
+                    if (expiry && planId > 0) {ldelim}
+                        var d = new Date(expiry + 'T00:00:00');
+                        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        expiryHtml = ' <span style="color:var(--color-text-muted);margin-left:6px">until ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + '</span>';
+                    {rdelim}
+                    $('#sellerPlanValue').html(label + expiryHtml);
+                    TinyShop.toast('Plan updated', 'success');
+                    TinyShop.closeModal();
+                {rdelim}
+            {rdelim})
+            .fail(function(xhr) {ldelim}
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to update plan';
+                TinyShop.toast(msg, 'error');
+                $btn.prop('disabled', false).text('Save');
+            {rdelim});
+        {rdelim});
     {rdelim});
 
     // Impersonate

@@ -36,6 +36,13 @@ final class CustomDomain implements MiddlewareInterface
         '/health',
     ];
 
+    private const RESERVED_SUBDOMAINS = [
+        'www', 'webmail', 'mail', 'smtp', 'imap', 'pop', 'pop3',
+        'ftp', 'cpanel', 'whm', 'cpcalendars', 'cpcontacts',
+        'phpmyadmin', 'autodiscover', 'autoconfig',
+        'ns1', 'ns2', 'dns', 'mx',
+    ];
+
     private static array $domainCache = [];
     private readonly string $baseDomain;
 
@@ -90,7 +97,7 @@ final class CustomDomain implements MiddlewareInterface
         $suffix = '.' . $base;
         if (str_ends_with($host, $suffix)) {
             $sub = substr($host, 0, -strlen($suffix));
-            if ($sub !== '' && $sub !== 'www') {
+            if ($sub !== '' && !in_array($sub, self::RESERVED_SUBDOMAINS, true)) {
                 return $sub;
             }
         }

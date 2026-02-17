@@ -421,11 +421,12 @@
 .theme-ivory .product-info-name {
   font-family: inherit;
   font-weight: 300;
-  font-size: 1.625rem;
+  font-size: 1.25rem;
   letter-spacing: -0.01em;
   line-height: 1.25;
   color: var(--color-text);
   margin-bottom: var(--spacing-sm);
+  word-break: break-word;
 }
 
 /* Price: understated, quiet, gallery tag */

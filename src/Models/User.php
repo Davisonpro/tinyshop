@@ -207,6 +207,7 @@ final class User
             'cod_enabled',
             'mpesa_shortcode', 'mpesa_consumer_key', 'mpesa_consumer_secret',
             'mpesa_passkey', 'mpesa_mode', 'mpesa_enabled',
+            'plan_id', 'plan_expires_at',
             'payment_mode', 'is_showcased',
             'show_store_name', 'show_tagline', 'show_search',
             'show_categories', 'show_sort_toolbar', 'show_desktop_footer',

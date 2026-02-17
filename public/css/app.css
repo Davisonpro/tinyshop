@@ -2061,22 +2061,24 @@ a.product-card {
 }
 
 .product-info-name {
-  font-size: 1.375rem;
+  font-size: 1.125rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.2;
+  line-height: 1.25;
   margin-bottom: var(--spacing-sm);
+  word-break: break-word;
 }
 
 .product-info-price {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
   margin-bottom: var(--spacing-md);
 }
 
 .product-info-price .price-current {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--color-text);
   letter-spacing: -0.02em;
@@ -2087,7 +2089,7 @@ a.product-card {
 }
 
 .product-info-price .price-compare {
-  font-size: 0.9375rem;
+  font-size: 0.8125rem;
   font-weight: 400;
   color: var(--color-text-muted);
   text-decoration: line-through;
@@ -4094,18 +4096,18 @@ button, a, input[type=submit], select, [role=button] {
   }
   /* Bigger product name on desktop */
   .product-page .product-info-name {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
   /* Make price stand out on desktop */
   .product-page .product-info-price {
     margin-bottom: var(--spacing-lg);
   }
   .product-page .product-info-price .price-current {
-    font-size: 1.5rem;
+    font-size: 1.375rem;
     font-weight: 800;
   }
   .product-page .product-info-price .price-compare {
-    font-size: 1.125rem;
+    font-size: 1rem;
   }
   /* Inline share buttons on desktop — below CTA */
   .product-share-inline {

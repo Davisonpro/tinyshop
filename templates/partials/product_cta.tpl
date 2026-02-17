@@ -15,7 +15,7 @@
                     data-product-compare-price="{$product.compare_price|default:0}"
                     data-product-image="{$product.image_url|escape}"
                     data-product-slug="{$product.slug|escape}">
-                    Add to Cart<span class="cta-price"> &mdash; {$currency_symbol}{$product.price|format_price}</span>
+                    Add to Cart
                 </button>
             </div>
         </div>

@@ -495,13 +495,14 @@
 }
 
 .theme-obsidian .product-info-name {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: -0.02em;
-  line-height: 1.05;
+  line-height: 1.1;
   color: var(--color-text);
   margin-bottom: var(--spacing-sm);
+  word-break: break-word;
 }
 
 /* Price: commanding 900 weight */
@@ -511,7 +512,7 @@
 
 .theme-obsidian .product-info-price .price-current {
   font-weight: 900;
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   letter-spacing: -0.01em;
   color: var(--color-text);
 }
@@ -965,7 +966,7 @@
 /* ── 25. Product Info Name (Enhanced) ─────────────────────── *
    Bumped to 2rem on product detail for huge commanding title. */
 .theme-obsidian .product-info-name {
-  font-size: 2rem;
+  font-size: 1.5rem;
 }
 
 /* ── 26. Price Block on Product Detail ────────────────────── *
@@ -978,7 +979,7 @@
 }
 
 .theme-obsidian .obsidian-price-block .price-current {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 900;
   letter-spacing: -0.02em;
 }

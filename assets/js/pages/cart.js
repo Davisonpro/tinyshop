@@ -224,11 +224,6 @@ TinyShop.Cart = (function() {
             }
         }
 
-        // Update CTA button price
-        var ctaPriceEl = document.querySelector('.cta-price');
-        if (ctaPriceEl) {
-            ctaPriceEl.textContent = currencySymbol + formatNum(effectivePrice);
-        }
     }
 
     function updateCtaState() {

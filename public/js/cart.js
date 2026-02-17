@@ -193,10 +193,6 @@ TinyShop.Cart = /* @__PURE__ */ function() {
         badgeEl.style.display = "none";
       }
     }
-    var ctaPriceEl = document.querySelector(".cta-price");
-    if (ctaPriceEl) {
-      ctaPriceEl.textContent = currencySymbol + formatNum(effectivePrice);
-    }
   }
   function updateCtaState() {
     var btn = document.getElementById("addToCartBtn");

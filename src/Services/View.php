@@ -23,9 +23,7 @@ final class View
         $this->smarty->setCompileDir($config->compileDir());
         $this->smarty->setCacheDir($config->cacheDir());
         $this->smarty->setCaching(Smarty::CACHING_OFF);
-        if (!$config->isDebug()) {
-            $this->smarty->setCompileCheck(\Smarty\Smarty::COMPILECHECK_OFF);
-        }
+        $this->smarty->setCompileCheck(Smarty::COMPILECHECK_ON);
 
         // Asset versioning for cache-busting
         $cssPath = dirname($config->uploadDir()) . '/css/app.css';
@@ -104,7 +102,9 @@ final class View
 
         $response->getBody()->write($html);
 
-        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+        return $response
+            ->withHeader('Content-Type', 'text/html; charset=utf-8')
+            ->withHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
 
     private function minifyHtml(string $html): string

@@ -193,6 +193,7 @@ return function (App $app): void {
         // Admin API endpoints (admin only)
         $api->group('/admin', function (RouteCollectorProxy $admin) {
             $admin->put('/sellers/{id}/toggle', [AdminController::class, 'toggleSeller']);
+            $admin->put('/sellers/{id}/plan', [AdminController::class, 'updateSellerPlan']);
             $admin->post('/sellers/{id}/impersonate', [AdminController::class, 'impersonate']);
             $admin->delete('/sellers/{id}', [AdminController::class, 'deleteSeller']);
             $admin->put('/settings', [AdminController::class, 'updateSettings']);
