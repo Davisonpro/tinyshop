@@ -4057,7 +4057,7 @@ button, a, input[type=submit], select, [role=button] {
   }
   .product-page .product-gallery {
     grid-column: 1;
-    grid-row: 1/-1;
+    grid-row: 1/6;
     margin-left: 0;
     margin-right: 0;
     overflow: visible;
@@ -4164,6 +4164,7 @@ button, a, input[type=submit], select, [role=button] {
     gap: 12px;
     margin-top: var(--spacing-md);
     grid-column: 2;
+    grid-row: 4;
   }
   .product-share-label {
     font-size: 0.8125rem;
