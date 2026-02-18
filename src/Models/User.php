@@ -201,7 +201,7 @@ final class User
             'shop_logo', 'shop_favicon', 'shop_tagline', 'contact_whatsapp', 'contact_email',
             'contact_phone', 'map_link', 'currency', 'is_active',
             'social_instagram', 'social_tiktok', 'social_facebook',
-            'shop_theme',
+            'shop_theme', 'color_palette', 'logo_alignment',
             'stripe_public_key', 'stripe_secret_key', 'stripe_mode', 'stripe_enabled',
             'paypal_client_id', 'paypal_secret', 'paypal_mode', 'paypal_enabled',
             'cod_enabled',
@@ -348,6 +348,12 @@ final class User
             if ($url) $urls[] = $url;
         }
 
+        $stmt = $this->db->prepare('SELECT image_url FROM hero_slides WHERE user_id = ? AND image_url IS NOT NULL');
+        $stmt->execute([$id]);
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $url) {
+            if ($url) $urls[] = $url;
+        }
+
         $stmt = $this->db->prepare('SELECT shop_logo FROM users WHERE id = ?');
         $stmt->execute([$id]);
         $logo = $stmt->fetchColumn();
@@ -381,6 +387,9 @@ final class User
 
             // Delete billing pending records
             $this->db->prepare('DELETE FROM billing_mpesa_pending WHERE user_id = ?')->execute([$id]);
+
+            // Delete hero slides
+            $this->db->prepare('DELETE FROM hero_slides WHERE user_id = ?')->execute([$id]);
 
             // Delete coupons
             $this->db->prepare('DELETE FROM coupons WHERE user_id = ?')->execute([$id]);

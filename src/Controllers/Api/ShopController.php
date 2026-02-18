@@ -13,6 +13,7 @@ use TinyShop\Models\User;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Hooks;
 use TinyShop\Services\PlanGuard;
+use TinyShop\Services\Theme;
 use TinyShop\Services\Upload;
 use TinyShop\Services\Validation;
 
@@ -25,6 +26,7 @@ final class ShopController
         private readonly Validation $validation,
         private readonly Upload $upload,
         private readonly PlanGuard $planGuard,
+        private readonly Theme $themeService,
         private readonly LoggerInterface $logger,
         private readonly AuditLog $auditLog
     ) {}
@@ -55,13 +57,19 @@ final class ShopController
         }
 
         // Validate theme if being changed
-        if (isset($data['shop_theme']) && !in_array($data['shop_theme'], Validation::VALID_THEMES, true)) {
+        if (isset($data['shop_theme']) && $this->themeService->loadManifest($data['shop_theme']) === null) {
             return $this->json($response, ['error' => true, 'message' => 'Invalid theme'], 422);
         }
 
-        // Plan: theme restriction
-        if (isset($data['shop_theme']) && !$this->planGuard->canUseTheme($userId, $data['shop_theme'])) {
-            return $this->json($response, ['error' => true, 'message' => 'This theme is only available on paid plans.'], 403);
+        // Validate color palette
+        $validPalettes = ['default', 'ocean', 'forest', 'sunset', 'lavender', 'cherry', 'sage', 'midnight', 'mocha', 'blush'];
+        if (isset($data['color_palette']) && !in_array($data['color_palette'], $validPalettes, true)) {
+            return $this->json($response, ['error' => true, 'message' => 'Invalid color palette'], 422);
+        }
+
+        // Validate logo alignment
+        if (isset($data['logo_alignment']) && !in_array($data['logo_alignment'], ['left', 'centered'], true)) {
+            return $this->json($response, ['error' => true, 'message' => 'Invalid logo alignment'], 422);
         }
 
         // Validate payment modes (per-gateway)

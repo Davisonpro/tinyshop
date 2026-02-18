@@ -1,5 +1,5 @@
 {* Desktop-only header — hidden on mobile via CSS, shown at 1024px+ *}
-<header class="desktop-header">
+<header class="desktop-header{if $shop.logo_alignment === 'centered'} desktop-header-centered{/if}">
     <div class="desktop-header-inner">
         <a href="/" class="desktop-header-brand">
             {if $shop.shop_logo}

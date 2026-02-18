@@ -39,7 +39,8 @@ TinyShop.initShop = function() {
         var params = {
             limit: o.limit || limit,
             offset: typeof o.offset !== 'undefined' ? o.offset : 0,
-            sort: o.sort || state.sort
+            sort: o.sort || state.sort,
+            format: 'html'
         };
         if (state.search) params.search = state.search;
         if (state.category !== 'all') params.category = state.category;
@@ -63,7 +64,7 @@ TinyShop.initShop = function() {
             // Create load more if it doesn't exist yet
             var html = '<div class="load-more-wrap" id="loadMoreWrap">'
                 + '<button type="button" class="load-more-btn" id="loadMoreBtn">'
-                + 'Show more products <span class="load-more-count" id="loadMoreCount"></span>'
+                + 'Load more <span class="load-more-count" id="loadMoreCount"></span>'
                 + '</button></div>';
             $catalogue.after(html);
             $loadMoreWrap = $('#loadMoreWrap');
@@ -92,9 +93,8 @@ TinyShop.initShop = function() {
         }
     }
 
-    // Fetch products from API
+    // Fetch products from API — uses server-rendered HTML fragments
     function fetchProducts(opts) {
-        // Abort any in-flight request so the new filter takes priority
         if (_activeXhr) {
             _activeXhr.abort();
             _activeXhr = null;
@@ -106,7 +106,6 @@ TinyShop.initShop = function() {
         var append = opts && opts.append;
         var query = buildQuery(opts);
 
-        // Show loading indicator on search input
         var $shopSearch = $('#shopSearch');
         if ($shopSearch.length) $shopSearch.addClass('search-loading');
 
@@ -120,30 +119,34 @@ TinyShop.initShop = function() {
 
         _activeXhr = $.getJSON(apiBase + '?' + query)
             .done(function(data) {
-                var products = data.products || [];
                 var total = data.total || 0;
+                var html = data.html || '';
 
                 if (append) {
-                    var html = '';
-                    for (var i = 0; i < products.length; i++) {
-                        html += TinyShop.renderProductCard(products[i], data.currency_symbol || currencySymbol);
-                    }
                     $catalogue.append(html);
-                    state.offset += products.length;
+                    // Count how many new cards were added
+                    var newCount = $(html).filter('.product-card').length || $(html).find('.product-card').length || 0;
+                    if (newCount === 0) {
+                        // Fallback: count by parsing the HTML
+                        var tmp = $('<div>').html(html);
+                        newCount = tmp.find('.product-card').addBack('.product-card').length;
+                    }
+                    state.offset += newCount;
                 } else {
-                    if (products.length === 0) {
+                    if (!html || total === 0) {
                         $catalogue.empty();
                         showEmpty(true);
                         state.offset = 0;
                     } else {
-                        var html = '';
-                        for (var i = 0; i < products.length; i++) {
-                            html += TinyShop.renderProductCard(products[i], data.currency_symbol || currencySymbol);
-                        }
                         $catalogue.html(html);
                         showEmpty(false);
-                        state.offset = products.length;
+                        state.offset = $catalogue.find('.product-card').length;
                     }
+                }
+
+                // Re-init theme features (image reveal, scroll arrows, etc.)
+                if (window.TinyShopTheme && typeof window.TinyShopTheme.reinit === 'function') {
+                    window.TinyShopTheme.reinit();
                 }
 
                 updateCount(state.offset, total);
@@ -160,7 +163,7 @@ TinyShop.initShop = function() {
                 _activeXhr = null;
                 var $ss = $('#shopSearch');
                 if ($ss.length) $ss.removeClass('search-loading');
-                $loadMoreBtn.removeClass('loading').html('Show more products <span class="load-more-count" id="loadMoreCount"></span>');
+                $loadMoreBtn.removeClass('loading').html('Load more <span class="load-more-count" id="loadMoreCount"></span>');
                 $loadMoreCount = $('#loadMoreCount');
                 updateLoadMore(state.offset, state.total);
             });
@@ -196,28 +199,23 @@ TinyShop.initShop = function() {
             var $row = $('.subcategory-tabs[data-parent-slug="' + parentSlug + '"]');
             if ($row.length) {
                 $row.show();
-                // Reset to "All" sub-pill
                 $row.find('.category-tab-sub').removeClass('active').first().addClass('active');
             }
         }
     }
 
     function activateSubcategoryBySlug(childSlug) {
-        // Find the subcategory pill with matching slug
         var $subPill = $('.subcategory-tabs .category-tab-sub[data-slug="' + childSlug + '"]');
         if ($subPill.length) {
             var $row = $subPill.closest('.subcategory-tabs');
             var parentSlug = $row.data('parent-slug');
 
-            // Show this subcategory row
             $('.subcategory-tabs').hide();
             $row.show();
 
-            // Activate the child pill
             $row.find('.category-tab-sub').removeClass('active');
             $subPill.addClass('active');
 
-            // Also activate the parent tab
             var $parentTab = $('#categoryTabs .category-tab[data-slug="' + parentSlug + '"]');
             if ($parentTab.length) {
                 $('#categoryTabs .category-tab').removeClass('active');
@@ -236,7 +234,6 @@ TinyShop.initShop = function() {
         state.categorySlug = (category === 'all') ? '' : (slug || '');
         state.offset = 0;
 
-        // Clear search when switching categories
         var $si = $('#searchInput');
         if ($si.length && $si.val()) {
             $si.val('');
@@ -246,7 +243,6 @@ TinyShop.initShop = function() {
 
         syncCategoryUI(category);
 
-        // Show/hide subcategory row for the selected parent
         if (category === 'all') {
             showSubcategoryRow(null);
         } else {
@@ -282,7 +278,6 @@ TinyShop.initShop = function() {
         state.categorySlug = slug;
         state.offset = 0;
 
-        // Clear search
         var $si = $('#searchInput');
         if ($si.length && $si.val()) {
             $si.val('');
@@ -318,7 +313,6 @@ TinyShop.initShop = function() {
         $searchInput.on('input', function() {
             var query = $.trim($(this).val());
             $searchClear.toggleClass('visible', query.length > 0);
-            // Sync desktop header search
             var $ds = $('#bloomDesktopSearch');
             if ($ds.length && $ds.val() !== $(this).val()) $ds.val($(this).val());
 
@@ -352,11 +346,9 @@ TinyShop.initShop = function() {
     if ($desktopSearch.length) {
         $desktopSearch.on('input', function() {
             var query = $.trim($(this).val());
-            // Mirror value to page search input
             if ($searchInput.length) {
                 $searchInput.val(query).trigger('input');
             } else {
-                // No page search (hidden on desktop) — search directly
                 $searchClear.toggleClass('visible', query.length > 0);
                 clearTimeout(searchTimer);
                 searchTimer = setTimeout(function() {
@@ -394,7 +386,7 @@ TinyShop.initShop = function() {
         if (state.search) params.set('search', state.search);
         if (state.sort !== 'default') params.set('sort', state.sort);
         var qs = params.toString();
-        var basePath = (state.categorySlug) ? '/category/' + encodeURIComponent(state.categorySlug) : '/';
+        var basePath = (state.categorySlug) ? '/collections/' + encodeURIComponent(state.categorySlug) : '/';
         history.replaceState(null, '', basePath + (qs ? '?' + qs : ''));
     }
 
@@ -404,20 +396,17 @@ TinyShop.initShop = function() {
     var urlSort = urlParams.get('sort');
     var needsFetch = false;
 
-    // Detect server-rendered category page (from /category/{slug} route)
+    // Detect server-rendered category page (from /collections/{slug} route)
     var serverCategory = $shopPage.data('active-category');
     var serverSlug = $shopPage.data('active-slug');
     var serverParent = $shopPage.data('active-parent');
 
     if (serverCategory) {
-        // Check if active category is a child (has a parent_id > 0)
         if (serverParent && parseInt(serverParent, 10) > 0) {
-            // Active category is a child — activate its parent tab + subcategory pill
             activateSubcategoryBySlug(String(serverSlug));
             state.category = String(serverCategory);
             state.categorySlug = String(serverSlug || '');
         } else {
-            // Active category is a parent — find matching tab for full ID list
             var $matchTab = $('#categoryTabs .category-tab[data-slug="' + serverSlug + '"]');
             if ($matchTab.length) {
                 state.category = String($matchTab.data('category'));
@@ -438,7 +427,7 @@ TinyShop.initShop = function() {
         var $activeTab = $('#categoryTabs .category-tab.active');
         if ($activeTab.length && $activeTab.data('slug')) {
             state.categorySlug = String($activeTab.data('slug'));
-            history.replaceState(null, '', '/category/' + encodeURIComponent(state.categorySlug));
+            history.replaceState(null, '', '/collections/' + encodeURIComponent(state.categorySlug));
         }
         needsFetch = true;
     }

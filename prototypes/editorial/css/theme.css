@@ -1,0 +1,809 @@
+/* ============================================================
+   Botanica — Natural / Editorial Theme
+   Warm, organic, earthy e-commerce layout. Think boutique
+   candle shop, artisan homeware, natural beauty brand.
+   Aesop meets a craft market — warm, tactile, organic.
+   DM Serif Display headings give editorial quality.
+   ============================================================ */
+
+/* --- Palette, Typography & Shape --- */
+:root {
+    --font-body: 'Karla', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-heading: 'DM Serif Display', Georgia, serif;
+
+    --color-bg: #FAF6F0;
+    --color-bg-alt: #F2EDDF;
+    --color-card: #FFFFFF;
+    --color-text: #3A3630;
+    --color-text-muted: #8C8578;
+    --color-accent: #7B8A64;
+    --color-accent-hover: #6A7856;
+    --color-border: #E0D9CC;
+    --color-error: #C45B3C;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-full: 999px;
+
+    --shadow-sm: none;
+    --shadow-md: none;
+
+    --marquee-speed: 30s;
+}
+
+
+/* ============================================================
+   ANNOUNCEMENT BAR — Olive green bg, cream text, marquee
+   ============================================================ */
+.announcement-bar {
+    background: #7B8A64;
+    color: #FAF6F0;
+    padding: 12px 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.announcement-bar-item {
+    color: #FAF6F0;
+}
+
+.announcement-bar-item svg {
+    opacity: 0.7;
+}
+
+
+/* ============================================================
+   TYPOGRAPHY — DM Serif Display for headings, Karla for body
+   ============================================================ */
+.shop-name,
+.desktop-header-name,
+.desktop-footer-name,
+.hero-slide-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+}
+
+.section-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-weight: 400;
+    font-size: 1.35rem;
+    letter-spacing: -0.01em;
+    color: #3A3630;
+    text-transform: none;
+}
+
+.product-title,
+.desktop-header-link,
+.shop-tagline,
+.desktop-footer-tagline {
+    font-family: 'Karla', sans-serif;
+    font-weight: 500;
+}
+
+
+/* ============================================================
+   MOBILE HEADER — Warm tones, leaf icon placeholder
+   ============================================================ */
+.mobile-header {
+    padding: 28px 16px 20px;
+}
+
+.shop-logo-placeholder {
+    background: #F2EDDF;
+    color: #7B8A64;
+    font-size: 1.4rem;
+    font-weight: 500;
+}
+
+.shop-name {
+    font-size: 1.6rem;
+    color: #3A3630;
+}
+
+.shop-tagline {
+    font-size: 13px;
+    color: #8C8578;
+}
+
+.shop-contact a i,
+.shop-contact button i {
+    color: #3A3630;
+}
+
+.shop-contact a,
+.shop-contact button {
+    color: #8C8578;
+}
+
+.shop-social a {
+    color: #8C8578;
+}
+.shop-social a:hover {
+    color: #7B8A64;
+}
+
+
+/* ============================================================
+   SEARCH BAR — Warm cream bg, olive focus
+   ============================================================ */
+.shop-search {
+    margin: 0 16px 20px;
+}
+
+.shop-search-input {
+    background: #F2EDDF;
+    border-color: #E0D9CC;
+    border-radius: var(--radius);
+    font-family: 'Karla', sans-serif;
+    font-size: 14px;
+}
+
+.shop-search-input:focus {
+    border-color: #7B8A64;
+    background: #FAF6F0;
+    box-shadow: none;
+}
+
+.shop-search-input::placeholder {
+    color: #8C8578;
+    opacity: 0.7;
+}
+
+
+/* ============================================================
+   HERO SLIDER — 12px radius, olive CTA pill, gentle gradient
+   ============================================================ */
+.hero-slider {
+    margin: 0 16px 24px;
+    border-radius: var(--radius);
+}
+
+.hero-slide-img {
+    aspect-ratio: 2 / 1;
+}
+
+.hero-slide-content {
+    align-items: center;
+    text-align: center;
+    padding: 64px 24px 28px;
+    background: linear-gradient(transparent 0%, rgba(46, 40, 32, 0.55) 100%);
+}
+
+.hero-slide-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-weight: 400;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+    max-width: 320px;
+}
+
+.hero-slide-desc {
+    font-family: 'Karla', sans-serif;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.5;
+    margin-bottom: 18px;
+    max-width: 380px;
+}
+
+.hero-slide-cta {
+    background: #7B8A64;
+    color: #FAF6F0;
+    border-radius: var(--radius-full);
+    font-family: 'Karla', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 28px;
+    transition: background 0.2s, transform 0.15s;
+}
+.hero-slide-cta:hover {
+    background: #6A7856;
+}
+.hero-slide-cta:active {
+    transform: scale(0.96);
+}
+
+/* Dots */
+.hero-slider-dots {
+    bottom: 14px;
+}
+.hero-slider-dot {
+    background: rgba(255, 255, 255, 0.35);
+    width: 7px;
+    height: 7px;
+}
+.hero-slider-dot.active {
+    background: #FAF6F0;
+    width: 22px;
+}
+
+
+/* ============================================================
+   TRUST BADGES — Cream card bg, olive icons
+   ============================================================ */
+.trust-badge {
+    background: #F2EDDF;
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    min-width: 210px;
+}
+
+.trust-badge-icon {
+    color: #7B8A64;
+}
+
+.trust-badge-title {
+    font-family: 'Karla', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: #3A3630;
+}
+
+.trust-badge-desc {
+    font-family: 'Karla', sans-serif;
+    font-size: 12px;
+    color: #8C8578;
+}
+
+
+/* ============================================================
+   CATEGORY CIRCLES — Round with cream bg, olive active border
+   ============================================================ */
+.category-section {
+    margin-bottom: 28px;
+}
+
+.category-circles {
+    gap: 16px;
+}
+
+.category-circle-img {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2px solid #E0D9CC;
+    background: #F2EDDF;
+    transition: border-color 0.2s;
+}
+
+.category-circle.active .category-circle-img {
+    border-color: #7B8A64;
+    border-width: 3px;
+}
+
+.category-circle-name {
+    font-family: 'Karla', sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+    color: #8C8578;
+}
+
+.category-circle.active .category-circle-name {
+    color: #7B8A64;
+    font-weight: 600;
+}
+
+.category-see-all-icon {
+    width: 72px;
+    height: 72px;
+    border: 2px dashed #E0D9CC;
+    color: #8C8578;
+}
+.category-see-all-icon:hover {
+    border-color: #7B8A64;
+    color: #7B8A64;
+}
+
+.category-see-all-name {
+    font-family: 'Karla', sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   COLLECTION BANNERS — 12px radius, warm gradient
+   ============================================================ */
+.collection-banners {
+    margin-bottom: 32px;
+}
+
+.collection-banner {
+    border-radius: var(--radius);
+}
+
+.collection-banner-content {
+    background: linear-gradient(transparent 0%, rgba(46, 40, 32, 0.6) 100%);
+    padding: 24px 20px;
+}
+
+.collection-banner-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-weight: 400;
+    font-size: 1.2rem;
+    color: #FAF6F0;
+    margin-bottom: 6px;
+}
+
+.collection-banner-desc {
+    font-family: 'Karla', sans-serif;
+    font-size: 13px;
+    color: rgba(250, 246, 240, 0.8);
+    margin-bottom: 14px;
+}
+
+.collection-banner-link {
+    font-family: 'Karla', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: #FAF6F0;
+}
+
+
+/* ============================================================
+   SECTION HEADERS
+   ============================================================ */
+.section-link {
+    font-family: 'Karla', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    color: #7B8A64;
+}
+.section-link:hover {
+    color: #6A7856;
+}
+
+.section-count {
+    font-family: 'Karla', sans-serif;
+    color: #8C8578;
+}
+
+
+/* ============================================================
+   PRODUCT SLIDER — Best sellers horizontal scroll
+   ============================================================ */
+.product-slider-img {
+    border-radius: var(--radius);
+    background: #F2EDDF;
+}
+
+.product-slider-info h3 {
+    font-family: 'Karla', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    color: #3A3630;
+}
+
+.product-slider-price {
+    font-family: 'Karla', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: #3A3630;
+}
+
+.product-slider-price .price-compare {
+    color: #8C8578;
+    font-weight: 400;
+}
+
+
+/* ============================================================
+   PRODUCT CARDS — No border, warm bg-alt behind images, 12px radius
+   ============================================================ */
+.products-section {
+    margin-bottom: 40px;
+}
+
+.product-card {
+    background: var(--color-bg);
+    border-radius: var(--radius);
+    border: none;
+    box-shadow: none;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+
+.product-card:active {
+    transform: scale(0.97);
+}
+
+.product-card-img {
+    background: #F2EDDF;
+    border-radius: var(--radius) var(--radius) 0 0;
+    overflow: hidden;
+}
+
+.product-card-img img {
+    transition: transform 0.4s ease;
+}
+
+.product-card-body {
+    padding: 10px 10px 14px;
+}
+
+.product-title {
+    font-family: 'Karla', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    color: #3A3630;
+    line-height: 1.35;
+    margin-bottom: 4px;
+}
+
+.product-price {
+    font-family: 'Karla', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: #3A3630;
+}
+
+.product-price .price-compare {
+    color: #8C8578;
+    font-weight: 400;
+    font-size: 12px;
+}
+
+.product-price .price-sale {
+    color: #C45B3C;
+}
+
+/* Sale badge — terracotta bg */
+.product-badge {
+    border-radius: var(--radius-sm);
+    font-family: 'Karla', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.product-badge-sale {
+    background: #C45B3C;
+    color: #fff;
+}
+
+.product-badge-sold {
+    background: rgba(58, 54, 48, 0.6);
+    color: #fff;
+}
+
+
+/* ============================================================
+   LOAD MORE — Olive outline, pill shape
+   ============================================================ */
+.load-more-btn {
+    border: 1.5px solid #7B8A64;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: #7B8A64;
+    font-family: 'Karla', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 13px 32px;
+    transition: all 0.2s;
+}
+
+.load-more-btn:hover {
+    background: #7B8A64;
+    color: #FAF6F0;
+}
+
+.load-more-btn:active {
+    transform: scale(0.97);
+    background: #6A7856;
+    color: #FAF6F0;
+}
+
+.load-more-count {
+    color: inherit;
+    opacity: 0.6;
+}
+
+
+/* ============================================================
+   SCROLL ARROWS — Warm border, olive hover
+   ============================================================ */
+.scroll-arrow {
+    border-color: #E0D9CC;
+    background: #FAF6F0;
+    color: #3A3630;
+}
+
+.scroll-arrow:hover {
+    border-color: #7B8A64;
+    color: #7B8A64;
+    background: #FAF6F0;
+}
+
+
+/* ============================================================
+   MOBILE FOOTER
+   ============================================================ */
+.mobile-footer {
+    border-top: 1px solid #E0D9CC;
+    color: #8C8578;
+    font-family: 'Karla', sans-serif;
+    font-size: 12px;
+    padding: 28px 16px;
+}
+
+
+/* ============================================================
+   DESKTOP HEADER — Cream bg, warm border, DM Serif Display name
+   ============================================================ */
+.botanica-header {
+    background: #FAF6F0;
+    border-bottom: 1px solid #E0D9CC;
+}
+
+.botanica-header .desktop-header-name {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-weight: 400;
+    font-size: 1.3rem;
+    color: #3A3630;
+    letter-spacing: -0.01em;
+}
+
+.botanica-header .desktop-header-logo-placeholder {
+    background: #F2EDDF;
+    color: #7B8A64;
+    font-weight: 400;
+}
+
+.botanica-header .desktop-header-link {
+    font-family: 'Karla', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #3A3630;
+}
+
+.botanica-header .desktop-header-link:hover {
+    color: #7B8A64;
+}
+
+.botanica-header .desktop-header-btn {
+    border: 1px solid #E0D9CC;
+    color: #3A3630;
+    transition: all 0.2s;
+}
+
+.botanica-header .desktop-header-btn:hover {
+    border-color: #7B8A64;
+    color: #7B8A64;
+    background: transparent;
+}
+
+
+/* ============================================================
+   DESKTOP FOOTER — Slightly darker cream bg
+   ============================================================ */
+.desktop-footer {
+    background: #F2EDDF;
+}
+
+.desktop-footer-logo-placeholder {
+    background: #E0D9CC;
+    color: #7B8A64;
+}
+
+.desktop-footer-name {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-weight: 400;
+    font-size: 1.05rem;
+    color: #3A3630;
+}
+
+.desktop-footer-tagline {
+    font-family: 'Karla', sans-serif;
+    font-size: 13px;
+    color: #8C8578;
+}
+
+.desktop-footer-heading {
+    font-family: 'Karla', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+    color: #8C8578;
+}
+
+.desktop-footer-links a {
+    font-family: 'Karla', sans-serif;
+    font-size: 14px;
+    color: #3A3630;
+}
+.desktop-footer-links a:hover {
+    color: #7B8A64;
+}
+.desktop-footer-links a i {
+    color: #8C8578;
+}
+
+.desktop-footer-social a {
+    border-color: #E0D9CC;
+    color: #8C8578;
+}
+.desktop-footer-social a:hover {
+    border-color: #7B8A64;
+    color: #7B8A64;
+}
+
+.desktop-footer-bottom {
+    border-top-color: #E0D9CC;
+    color: #8C8578;
+    font-family: 'Karla', sans-serif;
+}
+
+
+/* ============================================================
+   RESPONSIVE — Tablet (768px+)
+   ============================================================ */
+@media (min-width: 768px) {
+    .category-circle-img {
+        width: 80px;
+        height: 80px;
+    }
+
+    .category-see-all-icon {
+        width: 80px;
+        height: 80px;
+    }
+
+    .trust-badge {
+        min-width: 220px;
+    }
+}
+
+
+/* ============================================================
+   RESPONSIVE — Desktop (1024px+)
+   ============================================================ */
+@media (min-width: 1024px) {
+
+    /* Desktop header visible */
+    .botanica-header {
+        display: block;
+    }
+
+    /* Hero — larger, keep rounded corners */
+    .hero-slider {
+        margin: 0 0 32px;
+        border-radius: var(--radius);
+    }
+
+    .hero-slide-img {
+        aspect-ratio: 21 / 9;
+    }
+
+    .hero-slide-content {
+        padding: 64px 48px 36px;
+    }
+
+    .hero-slide-title {
+        font-size: 2.75rem;
+        max-width: 480px;
+    }
+
+    .hero-slide-desc {
+        font-size: 16px;
+        max-width: 500px;
+    }
+
+    .hero-slide-cta {
+        padding: 14px 36px;
+        font-size: 15px;
+    }
+
+    /* Show hero arrows on desktop */
+    .hero-slider-prev,
+    .hero-slider-next {
+        display: flex;
+        border-color: rgba(250, 246, 240, 0.4);
+        background: rgba(58, 54, 48, 0.15);
+        color: #FAF6F0;
+    }
+    .hero-slider-prev:hover,
+    .hero-slider-next:hover {
+        border-color: rgba(250, 246, 240, 0.7);
+        background: rgba(58, 54, 48, 0.3);
+    }
+
+    .hero-slider-dots {
+        bottom: 20px;
+    }
+    .hero-slider-dot { width: 9px; height: 9px; }
+    .hero-slider-dot.active { width: 28px; }
+
+    /* Search bar */
+    .shop-search {
+        max-width: 460px;
+        margin: 0 auto 28px;
+    }
+
+    /* Trust badges — full row */
+    .trust-badges {
+        margin-bottom: 32px;
+    }
+
+    /* Category circles — larger on desktop */
+    .category-section {
+        margin-bottom: 36px;
+    }
+
+    .category-circle-img {
+        width: 88px;
+        height: 88px;
+        border-width: 2px;
+    }
+
+    .category-circle.active .category-circle-img {
+        border-width: 3px;
+    }
+
+    .category-circle-name {
+        font-size: 12px;
+        max-width: 92px;
+    }
+
+    .category-see-all-icon {
+        width: 88px;
+        height: 88px;
+    }
+
+    /* Collection banners */
+    .collection-banners {
+        margin-bottom: 36px;
+    }
+
+    .collection-banner-title {
+        font-size: 1.35rem;
+    }
+
+    /* Section title size bump */
+    .section-title {
+        font-size: 1.5rem;
+    }
+
+    .section-header {
+        margin-bottom: 18px;
+    }
+
+    /* Product grid — 4 cols */
+    .product-grid {
+        gap: 20px;
+    }
+
+    /* Product cards — hover lift + image scale */
+    .product-card {
+        transition: transform 0.25s ease;
+    }
+
+    .product-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .product-card:hover .product-card-img img {
+        transform: scale(1.04);
+    }
+
+    /* Product slider */
+    .product-slider-section {
+        margin-bottom: 40px;
+    }
+
+    /* Products section generous spacing */
+    .products-section {
+        margin-bottom: 48px;
+    }
+
+    /* Load more */
+    .load-more-wrap {
+        padding: 24px 0;
+        margin-bottom: 32px;
+    }
+}

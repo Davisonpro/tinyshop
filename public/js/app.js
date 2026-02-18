@@ -514,7 +514,8 @@ TinyShop.initShop = function() {
     var params = {
       limit: o.limit || limit,
       offset: typeof o.offset !== "undefined" ? o.offset : 0,
-      sort: o.sort || state.sort
+      sort: o.sort || state.sort,
+      format: "html"
     };
     if (state.search) params.search = state.search;
     if (state.category !== "all") params.category = state.category;
@@ -533,7 +534,7 @@ TinyShop.initShop = function() {
   }
   function updateLoadMore(shown, total) {
     if (!$loadMoreWrap.length && shown < total) {
-      var html = '<div class="load-more-wrap" id="loadMoreWrap"><button type="button" class="load-more-btn" id="loadMoreBtn">Show more products <span class="load-more-count" id="loadMoreCount"></span></button></div>';
+      var html = '<div class="load-more-wrap" id="loadMoreWrap"><button type="button" class="load-more-btn" id="loadMoreBtn">Load more <span class="load-more-count" id="loadMoreCount"></span></button></div>';
       $catalogue.after(html);
       $loadMoreWrap = $("#loadMoreWrap");
       $loadMoreBtn = $("#loadMoreBtn");
@@ -577,29 +578,29 @@ TinyShop.initShop = function() {
       $loadMoreBtn.addClass("loading").text("Loading...");
     }
     _activeXhr = $.getJSON(apiBase + "?" + query).done(function(data) {
-      var products = data.products || [];
       var total = data.total || 0;
+      var html = data.html || "";
       if (append) {
-        var html = "";
-        for (var i = 0; i < products.length; i++) {
-          html += TinyShop.renderProductCard(products[i], data.currency_symbol || currencySymbol);
-        }
         $catalogue.append(html);
-        state.offset += products.length;
+        var newCount = $(html).filter(".product-card").length || $(html).find(".product-card").length || 0;
+        if (newCount === 0) {
+          var tmp = $("<div>").html(html);
+          newCount = tmp.find(".product-card").addBack(".product-card").length;
+        }
+        state.offset += newCount;
       } else {
-        if (products.length === 0) {
+        if (!html || total === 0) {
           $catalogue.empty();
           showEmpty(true);
           state.offset = 0;
         } else {
-          var html = "";
-          for (var i = 0; i < products.length; i++) {
-            html += TinyShop.renderProductCard(products[i], data.currency_symbol || currencySymbol);
-          }
           $catalogue.html(html);
           showEmpty(false);
-          state.offset = products.length;
+          state.offset = $catalogue.find(".product-card").length;
         }
+      }
+      if (window.TinyShopTheme && typeof window.TinyShopTheme.reinit === "function") {
+        window.TinyShopTheme.reinit();
       }
       updateCount(state.offset, total);
       updateLoadMore(state.offset, total);
@@ -613,7 +614,7 @@ TinyShop.initShop = function() {
       _activeXhr = null;
       var $ss = $("#shopSearch");
       if ($ss.length) $ss.removeClass("search-loading");
-      $loadMoreBtn.removeClass("loading").html('Show more products <span class="load-more-count" id="loadMoreCount"></span>');
+      $loadMoreBtn.removeClass("loading").html('Load more <span class="load-more-count" id="loadMoreCount"></span>');
       $loadMoreCount = $("#loadMoreCount");
       updateLoadMore(state.offset, state.total);
     });
@@ -793,7 +794,7 @@ TinyShop.initShop = function() {
     if (state.search) params.set("search", state.search);
     if (state.sort !== "default") params.set("sort", state.sort);
     var qs = params.toString();
-    var basePath = state.categorySlug ? "/category/" + encodeURIComponent(state.categorySlug) : "/";
+    var basePath = state.categorySlug ? "/collections/" + encodeURIComponent(state.categorySlug) : "/";
     history.replaceState(null, "", basePath + (qs ? "?" + qs : ""));
   }
   var urlParams = new URLSearchParams(window.location.search);
@@ -827,7 +828,7 @@ TinyShop.initShop = function() {
     var $activeTab = $("#categoryTabs .category-tab.active");
     if ($activeTab.length && $activeTab.data("slug")) {
       state.categorySlug = String($activeTab.data("slug"));
-      history.replaceState(null, "", "/category/" + encodeURIComponent(state.categorySlug));
+      history.replaceState(null, "", "/collections/" + encodeURIComponent(state.categorySlug));
     }
     needsFetch = true;
   }

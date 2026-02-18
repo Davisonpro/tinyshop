@@ -6,6 +6,17 @@
 <link rel="stylesheet" href="/public/css/checkout{$min}.css?v={$asset_v}">
 {/block}
 {block name="body"}
+{if !empty($palette_css)}
+<style>
+.page-shop {
+    --palette-primary: {$palette_css.primary};
+    --palette-bar: {$palette_css.bar};
+    --palette-bar-text: {$palette_css.bar_text};
+    --palette-accent: {$palette_css.accent};
+    --palette-accent-hover: {$palette_css.accent};
+}
+</style>
+{/if}
 <div class="checkout-page" id="checkoutPage">
     <a href="/" class="checkout-back">
         <i class="fa-solid fa-chevron-left" style="font-size:16px"></i>
@@ -147,12 +158,6 @@
     </div>
 </div>
 
-<script>
-window._shopId = {$shop.id|escape:'javascript'};
-window._shopCurrency = '{$currency|escape:'javascript'}';
-window._shopCurrencySymbol = '{$currency_symbol|escape:'javascript'}';
-</script>
-<script src="/public/js/cart{$min}.js?v={$asset_v}"></script>
 {/block}
 
 {block name="page_scripts"}

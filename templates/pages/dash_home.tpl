@@ -224,6 +224,12 @@
             </div>
             <strong>Orders</strong>
         </a>
+        <a href="/dashboard/design" class="action-card">
+            <div class="action-icon teal">
+                <i class="fa-solid fa-palette"></i>
+            </div>
+            <strong>Design</strong>
+        </a>
         <a href="/dashboard/shop" class="action-card">
             <div class="action-icon green">
                 <i class="fa-solid fa-gear"></i>

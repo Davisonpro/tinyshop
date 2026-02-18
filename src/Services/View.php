@@ -10,7 +10,7 @@ use TinyShop\Models\Setting;
 
 final class View
 {
-    public const ASSET_VERSION = '1.0.20';
+    public const ASSET_VERSION = '1.0.30';
 
     private readonly Smarty $smarty;
     private readonly string $baseTemplatesDir;
@@ -35,6 +35,25 @@ final class View
         // Custom modifier: format prices with commas (e.g. 1,500.00)
         $this->smarty->registerPlugin('modifier', 'format_price', function ($number, $decimals = 2) {
             return number_format((float) $number, $decimals, '.', ',');
+        });
+
+        // Custom modifier: check if a date is within N days (default 14)
+        $this->smarty->registerPlugin('modifier', 'is_recent', function ($dateStr, int $days = 14): bool {
+            if (!$dateStr) {
+                return false;
+            }
+            return strtotime((string) $dateStr) > strtotime("-{$days} days");
+        });
+
+        // {hook name="..."} — execute theme/addon action hooks and return output
+        $this->smarty->registerPlugin('function', 'hook', function (array $params): string {
+            $name = $params['name'] ?? '';
+            if ($name === '') {
+                return '';
+            }
+            ob_start();
+            Hooks::doAction($name);
+            return ob_get_clean() ?: '';
         });
 
         $appUrl = $config->url();
@@ -71,20 +90,30 @@ final class View
     }
 
     /**
-     * Set the active theme — prepends theme-specific template directory.
+     * Set the theme template directory — called by Theme service.
      * Smarty checks theme dir first, falls back to base templates dir.
      */
-    public function setTheme(string $theme): void
+    public function setThemeDir(string $dir, string $compileId = ''): void
     {
-        if ($theme && $theme !== 'classic') {
-            $themeDir = $this->baseTemplatesDir . '/themes/' . $theme;
-            if (is_dir($themeDir)) {
-                $this->smarty->setTemplateDir([
-                    'theme'   => $themeDir,
-                    'default' => $this->baseTemplatesDir,
-                ]);
+        if (is_dir($dir)) {
+            $this->smarty->setTemplateDir([
+                'theme'   => $dir,
+                'default' => $this->baseTemplatesDir,
+            ]);
+            if ($compileId !== '') {
+                $this->smarty->setCompileId($compileId);
             }
         }
+    }
+
+    /**
+     * Assign theme asset variables to all templates.
+     */
+    public function assignThemeVars(array $styleUrls, array $scriptUrls, ?string $fontLink): void
+    {
+        $this->smarty->assign('theme_styles', $styleUrls);
+        $this->smarty->assign('theme_scripts', $scriptUrls);
+        $this->smarty->assign('theme_font_link', $fontLink);
     }
 
     public function render(ResponseInterface $response, string $template, array $data = []): ResponseInterface
@@ -104,6 +133,15 @@ final class View
         return $response
             ->withHeader('Content-Type', 'text/html; charset=utf-8')
             ->withHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+
+    public function renderFragment(string $template, array $data = []): string
+    {
+        foreach ($data as $key => $value) {
+            $this->smarty->assign($key, $value);
+        }
+
+        return $this->smarty->fetch($template);
     }
 
     private function minifyHtml(string $html): string

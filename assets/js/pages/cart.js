@@ -38,9 +38,9 @@ TinyShop.Cart = (function() {
         var count = getCount();
         var $badge = $('.cart-badge');
         if (count > 0) {
-            $badge.text(count).show();
+            $badge.text(count).removeClass('cart-badge-hidden');
         } else {
-            $badge.hide();
+            $badge.addClass('cart-badge-hidden');
         }
     }
 
@@ -392,6 +392,40 @@ TinyShop.Cart = (function() {
         if (_bound) return;
         _bound = true;
 
+        // ── Product card quick add-to-cart ──
+        $(document).on('click', '.product-card-atc', function(e) {
+            var $atc = $(this);
+
+            // "Choose Options" links — let the <a> navigate to product page
+            if ($atc.hasClass('product-card-atc-options')) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            var product = {
+                id: $atc.data('product-id'),
+                name: $atc.data('product-name'),
+                price: parseFloat($atc.data('product-price')),
+                comparePrice: parseFloat($atc.data('product-compare-price')) || 0,
+                image: $atc.data('product-image') || '',
+                slug: $atc.data('product-slug') || ''
+            };
+
+            addItem(product, 1);
+
+            // Feedback: show checkmark then revert
+            $atc.addClass('product-card-atc-added').text('Added!');
+            setTimeout(function() {
+                $atc.removeClass('product-card-atc-added').text('Add to Cart');
+            }, 1200);
+
+            // Bounce the cart badge
+            var $badge = $('.cart-badge');
+            $badge.removeClass('bounce');
+            $badge[0] && $badge[0].offsetWidth;
+            $badge.addClass('bounce');
+        });
+
         // Cart drawer: quantity -/+
         $(document).on('click', '.cart-qty-minus', function() {
             var pid = $(this).data('pid');
@@ -465,6 +499,7 @@ TinyShop.Cart = (function() {
         // ── Add to cart from product page ──
         $(document).on('click', '#addToCartBtn', function() {
             var $btn = $(this);
+            if ($btn.prop('disabled')) return;
 
             // If product has variations, ensure all are selected
             if (window._hasVariations && !allVariationsSelected()) {

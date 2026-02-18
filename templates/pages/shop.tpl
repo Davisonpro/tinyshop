@@ -4,12 +4,24 @@
 
 {block name="body"}
 {include file="partials/desktop_header.tpl"}
+{if !empty($palette_css)}
+<style>
+.shop-page {
+    --palette-primary: {$palette_css.primary};
+    --palette-bar: {$palette_css.bar};
+    --palette-bar-text: {$palette_css.bar_text};
+    --palette-accent: {$palette_css.accent};
+}
+</style>
+{/if}
 <div class="shop-page" id="main-content" data-subdomain="{$shop.subdomain|escape}" data-total="{$total_products}" data-limit="{$products_limit}" data-currency="{$currency_symbol|escape}"{if $active_category} data-active-category="{$active_category.id}" data-active-slug="{$active_category.slug|escape}" data-active-parent="{$active_category.parent_id|default:0}"{/if}>
     <div class="container">
         {include file="partials/announcement_bar.tpl"}
         {include file="partials/shop_header.tpl"}
 
-        {block name="shop_hero"}{/block}
+        {block name="shop_hero"}
+        {include file="partials/hero_slider.tpl"}
+        {/block}
 
         {if $total_products > 0 && $shop.show_search|default:1}
         {block name="shop_search"}

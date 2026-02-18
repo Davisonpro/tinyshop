@@ -1,0 +1,25 @@
+{
+    "name": "Classic",
+    "slug": "classic",
+    "version": "1.0.0",
+    "description": "Clean, modern store. Crisp whites, generous radius, big type.",
+    "author": "TinyShop",
+    "fonts": [
+        {
+            "family": "Albert Sans",
+            "weights": [400, 500, 600, 700, 800],
+            "provider": "google"
+        }
+    ],
+    "styles": ["assets/css/theme.css"],
+    "scripts": ["assets/js/theme.js"],
+    "supports": {
+        "hero_slider": true,
+        "trust_badges": true,
+        "product_sliders": true,
+        "collection_banners": true,
+        "category_band": true,
+        "search_overlay": true,
+        "color_palettes": true
+    }
+}

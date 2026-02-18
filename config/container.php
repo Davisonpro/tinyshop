@@ -14,6 +14,7 @@ use TinyShop\Services\Mailer;
 use TinyShop\Services\Payment;
 use TinyShop\Services\Validation;
 use TinyShop\Services\PlanGuard;
+use TinyShop\Services\Theme;
 use TinyShop\Models\Setting;
 use TinyShop\Models\Plan;
 use TinyShop\Models\Product;
@@ -55,6 +56,10 @@ return function (Config $config, array $dbConfig): array {
 
         Payment::class => function () {
             return new Payment();
+        },
+
+        Theme::class => function () use ($config) {
+            return new Theme($config);
         },
 
         PlanGuard::class => function ($container) {

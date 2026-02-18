@@ -3,8 +3,14 @@
     RewriteEngine On
     RewriteBase /
 
+    # Allow direct serving of theme static assets (CSS, JS, images, fonts)
+    RewriteRule ^themes/[a-z0-9-]+/assets/ - [L]
+
     # Block access to sensitive directories
     RewriteRule ^(src|config|templates|var|vendor|addons)/ - [F,L]
+
+    # Block access to theme internals (templates, PHP, manifest)
+    RewriteRule ^themes/[^/]+/(templates|functions\.php|theme\.json) - [F,L]
 
     # Backward compat: /uploads/file → public/uploads/file
     RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]

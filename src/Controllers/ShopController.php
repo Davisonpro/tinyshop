@@ -10,12 +10,14 @@ use TinyShop\Models\User;
 use TinyShop\Models\Product;
 use TinyShop\Models\ProductImage;
 use TinyShop\Models\Category;
+use TinyShop\Models\HeroSlide;
 use TinyShop\Models\Order;
 use TinyShop\Models\OrderItem;
 use TinyShop\Models\ShopView;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Services\Auth;
 use TinyShop\Services\View;
+use TinyShop\Services\Theme;
 use TinyShop\Services\Hooks;
 
 final class ShopController
@@ -31,188 +33,51 @@ final class ShopController
         'EUR' => "\u{20AC}", 'RWF' => 'RWF ', 'ETB' => 'ETB ', 'XOF' => 'CFA ',
     ];
 
-    private const VISITOR_COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 year
+    private const VISITOR_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
+
+    private const PALETTES = [
+        'default'    => ['primary' => '#222222', 'bar' => '#222222', 'bar_text' => '#ffffff', 'accent' => '#222222'],
+        'ocean'      => ['primary' => '#0F2B46', 'bar' => '#0F2B46', 'bar_text' => '#ffffff', 'accent' => '#E07A5F'],
+        'forest'     => ['primary' => '#1B4332', 'bar' => '#1B4332', 'bar_text' => '#ffffff', 'accent' => '#D4A373'],
+        'sunset'     => ['primary' => '#5C1A0A', 'bar' => '#5C1A0A', 'bar_text' => '#ffffff', 'accent' => '#457B9D'],
+        'lavender'   => ['primary' => '#2D2457', 'bar' => '#2D2457', 'bar_text' => '#ffffff', 'accent' => '#F2CC8F'],
+        'cherry'     => ['primary' => '#7B1E34', 'bar' => '#7B1E34', 'bar_text' => '#ffffff', 'accent' => '#C9534A'],
+        'sage'       => ['primary' => '#5A7247', 'bar' => '#5A7247', 'bar_text' => '#ffffff', 'accent' => '#8B6F4E'],
+        'midnight'   => ['primary' => '#151B2B', 'bar' => '#151B2B', 'bar_text' => '#ffffff', 'accent' => '#4A7CFF'],
+        'mocha'      => ['primary' => '#3E2723', 'bar' => '#3E2723', 'bar_text' => '#ffffff', 'accent' => '#A1887F'],
+        'blush'      => ['primary' => '#4A3040', 'bar' => '#4A3040', 'bar_text' => '#ffffff', 'accent' => '#D4889E'],
+    ];
 
     public function __construct(
         private readonly View $view,
+        private readonly Theme $theme,
         private readonly User $userModel,
         private readonly Product $productModel,
         private readonly ProductImage $productImageModel,
         private readonly Category $categoryModel,
+        private readonly HeroSlide $heroSlideModel,
         private readonly Order $orderModel,
         private readonly OrderItem $orderItemModel,
         private readonly ShopView $shopViewModel,
         private readonly Auth $auth
     ) {}
 
+    // ── Page Handlers ─────────────────────────────────────────
+
     public function show(Request $request, Response $response, array $args): Response
     {
         return $this->renderShop($request, $response, $args);
     }
 
-    public function showCategory(Request $request, Response $response, array $args): Response
-    {
-        return $this->renderShop($request, $response, $args, $args['categorySlug'] ?? '');
-    }
-
-    private function renderShop(Request $request, Response $response, array $args, string $categorySlug = ''): Response
-    {
-        $subdomain = $args['subdomain'] ?? '';
-        $shop = $this->userModel->findBySubdomain($subdomain);
-
-        if (!$shop) {
-            return $this->view->render(
-                $response->withStatus(404),
-                'pages/shop_404.tpl',
-                ['page_title' => 'Shop Not Found']
-            );
-        }
-
-        $shopId = (int) $shop['id'];
-
-        // Fetch categories early — needed for resolving active category children
-        $categories = $this->categoryModel->findByUser($shopId);
-        $categoryTree = $this->categoryModel->findByUserAsTree($shopId);
-
-        // Resolve category from slug
-        $activeCategory = null;
-        $activeCategoryIds = null;
-        if ($categorySlug !== '') {
-            $activeCategory = $this->categoryModel->findByUserAndSlug($shopId, $categorySlug);
-            if (!$activeCategory) {
-                return $this->view->render(
-                    $response->withStatus(404),
-                    'pages/shop_404.tpl',
-                    ['page_title' => 'Category Not Found']
-                );
-            }
-            // Include parent + all children so subcategory products appear
-            $catId = (int) $activeCategory['id'];
-            $ids = [$catId];
-            foreach ($categories as $cat) {
-                if ((int) ($cat['parent_id'] ?? 0) === $catId) {
-                    $ids[] = (int) $cat['id'];
-                }
-            }
-            $activeCategoryIds = implode(',', $ids);
-        }
-
-        $products = $this->productModel->findActiveByUserPaginated($shopId, self::PRODUCTS_PER_PAGE, 0, null, $activeCategoryIds);
-        $totalProducts = $this->productModel->countActiveByUser($shopId, null, $activeCategoryIds);
-
-        foreach ($products as &$p) {
-            $p['variations_data'] = self::filterVariations($p['variations'] ?? null);
-        }
-        unset($p);
-
-        $products = Hooks::applyFilter('shop.products', $products, $shop);
-
-        $currency = $shop['currency'] ?? self::DEFAULT_CURRENCY;
-        $currencySymbol = self::resolveCurrencySymbol($currency);
-        $hasPayments = self::shopHasPayments($shop);
-
-        $response = $this->trackVisit($request, $response, $shopId, null);
-
-        $shopName = $shop['store_name'] ?? '';
-        $pageTitle = $shopName;
-        $metaDesc = $shop['shop_tagline'] ?: 'Browse products from ' . $shopName;
-        if ($activeCategory) {
-            $pageTitle = $activeCategory['name'] . ' — ' . $shopName;
-            $metaDesc = 'Browse ' . $activeCategory['name'] . ' from ' . $shopName;
-        }
-
-        // Activate theme-specific template overrides
-        $this->view->setTheme($shop['shop_theme'] ?? 'classic');
-
-        $viewData = [
-            'page_title'       => $pageTitle,
-            'meta_description' => $metaDesc,
-            'shop'             => $shop,
-            'products'         => $products,
-            'categories'       => $categories,
-            'category_tree'    => $categoryTree,
-            'currency'         => $currency,
-            'currency_symbol'  => $currencySymbol,
-            'has_payments'     => $hasPayments,
-            'shop_theme'       => $shop['shop_theme'] ?? 'classic',
-            'og_title'         => $pageTitle,
-            'og_description'   => $metaDesc,
-            'og_image'         => $shop['shop_logo'] ?? '',
-            'og_url'           => $activeCategory ? '/category/' . $activeCategory['slug'] : '/',
-            'total_products'   => $totalProducts,
-            'products_limit'   => self::PRODUCTS_PER_PAGE,
-            'active_category'  => $activeCategory,
-        ];
-
-        // Per-shop verification codes override platform-level ones
-        if (!empty($shop['google_verification'])) {
-            $viewData['google_verification'] = $shop['google_verification'];
-        }
-        if (!empty($shop['bing_verification'])) {
-            $viewData['bing_verification'] = $shop['bing_verification'];
-        }
-
-        return $this->view->render($response, 'pages/shop.tpl', $viewData);
-    }
-
-    public function searchProducts(Request $request, Response $response, array $args): Response
-    {
-        $subdomain = $args['subdomain'] ?? '';
-        $shop = $this->userModel->findBySubdomain($subdomain);
-
-        if (!$shop) {
-            return $this->json($response, ['error' => true, 'message' => 'Shop not found'], 404);
-        }
-
-        $shopId = (int) $shop['id'];
-        $params = $request->getQueryParams();
-
-        $limit = min(max(1, (int) ($params['limit'] ?? self::PRODUCTS_PER_PAGE)), 48);
-        $offset = max(0, (int) ($params['offset'] ?? 0));
-        $search = isset($params['search']) ? trim($params['search']) : null;
-        $categoryIds = isset($params['category']) ? trim($params['category']) : null;
-        $sort = $params['sort'] ?? 'default';
-
-        if ($search === '') {
-            $search = null;
-        }
-        if ($categoryIds === '' || $categoryIds === 'all') {
-            $categoryIds = null;
-        }
-
-        $products = $this->productModel->findActiveByUserPaginated(
-            $shopId, $limit, $offset, $search, $categoryIds, $sort
-        );
-        $total = $this->productModel->countActiveByUser($shopId, $search, $categoryIds);
-
-        $currency = $shop['currency'] ?? self::DEFAULT_CURRENCY;
-        $currencySymbol = self::resolveCurrencySymbol($currency);
-
-        return $this->json($response, [
-            'products' => $products,
-            'total' => $total,
-            'offset' => $offset,
-            'limit' => $limit,
-            'has_more' => ($offset + count($products)) < $total,
-            'currency_symbol' => $currencySymbol,
-        ]);
-    }
-
     public function showProduct(Request $request, Response $response, array $args): Response
     {
-        $subdomain = $args['subdomain'] ?? '';
-        $productSlug = $args['slug'] ?? '';
-
-        $shop = $this->userModel->findBySubdomain($subdomain);
+        $shop = $this->resolveShop($args);
         if (!$shop) {
-            return $this->view->render(
-                $response->withStatus(404),
-                'pages/shop_404.tpl',
-                ['page_title' => 'Shop Not Found']
-            );
+            return $this->render404($response, 'Shop Not Found');
         }
 
         $shopId = (int) $shop['id'];
+        $productSlug = $args['slug'] ?? '';
 
         $product = $this->productModel->findBySlug($shopId, $productSlug);
         if (!$product && ctype_digit($productSlug)) {
@@ -220,39 +85,31 @@ final class ShopController
         }
 
         if (!$product || (int) $product['user_id'] !== $shopId || !(int) $product['is_active']) {
-            return $this->view->render(
-                $response->withStatus(404),
-                'pages/shop_404.tpl',
-                ['page_title' => 'Product Not Found']
-            );
+            return $this->render404($response, 'Product Not Found');
         }
 
-        // Redirect numeric IDs to slug URL for SEO
         if (ctype_digit($productSlug) && !empty($product['slug'])) {
             return $response->withHeader('Location', '/' . $product['slug'])->withStatus(301);
         }
 
         $product['variations_data'] = self::filterVariations($product['variations'] ?? null);
+        $product = Hooks::applyFilter('product.data', $product, $shop);
 
         $productId = (int) $product['id'];
         $images = $this->productImageModel->findByProduct($productId);
-
-        $currency = $shop['currency'] ?? self::DEFAULT_CURRENCY;
-        $currencySymbol = self::resolveCurrencySymbol($currency);
+        $images = Hooks::applyFilter('product.images', $images, $product);
 
         $response = $this->trackVisit($request, $response, $shopId, $productId);
 
-        // Fetch related products: same category first, then others
         $categoryId = $product['category_id'] ? (int) $product['category_id'] : null;
         $moreProducts = $this->productModel->findRelated($shopId, $productId, $categoryId, 6);
+        $moreProducts = Hooks::applyFilter('product.related', $moreProducts, $product, $shop);
 
         $pageTitle = ($product['meta_title'] ?: $product['name']) . ' — ' . ($shop['store_name'] ?? '');
         $metaDesc  = $product['meta_description'] ?: ($product['description'] ? mb_substr(strip_tags($product['description']), 0, 160) : '');
 
-        $hasPayments = self::shopHasPayments($shop);
-
-        // Activate theme-specific template overrides
-        $this->view->setTheme($shop['shop_theme'] ?? 'classic');
+        $this->activateTheme($shop);
+        $ctx = $this->buildShopContext($shop);
 
         $viewData = [
             'page_title'       => $pageTitle,
@@ -261,60 +118,196 @@ final class ShopController
             'product'          => $product,
             'images'           => $images,
             'more_products'    => $moreProducts,
-            'currency'         => $currency,
-            'currency_symbol'  => $currencySymbol,
-            'has_payments'     => $hasPayments,
-            'shop_theme'       => $shop['shop_theme'] ?? 'classic',
             'og_title'         => $product['meta_title'] ?: $product['name'],
             'og_description'   => $metaDesc,
             'og_image'         => $product['image_url'] ?? '',
             'og_url'           => '/' . ($product['slug'] ?: $productId),
             'og_type'          => 'product',
+            ...$ctx,
         ];
 
-        // Per-shop verification codes override platform-level ones
-        if (!empty($shop['google_verification'])) {
-            $viewData['google_verification'] = $shop['google_verification'];
-        }
-        if (!empty($shop['bing_verification'])) {
-            $viewData['bing_verification'] = $shop['bing_verification'];
-        }
+        $this->applyVerificationCodes($viewData, $shop);
+        $viewData = Hooks::applyFilter('product.view_data', $viewData, $shop, $product);
+        Hooks::doAction('product.before_render', $shop, $product);
 
         return $this->view->render($response, 'pages/shop_product.tpl', $viewData);
     }
 
-    public function orderTracking(Request $request, Response $response, array $args): Response
+    public function showCollections(Request $request, Response $response, array $args): Response
     {
-        $subdomain = $args['subdomain'] ?? '';
-        $shop = $this->userModel->findBySubdomain($subdomain);
-
+        $shop = $this->resolveShop($args);
         if (!$shop) {
-            return $this->view->render(
-                $response->withStatus(404),
-                'pages/shop_404.tpl',
-                ['page_title' => 'Shop Not Found']
-            );
+            return $this->render404($response, 'Shop Not Found');
         }
 
-        $currency = $shop['currency'] ?? self::DEFAULT_CURRENCY;
-        $currencySymbol = self::resolveCurrencySymbol($currency);
+        $shopId = (int) $shop['id'];
+        $categories = $this->categoryModel->findByUserAsTree($shopId);
 
-        $this->view->setTheme($shop['shop_theme'] ?? 'classic');
+        foreach ($categories as &$cat) {
+            $ids = [(int) $cat['id']];
+            foreach ($cat['children'] ?? [] as $child) {
+                $ids[] = (int) $child['id'];
+            }
+            $cat['product_count'] = $this->productModel->countActiveByUser($shopId, null, implode(',', $ids));
+        }
+        unset($cat);
+
+        $categories = Hooks::applyFilter('collections.categories', $categories, $shop);
+
+        $this->activateTheme($shop);
+        $ctx = $this->buildShopContext($shop);
+        $shopName = $shop['store_name'] ?? '';
+
+        $viewData = [
+            'page_title'       => 'Collections — ' . $shopName,
+            'meta_description' => 'Browse all collections from ' . $shopName,
+            'shop'             => $shop,
+            'categories'       => $categories,
+            ...$ctx,
+        ];
+
+        $viewData = Hooks::applyFilter('collections.view_data', $viewData, $shop);
+        Hooks::doAction('collections.before_render', $shop);
+
+        return $this->view->render($response, 'pages/collections.tpl', $viewData);
+    }
+
+    public function showCollection(Request $request, Response $response, array $args): Response
+    {
+        $shop = $this->resolveShop($args);
+        if (!$shop) {
+            return $this->render404($response, 'Shop Not Found');
+        }
+
+        $shopId = (int) $shop['id'];
+        $slug = $args['slug'] ?? '';
+        $category = $this->categoryModel->findByUserAndSlug($shopId, $slug);
+
+        if (!$category) {
+            return $this->render404($response, 'Collection Not Found');
+        }
+
+        $catId = (int) $category['id'];
+        $categoryIds = $this->resolveCategoryWithChildren($shopId, $catId);
+
+        $allCategories = $this->categoryModel->findByUser($shopId);
+        $subcategories = array_values(array_filter(
+            $allCategories,
+            static fn(array $c): bool => (int) ($c['parent_id'] ?? 0) === $catId
+        ));
+
+        $products = $this->productModel->findActiveByUserPaginated($shopId, self::PRODUCTS_PER_PAGE, 0, null, $categoryIds);
+        $totalProducts = $this->productModel->countActiveByUser($shopId, null, $categoryIds);
+        $products = $this->prepareProducts($products, $shop);
+
+        $this->activateTheme($shop);
+        $ctx = $this->buildShopContext($shop);
+        $shopName = $shop['store_name'] ?? '';
+
+        $viewData = [
+            'page_title'       => $category['name'] . ' — ' . $shopName,
+            'meta_description' => 'Browse ' . $category['name'] . ' from ' . $shopName,
+            'shop'             => $shop,
+            'category'         => $category,
+            'subcategories'    => $subcategories,
+            'products'         => $products,
+            'total_products'   => $totalProducts,
+            'products_limit'   => self::PRODUCTS_PER_PAGE,
+            ...$ctx,
+        ];
+
+        $viewData = Hooks::applyFilter('collection.view_data', $viewData, $shop, $category);
+        Hooks::doAction('collection.before_render', $shop, $category);
+
+        return $this->view->render($response, 'pages/collection.tpl', $viewData);
+    }
+
+    // ── API Handlers ──────────────────────────────────────────
+
+    public function searchProducts(Request $request, Response $response, array $args): Response
+    {
+        $shop = $this->resolveShop($args);
+        if (!$shop) {
+            return $this->json($response, ['error' => true, 'message' => 'Shop not found'], 404);
+        }
+
+        $shopId = (int) $shop['id'];
+        $params = $request->getQueryParams();
+
+        $queryArgs = [
+            'limit'    => min(max(1, (int) ($params['limit'] ?? self::PRODUCTS_PER_PAGE)), 48),
+            'offset'   => max(0, (int) ($params['offset'] ?? 0)),
+            'search'   => isset($params['search']) ? trim($params['search']) : null,
+            'category' => isset($params['category']) ? trim($params['category']) : null,
+            'sort'     => $params['sort'] ?? 'default',
+        ];
+
+        if ($queryArgs['search'] === '') {
+            $queryArgs['search'] = null;
+        }
+        if ($queryArgs['category'] === '' || $queryArgs['category'] === 'all') {
+            $queryArgs['category'] = null;
+        }
+
+        $queryArgs = Hooks::applyFilter('shop.search_query', $queryArgs, $shop);
+
+        $products = $this->productModel->findActiveByUserPaginated(
+            $shopId, $queryArgs['limit'], $queryArgs['offset'],
+            $queryArgs['search'], $queryArgs['category'], $queryArgs['sort']
+        );
+        $total = $this->productModel->countActiveByUser($shopId, $queryArgs['search'], $queryArgs['category']);
+
+        $products = $this->prepareProducts($products, $shop);
+
+        $currency = $shop['currency'] ?? self::DEFAULT_CURRENCY;
+        $currencySymbol = $this->resolveCurrencySymbol($currency);
+        $format = $params['format'] ?? 'json';
+
+        if ($format === 'html') {
+            $this->activateTheme($shop);
+            $html = $this->renderProductCardsHtml($products, $currencySymbol);
+
+            return $this->json($response, [
+                'html'     => $html,
+                'total'    => $total,
+                'offset'   => $queryArgs['offset'],
+                'limit'    => $queryArgs['limit'],
+                'has_more' => ($queryArgs['offset'] + count($products)) < $total,
+            ]);
+        }
+
+        $result = [
+            'products'        => $products,
+            'total'           => $total,
+            'offset'          => $queryArgs['offset'],
+            'limit'           => $queryArgs['limit'],
+            'has_more'        => ($queryArgs['offset'] + count($products)) < $total,
+            'currency_symbol' => $currencySymbol,
+        ];
+
+        return $this->json($response, Hooks::applyFilter('shop.search_results', $result, $shop));
+    }
+
+    public function orderTracking(Request $request, Response $response, array $args): Response
+    {
+        $shop = $this->resolveShop($args);
+        if (!$shop) {
+            return $this->render404($response, 'Shop Not Found');
+        }
+
+        $this->activateTheme($shop);
+        $ctx = $this->buildShopContext($shop);
 
         return $this->view->render($response, 'pages/order_tracking.tpl', [
-            'page_title'      => 'Track Your Order',
-            'shop'            => $shop,
-            'currency'        => $currency,
-            'currency_symbol' => $currencySymbol,
-            'shop_theme'      => $shop['shop_theme'] ?? 'classic',
+            'page_title' => 'Track Your Order',
+            'shop'       => $shop,
+            ...$ctx,
         ]);
     }
 
     public function orderLookup(Request $request, Response $response, array $args): Response
     {
-        $subdomain = $args['subdomain'] ?? '';
-        $shop = $this->userModel->findBySubdomain($subdomain);
-
+        $shop = $this->resolveShop($args);
         if (!$shop) {
             return $this->json($response, ['error' => true, 'message' => 'Shop not found'], 404);
         }
@@ -341,39 +334,253 @@ final class ShopController
 
         $items = $this->orderItemModel->findByOrder((int) $order['id']);
 
-        return $this->json($response, [
-            'success' => true,
-            'order' => [
-                'order_number'   => $order['order_number'],
-                'status'         => $order['status'],
-                'amount'         => (float) $order['amount'],
-                'customer_name'  => $order['customer_name'],
-                'customer_email' => $order['customer_email'],
-                'customer_phone' => $order['customer_phone'] ?? null,
-                'notes'          => $order['notes'] ?? null,
-                'created_at'     => $order['created_at'],
-                'items'          => $items,
-            ],
-        ]);
+        $orderData = [
+            'order_number'   => $order['order_number'],
+            'status'         => $order['status'],
+            'amount'         => (float) $order['amount'],
+            'customer_name'  => $order['customer_name'],
+            'customer_email' => $order['customer_email'],
+            'customer_phone' => $order['customer_phone'] ?? null,
+            'notes'          => $order['notes'] ?? null,
+            'created_at'     => $order['created_at'],
+            'items'          => $items,
+        ];
+
+        $orderData = Hooks::applyFilter('order.tracking_data', $orderData, $shop);
+
+        return $this->json($response, ['success' => true, 'order' => $orderData]);
     }
 
-    private static function resolveCurrencySymbol(string $currency): string
+    public function manifest(Request $request, Response $response, array $args): Response
     {
-        return self::CURRENCY_SYMBOLS[$currency] ?? $currency . ' ';
+        $shop = $this->resolveShop($args);
+        if (!$shop) {
+            return $response->withStatus(404);
+        }
+
+        $shopName = $shop['store_name'] ?? '';
+        $icon = $shop['shop_favicon'] ?? $shop['shop_logo'] ?? null;
+
+        $manifest = [
+            'name'             => $shopName,
+            'short_name'       => mb_substr($shopName, 0, 12),
+            'description'      => $shop['shop_tagline'] ?: 'Browse products from ' . $shopName,
+            'id'               => '/',
+            'start_url'        => '/',
+            'display'          => 'standalone',
+            'background_color' => '#F5F5F7',
+            'theme_color'      => '#111111',
+            'orientation'      => 'portrait',
+        ];
+
+        $defaultIcon = '/public/img/icon-192.png';
+        $defaultIcon512 = '/public/img/icon-512.png';
+        $src = $icon ?: $defaultIcon;
+        $src512 = $icon ?: $defaultIcon512;
+
+        $manifest['icons'] = [
+            ['src' => $src,    'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => $src512, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => $src,    'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
+            ['src' => $src512, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+        ];
+
+        $manifest = Hooks::applyFilter('shop.manifest', $manifest, $shop);
+
+        $response->getBody()->write(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+
+        return $response
+            ->withHeader('Content-Type', 'application/manifest+json')
+            ->withHeader('Cache-Control', 'public, max-age=3600');
     }
 
-    private static function shopHasPayments(array $shop): bool
+    // ── Private Helpers ───────────────────────────────────────
+
+    private function renderShop(Request $request, Response $response, array $args, string $categorySlug = ''): Response
+    {
+        $shop = $this->resolveShop($args);
+        if (!$shop) {
+            return $this->render404($response, 'Shop Not Found');
+        }
+
+        $shopId = (int) $shop['id'];
+
+        $categories = $this->categoryModel->findByUser($shopId);
+        $categoryTree = $this->categoryModel->findByUserAsTree($shopId);
+
+        $activeCategory = null;
+        $activeCategoryIds = null;
+        if ($categorySlug !== '') {
+            $activeCategory = $this->categoryModel->findByUserAndSlug($shopId, $categorySlug);
+            if (!$activeCategory) {
+                return $this->render404($response, 'Category Not Found');
+            }
+            $activeCategoryIds = $this->resolveCategoryWithChildren($shopId, (int) $activeCategory['id']);
+        }
+
+        $products = $this->productModel->findActiveByUserPaginated($shopId, self::PRODUCTS_PER_PAGE, 0, null, $activeCategoryIds);
+        $totalProducts = $this->productModel->countActiveByUser($shopId, null, $activeCategoryIds);
+        $products = $this->prepareProducts($products, $shop);
+
+        $response = $this->trackVisit($request, $response, $shopId, null);
+
+        $shopName = $shop['store_name'] ?? '';
+        $pageTitle = $shopName;
+        $metaDesc = $shop['shop_tagline'] ?: 'Browse products from ' . $shopName;
+        if ($activeCategory) {
+            $pageTitle = $activeCategory['name'] . ' — ' . $shopName;
+            $metaDesc = 'Browse ' . $activeCategory['name'] . ' from ' . $shopName;
+        }
+
+        $this->activateTheme($shop);
+        $ctx = $this->buildShopContext($shop);
+
+        $heroSlides = $this->heroSlideModel->findByUser($shopId);
+        $heroSlides = array_values(array_filter($heroSlides, static fn(array $s): bool => (bool) $s['is_active']));
+        $heroSlides = Hooks::applyFilter('shop.hero_slides', $heroSlides, $shop);
+
+        $saleProducts = array_values(array_filter($products, static fn(array $p): bool =>
+            !empty($p['compare_price']) && $p['compare_price'] > $p['price'] && !$p['is_sold']
+        ));
+        $featuredProducts = array_values(array_filter($products, static fn(array $p): bool =>
+            !empty($p['is_featured']) && !$p['is_sold']
+        ));
+
+        $viewData = [
+            'page_title'         => $pageTitle,
+            'meta_description'   => $metaDesc,
+            'shop'               => $shop,
+            'products'           => $products,
+            'categories'         => $categories,
+            'category_tree'      => $categoryTree,
+            'og_title'           => $pageTitle,
+            'og_description'     => $metaDesc,
+            'og_image'           => $shop['shop_logo'] ?? '',
+            'og_url'             => $activeCategory ? '/collections/' . $activeCategory['slug'] : '/',
+            'total_products'     => $totalProducts,
+            'products_limit'     => self::PRODUCTS_PER_PAGE,
+            'active_category'    => $activeCategory,
+            'hero_slides'        => $heroSlides,
+            'sale_products'      => $saleProducts,
+            'featured_products'  => $featuredProducts,
+            ...$ctx,
+        ];
+
+        $this->applyVerificationCodes($viewData, $shop);
+        $viewData = Hooks::applyFilter('shop.view_data', $viewData, $shop);
+        Hooks::doAction('shop.before_render', $shop);
+
+        return $this->view->render($response, 'pages/shop.tpl', $viewData);
+    }
+
+    private function resolveShop(array $args): ?array
+    {
+        $subdomain = $args['subdomain'] ?? '';
+        return $this->userModel->findBySubdomain($subdomain);
+    }
+
+    private function render404(Response $response, string $title): Response
+    {
+        return $this->view->render(
+            $response->withStatus(404),
+            'pages/shop_404.tpl',
+            ['page_title' => $title]
+        );
+    }
+
+    private function buildShopContext(array $shop): array
+    {
+        $currency = $shop['currency'] ?? self::DEFAULT_CURRENCY;
+        $currencySymbol = $this->resolveCurrencySymbol($currency);
+        $hasPayments = $this->resolveHasPayments($shop);
+
+        $paletteKey = $shop['color_palette'] ?? 'default';
+        $palettes = Hooks::applyFilter('shop.palettes', self::PALETTES, $shop);
+        $paletteCss = $palettes[$paletteKey] ?? $palettes['default'];
+
+        return [
+            'currency'        => $currency,
+            'currency_symbol' => $currencySymbol,
+            'has_payments'    => $hasPayments,
+            'shop_theme'      => $shop['shop_theme'] ?? 'classic',
+            'palette_css'     => $paletteCss,
+        ];
+    }
+
+    private function prepareProducts(array $products, array $shop): array
+    {
+        foreach ($products as &$p) {
+            $p['variations_data'] = self::filterVariations($p['variations'] ?? null);
+            $p = Hooks::applyFilter('shop.product_data', $p, $shop);
+        }
+        unset($p);
+
+        return Hooks::applyFilter('shop.products', $products, $shop);
+    }
+
+    private function renderProductCardsHtml(array $products, string $currencySymbol): string
+    {
+        $html = '';
+        foreach ($products as $product) {
+            $cardHtml = $this->view->renderFragment('partials/product_card.tpl', [
+                'product'         => $product,
+                'currency_symbol' => $currencySymbol,
+            ]);
+            $html .= Hooks::applyFilter('shop.product_card_html', $cardHtml, $product);
+        }
+        return $html;
+    }
+
+    private function resolveCategoryWithChildren(int $shopId, int $categoryId): string
+    {
+        $allCategories = $this->categoryModel->findByUser($shopId);
+        $ids = [$categoryId];
+        foreach ($allCategories as $cat) {
+            if ((int) ($cat['parent_id'] ?? 0) === $categoryId) {
+                $ids[] = (int) $cat['id'];
+            }
+        }
+        return implode(',', $ids);
+    }
+
+    private function activateTheme(array $shop): void
+    {
+        $themeSlug = $shop['shop_theme'] ?? 'classic';
+        $this->theme->activate($themeSlug, $this->view);
+        $this->view->assignThemeVars(
+            $this->theme->getStyleUrls(),
+            $this->theme->getScriptUrls(),
+            $this->theme->getFontLink()
+        );
+    }
+
+    private function resolveCurrencySymbol(string $currency): string
+    {
+        $symbols = Hooks::applyFilter('shop.currency_symbols', self::CURRENCY_SYMBOLS);
+        return $symbols[$currency] ?? $currency . ' ';
+    }
+
+    private function resolveHasPayments(array $shop): bool
     {
         $hasStripe = !empty($shop['stripe_enabled']) && !empty($shop['stripe_public_key']) && !empty($shop['stripe_secret_key']);
         $hasPaypal = !empty($shop['paypal_enabled']) && !empty($shop['paypal_client_id']) && !empty($shop['paypal_secret']);
         $hasMpesa  = !empty($shop['mpesa_enabled']) && !empty($shop['mpesa_shortcode']) && !empty($shop['mpesa_consumer_key']) && !empty($shop['mpesa_consumer_secret']) && !empty($shop['mpesa_passkey']);
         $hasCod = !empty($shop['cod_enabled']);
-        return $hasStripe || $hasPaypal || $hasMpesa || $hasCod;
+        $has = $hasStripe || $hasPaypal || $hasMpesa || $hasCod;
+
+        return (bool) Hooks::applyFilter('shop.has_payments', $has, $shop);
     }
 
-    /**
-     * Filter out variation groups that have no options or no name.
-     */
+    private function applyVerificationCodes(array &$viewData, array $shop): void
+    {
+        if (!empty($shop['google_verification'])) {
+            $viewData['google_verification'] = $shop['google_verification'];
+        }
+        if (!empty($shop['bing_verification'])) {
+            $viewData['bing_verification'] = $shop['bing_verification'];
+        }
+    }
+
     private static function filterVariations(?string $json): ?array
     {
         if ($json === null || $json === '') {
@@ -414,52 +621,5 @@ final class ShopController
         }
 
         return $response;
-    }
-
-    public function manifest(Request $request, Response $response, array $args): Response
-    {
-        $subdomain = $args['subdomain'] ?? '';
-        $shop = $this->userModel->findBySubdomain($subdomain);
-
-        if (!$shop) {
-            return $response->withStatus(404);
-        }
-
-        $shopName = $shop['store_name'] ?? '';
-        $icon = $shop['shop_favicon'] ?? $shop['shop_logo'] ?? null;
-
-        $manifest = [
-            'name'             => $shopName,
-            'short_name'       => mb_substr($shopName, 0, 12),
-            'description'      => $shop['shop_tagline'] ?: 'Browse products from ' . $shopName,
-            'id'               => '/',
-            'start_url'        => '/',
-            'display'          => 'standalone',
-            'background_color' => '#F5F5F7',
-            'theme_color'      => '#111111',
-            'orientation'      => 'portrait',
-        ];
-
-        if ($icon) {
-            $manifest['icons'] = [
-                ['src' => $icon, 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
-                ['src' => $icon, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
-                ['src' => $icon, 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
-                ['src' => $icon, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
-            ];
-        } else {
-            $manifest['icons'] = [
-                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
-                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
-                ['src' => '/public/img/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
-                ['src' => '/public/img/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
-            ];
-        }
-
-        $response->getBody()->write(json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-
-        return $response
-            ->withHeader('Content-Type', 'application/manifest+json')
-            ->withHeader('Cache-Control', 'public, max-age=3600');
     }
 }

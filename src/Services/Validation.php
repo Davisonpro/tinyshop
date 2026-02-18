@@ -6,8 +6,6 @@ namespace TinyShop\Services;
 
 final class Validation
 {
-    public const VALID_THEMES = ['classic', 'ivory', 'obsidian', 'bloom', 'ember', 'monaco', 'volt', 'halloween'];
-
     private const PASSWORD_MIN_LENGTH = 6;
     private const PASSWORD_MAX_LENGTH = 72; // bcrypt truncates at 72 bytes
     private const SUBDOMAIN_MIN_LENGTH = 3;

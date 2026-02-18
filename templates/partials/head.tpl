@@ -46,9 +46,18 @@
 <link rel="preload" href="/public/css/fontawesome.min.css?v={$asset_v}" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="/public/css/fontawesome.min.css?v={$asset_v}"></noscript>
 <link rel="stylesheet" href="/public/css/app{$min}.css?v={$asset_v}">
-{if !empty($shop_theme) && $shop_theme !== 'classic'}
-<link rel="stylesheet" href="/public/css/themes/{$shop_theme}{$min}.css?v={$asset_v}">
+{if !empty($shop)}
+<link rel="stylesheet" href="/public/css/storefront.css?v={$asset_v}">
 {/if}
+{if !empty($theme_font_link)}
+<link rel="stylesheet" href="{$theme_font_link|escape}">
+{/if}
+{if !empty($theme_styles)}
+{foreach $theme_styles as $ts}
+<link rel="stylesheet" href="{$ts|escape}?v={$asset_v}">
+{/foreach}
+{/if}
+{hook name="theme.head"}
 {block name="extra_css"}{/block}
 {if !empty($google_analytics_id)}
 <script async src="https://www.googletagmanager.com/gtag/js?id={$google_analytics_id|escape}"></script>

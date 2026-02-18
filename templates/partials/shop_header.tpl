@@ -1,4 +1,4 @@
-<header class="shop-header">
+<header class="shop-header{if $shop.logo_alignment === 'centered'} shop-header-centered{/if}">
     <div class="shop-header-profile">
         {if $shop.shop_logo}
             <img src="{$shop.shop_logo}" alt="{$shop.store_name}" class="shop-logo">

@@ -21,6 +21,7 @@ use TinyShop\Controllers\WebhookController;
 use TinyShop\Controllers\Api\CheckoutController as ApiCheckoutController;
 use TinyShop\Controllers\Api\CouponController as ApiCouponController;
 use TinyShop\Controllers\Api\BillingController as ApiBillingController;
+use TinyShop\Controllers\Api\HeroSlideController as ApiHeroSlideController;
 use TinyShop\Middleware\AuthGuard;
 use TinyShop\Middleware\AdminGuard;
 use TinyShop\Middleware\GuestOnly;
@@ -76,9 +77,14 @@ return function (App $app): void {
 
     // Shop pages — accessed via subdomain/custom domain (rewritten by CustomDomain middleware)
     $app->get('/~shop/{subdomain}', [ShopController::class, 'show']);
-    $app->get('/~shop/{subdomain}/category/{categorySlug}', [ShopController::class, 'showCategory']);
+    // Legacy /category/{slug} → redirect to /collections/{slug}
+    $app->get('/~shop/{subdomain}/category/{slug}', function ($request, $response, $args) {
+        return $response->withHeader('Location', '/collections/' . $args['slug'])->withStatus(301);
+    });
     $app->get('/~shop/{subdomain}/manifest.json', [ShopController::class, 'manifest']);
     $app->get('/~shop/{subdomain}/sitemap.xml', [SitemapController::class, 'shopSitemap']);
+    $app->get('/~shop/{subdomain}/collections', [ShopController::class, 'showCollections']);
+    $app->get('/~shop/{subdomain}/collections/{slug}', [ShopController::class, 'showCollection']);
     $app->get('/~shop/{subdomain}/checkout', [CheckoutController::class, 'showCheckout']);
     $app->get('/~shop/{subdomain}/order/{orderNumber}', [CheckoutController::class, 'showConfirmation']);
     $app->get('/~shop/{subdomain}/orders/track', [ShopController::class, 'orderTracking']);
@@ -104,6 +110,7 @@ return function (App $app): void {
         $group->get('/products/add', [DashboardController::class, 'productForm']);
         $group->get('/products/{id}/edit', [DashboardController::class, 'productForm']);
         $group->get('/shop', [DashboardController::class, 'shop']);
+        $group->get('/design', [DashboardController::class, 'design']);
         $group->get('/categories', [DashboardController::class, 'categories']);
         $group->get('/analytics', [DashboardController::class, 'analytics']);
         $group->get('/orders', [DashboardController::class, 'orders']);
@@ -177,6 +184,12 @@ return function (App $app): void {
             $protected->post('/coupons', [ApiCouponController::class, 'create']);
             $protected->put('/coupons/{id}', [ApiCouponController::class, 'update']);
             $protected->delete('/coupons/{id}', [ApiCouponController::class, 'delete']);
+
+            $protected->get('/hero-slides', [ApiHeroSlideController::class, 'list']);
+            $protected->post('/hero-slides', [ApiHeroSlideController::class, 'create']);
+            $protected->put('/hero-slides/reorder', [ApiHeroSlideController::class, 'reorder']);
+            $protected->put('/hero-slides/{id}', [ApiHeroSlideController::class, 'update']);
+            $protected->delete('/hero-slides/{id}', [ApiHeroSlideController::class, 'delete']);
 
             $protected->post('/billing/subscribe', [ApiBillingController::class, 'subscribe']);
             $protected->post('/billing/cancel', [ApiBillingController::class, 'cancel']);

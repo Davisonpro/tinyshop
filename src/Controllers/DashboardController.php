@@ -6,6 +6,7 @@ namespace TinyShop\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use TinyShop\Models\HeroSlide;
 use TinyShop\Models\Plan;
 use TinyShop\Models\Product;
 use TinyShop\Models\ProductImage;
@@ -17,6 +18,7 @@ use TinyShop\Models\Subscription;
 use TinyShop\Models\User;
 use TinyShop\Services\Auth;
 use TinyShop\Services\PlanGuard;
+use TinyShop\Services\Theme;
 use TinyShop\Services\View;
 
 final class DashboardController
@@ -33,7 +35,9 @@ final class DashboardController
         private readonly Plan $planModel,
         private readonly Subscription $subscriptionModel,
         private readonly PlanGuard $planGuard,
-        private readonly Setting $settingModel
+        private readonly Theme $themeService,
+        private readonly Setting $settingModel,
+        private readonly HeroSlide $heroSlideModel
     ) {}
 
     public function home(Request $request, Response $response): Response
@@ -90,19 +94,15 @@ final class DashboardController
         $user = $this->userModel->findById($userId);
         $usage = $this->planGuard->getUsageSummary($userId);
 
-        // Build per-theme unlock map for template
-        $allThemesList = ['classic', 'ivory', 'obsidian', 'bloom', 'ember', 'monaco', 'volt', 'halloween'];
-        $unlockedThemes = [];
-        foreach ($allThemesList as $t) {
-            $unlockedThemes[$t] = $usage['all_themes'] || ($usage['allowed_themes'] !== null && in_array($t, $usage['allowed_themes'], true));
-        }
+        // List available themes from themes/ directory
+        $availableThemes = $this->themeService->listAvailable();
 
         return $this->view->render($response, 'pages/dash_shop.tpl', [
-            'page_title'       => 'Shop Settings',
-            'user'             => $user,
-            'active_page'      => 'shop',
-            'usage'            => $usage,
-            'unlocked_themes'  => $unlockedThemes,
+            'page_title'        => 'Shop Settings',
+            'user'              => $user,
+            'active_page'       => 'shop',
+            'usage'             => $usage,
+            'available_themes'  => $availableThemes,
         ]);
     }
 
@@ -260,6 +260,20 @@ final class DashboardController
             'currency'    => $user['currency'] ?? 'KES',
             'is_edit'     => $isEdit,
             'usage'       => $usage,
+        ]);
+    }
+
+    public function design(Request $request, Response $response): Response
+    {
+        $userId = $this->auth->userId();
+        $user = $this->userModel->findById($userId);
+        $heroSlides = $this->heroSlideModel->findByUser($userId);
+
+        return $this->view->render($response, 'pages/dash_design.tpl', [
+            'page_title'   => 'Design',
+            'active_page'  => 'shop',
+            'user'         => $user,
+            'hero_slides'  => $heroSlides,
         ]);
     }
 }

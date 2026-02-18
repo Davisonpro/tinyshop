@@ -1,10 +1,5 @@
 {* Cart Drawer — bottom-sheet modal for cart contents *}
 {if !empty($has_payments)}
-{* Floating mobile cart button — top-right, hidden on desktop *}
-<button type="button" class="mobile-cart-fab cart-trigger" aria-label="Shopping cart">
-    <i class="fa-solid fa-cart-shopping"></i>
-    <span class="cart-badge" style="display:none">0</span>
-</button>
 <div class="cart-drawer-backdrop" id="cartDrawerBackdrop">
     <div class="cart-drawer">
         <div class="cart-drawer-handle"></div>

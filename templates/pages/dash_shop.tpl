@@ -19,49 +19,19 @@
             <textarea class="form-control autosize" id="shopTagline" name="shop_tagline" placeholder="e.g. Homemade cakes & pastries" rows="1">{$user.shop_tagline|escape}</textarea>
             <p class="form-hint">Shown below your shop name</p>
         </div>
-        <div class="form-group">
-            <label>Shop Logo & Favicon</label>
-            <div class="brand-uploads">
-                <div class="brand-upload-item">
-                    <input type="file" id="logoInput" accept="image/*" style="display:none">
-                    <div class="logo-upload" id="logoZone">
-                        <div class="logo-upload-preview" id="logoPreview" {if !$user.shop_logo}style="display:none"{/if}>
-                            <img src="{$user.shop_logo|escape}" alt="Logo" id="logoImg">
-                            <div class="logo-upload-overlay">
-                                <i class="fa-solid fa-camera"></i>
-                                <span>Change</span>
-                            </div>
-                        </div>
-                        <div class="logo-upload-empty" id="logoPlaceholder" {if $user.shop_logo}style="display:none"{/if}>
-                            <i class="fa-solid fa-camera" style="font-size:28px"></i>
-                            <span>Add logo</span>
-                        </div>
-                    </div>
-                    <input type="hidden" id="shopLogo" name="shop_logo" value="{$user.shop_logo|escape}">
-                    <span class="brand-upload-label">Logo</span>
-                </div>
-                <div class="brand-upload-item">
-                    <input type="file" id="faviconInput" accept="image/*" style="display:none">
-                    <div class="favicon-upload" id="faviconZone">
-                        <div class="favicon-upload-preview" id="faviconPreview" {if !$user.shop_favicon}style="display:none"{/if}>
-                            <img src="{$user.shop_favicon|escape}" alt="Favicon" id="faviconImg">
-                            <div class="logo-upload-overlay">
-                                <i class="fa-solid fa-camera"></i>
-                                <span>Change</span>
-                            </div>
-                        </div>
-                        <div class="favicon-upload-empty" id="faviconPlaceholder" {if $user.shop_favicon}style="display:none"{/if}>
-                            <i class="fa-solid fa-globe icon-lg"></i>
-                            <span>Add</span>
-                        </div>
-                    </div>
-                    <input type="hidden" id="shopFavicon" name="shop_favicon" value="{$user.shop_favicon|escape}">
-                    <span class="brand-upload-label">Favicon</span>
-                </div>
-            </div>
-            <p class="form-hint">Your logo shows on your shop page. The favicon is the small icon in browser tabs when someone visits your shop.</p>
-        </div>
     </div>
+
+    {* --- Design page link --- *}
+    <a href="/dashboard/design" class="design-link-card">
+        <div class="design-link-left">
+            <i class="fa-solid fa-palette design-link-icon"></i>
+            <div>
+                <div class="design-link-title">Logo, colors & layout</div>
+                <div class="design-link-desc">Upload your logo, pick a color palette, add banners, and customize your shop layout</div>
+            </div>
+        </div>
+        <i class="fa-solid fa-chevron-right account-row-chevron"></i>
+    </a>
 
     {* --- Your Shop Link (read-only display, edit via modal) --- *}
     <input type="hidden" id="subdomain" name="subdomain" value="{$user.subdomain|escape}">
@@ -110,20 +80,20 @@
     <div class="form-section">
         <div class="form-section-title">How Customers Reach You</div>
         <div class="form-group">
-            <label for="contactWhatsapp">WhatsApp Number</label>
+            <label for="contactWhatsapp"><i class="fa-brands fa-whatsapp label-icon icon-whatsapp"></i>WhatsApp</label>
             <input type="tel" class="form-control" id="contactWhatsapp" name="contact_whatsapp" value="{$user.contact_whatsapp|escape}" placeholder="e.g. 254712345678" inputmode="numeric">
             <p class="form-hint">Start with country code (254 for Kenya)</p>
         </div>
         <div class="form-group">
-            <label for="contactPhone">Phone Number</label>
+            <label for="contactPhone"><i class="fa-solid fa-phone label-icon-sm icon-muted"></i>Phone</label>
             <input type="tel" class="form-control" id="contactPhone" name="contact_phone" value="{$user.contact_phone|escape}" placeholder="e.g. 0712 345 678" inputmode="numeric">
         </div>
         <div class="form-group">
-            <label for="contactEmail">Email</label>
+            <label for="contactEmail"><i class="fa-solid fa-envelope label-icon-sm icon-muted"></i>Email</label>
             <input type="email" class="form-control" id="contactEmail" name="contact_email" value="{$user.contact_email|escape}" placeholder="e.g. mary@gmail.com">
         </div>
         <div class="form-group">
-            <label for="mapLink">Google Maps Location</label>
+            <label for="mapLink"><i class="fa-solid fa-location-dot label-icon-sm icon-maps"></i>Google Maps</label>
             <input type="url" class="form-control" id="mapLink" name="map_link" value="{$user.map_link|escape}" placeholder="Paste your Google Maps link">
             <p class="form-hint">Optional — helps customers find your shop</p>
         </div>
@@ -132,231 +102,27 @@
     {* --- Social Media --- *}
     <div class="form-section">
         <div class="form-section-title">Social Media</div>
+        <p class="form-section-hint">Shown as icons on your shop page</p>
         <div class="form-group">
-            <label for="socialInstagram">Instagram</label>
+            <label for="socialInstagram"><i class="fa-brands fa-instagram label-icon icon-instagram"></i>Instagram</label>
             <input type="text" class="form-control" id="socialInstagram" name="social_instagram" value="{$user.social_instagram|escape}" placeholder="your username (without @)">
         </div>
         <div class="form-group">
-            <label for="socialTiktok">TikTok</label>
+            <label for="socialTiktok"><i class="fa-brands fa-tiktok label-icon icon-tiktok"></i>TikTok</label>
             <input type="text" class="form-control" id="socialTiktok" name="social_tiktok" value="{$user.social_tiktok|escape}" placeholder="your username (without @)">
         </div>
         <div class="form-group">
-            <label for="socialFacebook">Facebook</label>
+            <label for="socialFacebook"><i class="fa-brands fa-facebook label-icon icon-facebook"></i>Facebook</label>
             <input type="text" class="form-control" id="socialFacebook" name="social_facebook" value="{$user.social_facebook|escape}" placeholder="your page name or username">
-            <p class="form-hint">Shown as icons on your shop page</p>
-        </div>
-    </div>
-
-    {* --- Announcement --- *}
-    <div class="form-section">
-        <div class="form-section-title">Announcement</div>
-        <div class="form-group" style="margin-bottom:0">
-            <label for="announcementText">Announcement text</label>
-            <input type="text" class="form-control" id="announcementText" name="announcement_text" value="{$user.announcement_text|escape}" placeholder="e.g. Free delivery on orders over KES 1,000!" maxlength="500">
-            <p class="form-hint">Shows a banner at the top of your shop. Leave empty to hide.</p>
         </div>
     </div>
 
     <button type="submit" class="btn-primary" id="saveShopBtn">Save Settings</button>
 </form>
 
-{* --- Shop Theme (auto-saves on click) --- *}
-<div class="dash-form" style="padding-top:0">
-    <div class="form-section">
-        <div class="form-section-title">Shop Theme</div>
-        <p class="form-hint" style="margin-bottom:12px">Choose how your storefront looks to customers</p>
-        <div class="theme-picker" id="themePicker">
-            {assign var="currentTheme" value=$user.shop_theme|default:'classic'}
-            {* Classic is always unlocked *}
-            <label class="theme-card{if $currentTheme == 'classic'} active{/if}" data-theme="classic">
-                <input type="radio" name="shop_theme" value="classic" {if $currentTheme == 'classic'}checked{/if}>
-                <div class="theme-card-preview theme-preview-classic">
-                    <div class="tp-announce"></div>
-                    <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines"><div></div><div></div></div></div>
-                    <div class="tp-tabs"><span></span><span class="filled"></span><span></span></div>
-                    <div class="tp-grid"><div class="tp-item"><div class="tp-img"></div><div class="tp-bar"></div></div><div class="tp-item"><div class="tp-img"></div><div class="tp-bar"></div></div></div>
-                    <div class="tp-cta"></div>
-                </div>
-                <div class="theme-card-name">Classic</div>
-                <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
-            </label>
-            <label class="theme-card{if $currentTheme == 'ivory'} active{/if}{if !$unlocked_themes.ivory} locked{/if}" data-theme="ivory">
-                <input type="radio" name="shop_theme" value="ivory" {if $currentTheme == 'ivory'}checked{/if}{if !$unlocked_themes.ivory} disabled{/if}>
-                <div class="theme-card-preview theme-preview-ivory">
-                    <div class="tp-announce"></div>
-                    <div class="tp-header left"><div class="tp-logo"></div><div class="tp-lines"><div></div><div></div></div></div>
-                    <div class="tp-tabs underline"><span></span><span class="filled"></span><span></span></div>
-                    <div class="tp-grid"><div class="tp-item flat"><div class="tp-img"></div><div class="tp-bar"></div></div><div class="tp-item flat"><div class="tp-img"></div><div class="tp-bar"></div></div></div>
-                    <div class="tp-cta"></div>
-                </div>
-                <div class="theme-card-name">Ivory</div>
-                {if !$unlocked_themes.ivory}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
-                <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
-            </label>
-            <label class="theme-card{if $currentTheme == 'obsidian'} active{/if}{if !$unlocked_themes.obsidian} locked{/if}" data-theme="obsidian">
-                <input type="radio" name="shop_theme" value="obsidian" {if $currentTheme == 'obsidian'}checked{/if}{if !$unlocked_themes.obsidian} disabled{/if}>
-                <div class="theme-card-preview theme-preview-obsidian">
-                    <div class="tp-announce"></div>
-                    <div class="tp-header dark left"><div class="tp-logo"></div><div class="tp-lines light"><div></div><div></div></div></div>
-                    <div class="tp-tabs sharp"><span></span><span class="filled"></span><span></span></div>
-                    <div class="tp-grid"><div class="tp-item sharp"><div class="tp-img"></div><div class="tp-bar"></div></div><div class="tp-item sharp"><div class="tp-img"></div><div class="tp-bar"></div></div></div>
-                    <div class="tp-cta"></div>
-                </div>
-                <div class="theme-card-name">Obsidian</div>
-                {if !$unlocked_themes.obsidian}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
-                <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
-            </label>
-            <label class="theme-card{if $currentTheme == 'bloom'} active{/if}{if !$unlocked_themes.bloom} locked{/if}" data-theme="bloom">
-                <input type="radio" name="shop_theme" value="bloom" {if $currentTheme == 'bloom'}checked{/if}{if !$unlocked_themes.bloom} disabled{/if}>
-                <div class="theme-card-preview theme-preview-bloom">
-                    <div class="tp-announce"></div>
-                    <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines"><div></div><div></div></div></div>
-                    <div class="tp-tabs pill"><span></span><span class="filled"></span><span></span></div>
-                    <div class="tp-grid"><div class="tp-item round"><div class="tp-img"></div><div class="tp-bar"></div></div><div class="tp-item round"><div class="tp-img"></div><div class="tp-bar"></div></div></div>
-                    <div class="tp-cta"></div>
-                </div>
-                <div class="theme-card-name">Bloom</div>
-                {if !$unlocked_themes.bloom}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
-                <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
-            </label>
-            <label class="theme-card{if $currentTheme == 'ember'} active{/if}{if !$unlocked_themes.ember} locked{/if}" data-theme="ember">
-                <input type="radio" name="shop_theme" value="ember" {if $currentTheme == 'ember'}checked{/if}{if !$unlocked_themes.ember} disabled{/if}>
-                <div class="theme-card-preview theme-preview-ember">
-                    <div class="tp-announce"></div>
-                    <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines"><div></div><div></div></div></div>
-                    <div class="tp-tabs ember-tabs"><span></span><span class="filled"></span><span></span></div>
-                    <div class="tp-grid"><div class="tp-item"><div class="tp-img"></div><div class="tp-bar"></div></div><div class="tp-item"><div class="tp-img"></div><div class="tp-bar"></div></div></div>
-                    <div class="tp-cta"></div>
-                </div>
-                <div class="theme-card-name">Ember</div>
-                {if !$unlocked_themes.ember}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
-                <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
-            </label>
-            <label class="theme-card{if $currentTheme == 'monaco'} active{/if}{if !$unlocked_themes.monaco} locked{/if}" data-theme="monaco">
-                <input type="radio" name="shop_theme" value="monaco" {if $currentTheme == 'monaco'}checked{/if}{if !$unlocked_themes.monaco} disabled{/if}>
-                <div class="theme-card-preview theme-preview-monaco">
-                    <div class="tp-announce"></div>
-                    <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines"><div></div><div></div></div></div>
-                    <div class="tp-tabs monaco-tabs"><span></span><span class="filled"></span><span></span></div>
-                    <div class="tp-grid"><div class="tp-item monaco-item"><div class="tp-img"></div><div class="tp-bar"></div></div><div class="tp-item monaco-item"><div class="tp-img"></div><div class="tp-bar"></div></div></div>
-                    <div class="tp-cta"></div>
-                </div>
-                <div class="theme-card-name">Monaco</div>
-                {if !$unlocked_themes.monaco}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
-                <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
-            </label>
-            <label class="theme-card{if $currentTheme == 'volt'} active{/if}{if !$unlocked_themes.volt} locked{/if}" data-theme="volt">
-                <input type="radio" name="shop_theme" value="volt" {if $currentTheme == 'volt'}checked{/if}{if !$unlocked_themes.volt} disabled{/if}>
-                <div class="theme-card-preview theme-preview-volt">
-                    <div class="tp-announce"></div>
-                    <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines light"><div></div><div></div></div></div>
-                    <div class="tp-tabs volt-tabs"><span></span><span class="filled"></span><span></span></div>
-                    <div class="tp-grid"><div class="tp-item volt-item"><div class="tp-img"></div><div class="tp-bar"></div></div><div class="tp-item volt-item"><div class="tp-img"></div><div class="tp-bar"></div></div></div>
-                    <div class="tp-cta"></div>
-                </div>
-                <div class="theme-card-name">Volt</div>
-                {if !$unlocked_themes.volt}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
-                <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
-            </label>
-            <label class="theme-card{if $currentTheme == 'halloween'} active{/if}{if !$unlocked_themes.halloween} locked{/if}" data-theme="halloween">
-                <input type="radio" name="shop_theme" value="halloween" {if $currentTheme == 'halloween'}checked{/if}{if !$unlocked_themes.halloween} disabled{/if}>
-                <div class="theme-card-preview theme-preview-halloween">
-                    <div class="tp-announce"></div>
-                    <div class="tp-header"><div class="tp-logo"></div><div class="tp-lines light"><div></div><div></div></div></div>
-                    <div class="tp-tabs halloween-tabs"><span></span><span class="filled"></span><span></span></div>
-                    <div class="tp-grid"><div class="tp-item halloween-item"><div class="tp-img"></div><div class="tp-bar"></div></div><div class="tp-item halloween-item"><div class="tp-img"></div><div class="tp-bar"></div></div></div>
-                    <div class="tp-cta"></div>
-                </div>
-                <div class="theme-card-name">Halloween</div>
-                {if !$unlocked_themes.halloween}<div class="theme-card-lock"><i class="fa-solid fa-lock"></i></div>{/if}
-                <div class="theme-card-check"><i class="fa-solid fa-check"></i></div>
-            </label>
-        </div>
-    </div>
-</div>
-
-{* --- Design --- *}
-<div class="dash-form" style="padding-top:0">
-    <div class="form-section">
-        <div class="form-section-title">Design</div>
-        <p class="form-hint" style="margin-bottom:16px">Control what visitors see on your shop page</p>
-
-        <div class="form-subsection-label">Header</div>
-        <div class="form-toggle-row">
-            <div>
-                <div class="form-toggle-label">Show store name</div>
-                <p class="form-hint" style="margin-top:2px">Display your shop name next to the logo</p>
-            </div>
-            <label class="toggle-switch">
-                <input type="checkbox" class="design-toggle" data-field="show_store_name" {if $user.show_store_name|default:1}checked{/if}>
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
-        <div class="form-toggle-row">
-            <div>
-                <div class="form-toggle-label">Show tagline</div>
-                <p class="form-hint" style="margin-top:2px">Display the short description below your name</p>
-            </div>
-            <label class="toggle-switch">
-                <input type="checkbox" class="design-toggle" data-field="show_tagline" {if $user.show_tagline|default:1}checked{/if}>
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
-
-        <button type="button" class="design-more-toggle" id="designMoreToggle">
-            More options <i class="fa-solid fa-chevron-down"></i>
-        </button>
-
-        <div class="design-more-section" id="designMoreSection">
-            <div class="form-subsection-label">Shop Page</div>
-            <div class="form-toggle-row">
-                <div>
-                    <div class="form-toggle-label">Show search bar</div>
-                    <p class="form-hint" style="margin-top:2px">Let customers search through your products</p>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" class="design-toggle" data-field="show_search" {if $user.show_search|default:1}checked{/if}>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div class="form-toggle-row">
-                <div>
-                    <div class="form-toggle-label">Show category filters</div>
-                    <p class="form-hint" style="margin-top:2px">Let customers browse by category</p>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" class="design-toggle" data-field="show_categories" {if $user.show_categories|default:1}checked{/if}>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div class="form-toggle-row">
-                <div>
-                    <div class="form-toggle-label">Show product count & sort</div>
-                    <p class="form-hint" style="margin-top:2px">Display the toolbar with product count and sort options</p>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" class="design-toggle" data-field="show_sort_toolbar" {if $user.show_sort_toolbar|default:1}checked{/if}>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-
-            <div class="form-subsection-label" style="margin-top:20px">Footer</div>
-            <div class="form-toggle-row">
-                <div>
-                    <div class="form-toggle-label">Show desktop footer</div>
-                    <p class="form-hint" style="margin-top:2px">Display the footer with contact info on desktop</p>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" class="design-toggle" data-field="show_desktop_footer" {if $user.show_desktop_footer|default:1}checked{/if}>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-        </div>
-    </div>
-</div>
 
 {* --- Shop Link & Domain (tappable rows → modals) --- *}
-<div class="dash-form" style="padding-top:0">
+<div class="dash-form dash-form-flush">
     <div class="form-section">
         <div class="form-section-title">Your Shop Link</div>
         <div class="account-row" id="changeSubdomainBtn">
@@ -393,7 +159,7 @@
 
 {* --- Search & Sitemap (shown only for custom domain shops) --- *}
 {if !empty($user.custom_domain)}
-<div class="dash-form" style="padding-top:0">
+<div class="dash-form dash-form-flush">
     <div class="form-section">
         <div class="form-section-title">Search Engines</div>
         <div class="form-group">
@@ -420,12 +186,12 @@
 {/if}
 
 {* --- Accept Payments (tappable rows → modals) --- *}
-<div class="dash-form" style="padding-top:0">
+<div class="dash-form dash-form-flush">
     <div class="form-section">
         <div class="form-section-title">Accept Payments</div>
         <div class="account-row" id="setupStripeBtn">
             <div class="account-row-left">
-                <i class="fa-brands fa-stripe icon-lg" style="color:#635BFF"></i>
+                <i class="fa-brands fa-stripe icon-lg icon-stripe"></i>
                 <div>
                     <div class="account-row-label">Stripe</div>
                     <div class="account-row-value" id="stripeStatusDisplay">{if $user.stripe_secret_key}Connected{else}Not connected{/if}</div>
@@ -442,7 +208,7 @@
         </div>
         <div class="account-row" id="setupPaypalBtn">
             <div class="account-row-left">
-                <i class="fa-brands fa-paypal icon-lg" style="color:#003087"></i>
+                <i class="fa-brands fa-paypal icon-lg icon-paypal"></i>
                 <div>
                     <div class="account-row-label">PayPal</div>
                     <div class="account-row-value" id="paypalStatusDisplay">{if $user.paypal_client_id}Connected{else}Not connected{/if}</div>
@@ -457,9 +223,9 @@
             <i class="fa-solid fa-chevron-right account-row-chevron"></i>
             {/if}
         </div>
-        <div class="account-row" style="cursor:default">
+        <div class="account-row account-row-static">
             <div class="account-row-left">
-                <i class="fa-solid fa-hand-holding-dollar icon-lg" style="color:#059669"></i>
+                <i class="fa-solid fa-hand-holding-dollar icon-lg icon-cod"></i>
                 <div>
                     <div class="account-row-label">Pay on Delivery</div>
                     <div class="account-row-value">Collect payment when order is delivered</div>
@@ -491,13 +257,13 @@
 </div>
 
 {* --- Preferences --- *}
-<div class="dash-form" style="padding-top:0">
+<div class="dash-form dash-form-flush">
     <div class="form-section">
         <div class="form-section-title">Preferences</div>
         <div class="form-toggle-row">
             <div>
                 <div class="form-toggle-label">Dark mode</div>
-                <p class="form-hint" style="margin-top:2px">Use a darker look for your dashboard</p>
+                <p class="form-hint">Use a darker look for your dashboard</p>
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" id="darkModeToggle">
@@ -506,7 +272,7 @@
         </div>
         <div class="account-row" id="addToHomescreenBtn">
             <div class="account-row-left">
-                <i class="fa-solid fa-mobile-screen icon-lg" style="color:var(--color-accent)"></i>
+                <i class="fa-solid fa-mobile-screen icon-lg icon-accent"></i>
                 <div>
                     <div class="account-row-label">Add to Homescreen</div>
                     <div class="account-row-value">Use your dashboard like an app</div>
@@ -518,19 +284,9 @@
 </div>
 
 {* --- Account (tappable rows → modals) --- *}
-<div class="dash-form" style="padding-top:0">
+<div class="dash-form dash-form-flush">
     <div class="form-section">
         <div class="form-section-title">Account</div>
-        <div class="account-row" id="deleteShopBtn">
-            <div class="account-row-left">
-                <i class="fa-solid fa-trash icon-lg" style="color:#FF3B30"></i>
-                <div>
-                    <div class="account-row-label" style="color:#FF3B30">Delete Shop</div>
-                    <div class="account-row-value">Permanently delete your account</div>
-                </div>
-            </div>
-            <i class="fa-solid fa-chevron-right account-row-chevron"></i>
-        </div>
         <div class="account-row" id="changeEmailBtn">
             <div class="account-row-left">
                 <i class="fa-solid fa-envelope icon-lg"></i>
@@ -551,7 +307,7 @@
             </div>
             <i class="fa-solid fa-chevron-right account-row-chevron"></i>
         </div>
-        <a href="/logout" class="account-row" style="text-decoration:none">
+        <a href="/logout" class="account-row account-row-link">
             <div class="account-row-left">
                 <i class="fa-solid fa-right-from-bracket icon-lg"></i>
                 <div>
@@ -561,6 +317,23 @@
             </div>
             <i class="fa-solid fa-chevron-right account-row-chevron"></i>
         </a>
+    </div>
+</div>
+
+{* --- Danger Zone --- *}
+<div class="dash-form dash-form-flush">
+    <div class="form-section">
+        <div class="form-section-title account-row-danger">Danger Zone</div>
+        <div class="account-row" id="deleteShopBtn">
+            <div class="account-row-left">
+                <i class="fa-solid fa-trash icon-lg icon-danger"></i>
+                <div>
+                    <div class="account-row-label account-row-danger">Delete Shop</div>
+                    <div class="account-row-value">Permanently remove your shop and all data</div>
+                </div>
+            </div>
+            <i class="fa-solid fa-chevron-right account-row-chevron"></i>
+        </div>
     </div>
 </div>
 {/block}
@@ -676,26 +449,6 @@ $(function() {
         }).fail(function() {
             TinyShop.toast('Failed to update', 'error');
         });
-    });
-
-    // --- Design toggle auto-save ---
-    $('.design-toggle').on('change', function() {
-        var field = $(this).data('field');
-        var val = this.checked ? 1 : 0;
-        var payload = {};
-        payload[field] = val;
-        TinyShop.api('PUT', '/api/shop', payload).done(function() {
-            TinyShop.toast('Setting updated');
-        }).fail(function() {
-            TinyShop.toast('Failed to update', 'error');
-        });
-    });
-
-    // --- Design "More options" expand/collapse ---
-    $('#designMoreToggle').on('click', function() {
-        $(this).toggleClass('open');
-        $('#designMoreSection').toggleClass('open');
-        $(this).contents().first()[0].textContent = $(this).hasClass('open') ? 'Less options ' : 'More options ';
     });
 
     // --- Setup Stripe (modal) ---
@@ -854,15 +607,8 @@ $(function() {
         });
 
         $('#disconnectPaypalBtn').on('click', function() {
-            var html = '<p style="margin-bottom:20px;color:var(--color-text-muted);font-size:0.9rem;">Customers won\'t be able to pay with PayPal.</p>' +
-                '<div style="display:flex;gap:10px">' +
-                    '<button type="button" class="btn-block btn-sm" id="confirmDisconnectCancel" style="flex:1;background:var(--color-bg-secondary);color:var(--color-text)">Cancel</button>' +
-                    '<button type="button" class="btn-block btn-sm" id="confirmDisconnectYes" style="flex:1;background:#FF3B30;color:#fff">Disconnect</button>' +
-                '</div>';
-            TinyShop.openModal('Disconnect PayPal?', html);
-            $('#confirmDisconnectCancel').on('click', function() { TinyShop.closeModal(); });
-            $('#confirmDisconnectYes').on('click', function() {
-                $(this).prop('disabled', true).text('Disconnecting...');
+            TinyShop.confirm('Disconnect PayPal?', 'Customers won\'t be able to pay with PayPal.', 'Disconnect', function() {
+                $('#confirmModalOk').prop('disabled', true).text('Disconnecting...');
                 TinyShop.api('PUT', '/api/shop', {
                     paypal_client_id: '',
                     paypal_secret: '',
@@ -879,7 +625,7 @@ $(function() {
                     TinyShop.toast('Failed to disconnect', 'error');
                     TinyShop.closeModal();
                 });
-            });
+            }, 'danger');
         });
     });
 
@@ -1217,48 +963,6 @@ $(function() {
         });
     });
 
-    // --- Theme Picker ---
-    $('#themePicker').on('click', '.theme-card.locked', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var themeName = $(this).data('theme');
-        TinyShop.confirm('Upgrade to unlock', 'The ' + themeName.charAt(0).toUpperCase() + themeName.slice(1) + ' theme is available on a higher plan. Upgrade to use all themes.', 'Upgrade', function() {
-            TinyShop.navigate('/dashboard/billing');
-        });
-    });
-    $('#themePicker').on('change', 'input[name="shop_theme"]', function() {
-        var theme = $(this).val();
-        var $cards = $('#themePicker .theme-card');
-        $cards.removeClass('active');
-        $(this).closest('.theme-card').addClass('active');
-        TinyShop.api('PUT', '/api/shop', { shop_theme: theme }).done(function() {
-            // Clear SPA cache so shop pages load with the new theme
-            if (TinyShop.spa) TinyShop.spa._cache = {ldelim}{rdelim};
-
-            // Swap body theme class immediately
-            document.body.className = document.body.className.replace(/\btheme-\S+/g, '');
-            if (theme !== 'classic') document.body.classList.add('theme-' + theme);
-
-            // Swap theme CSS link
-            var $themeLink = $('link[href*="/public/css/themes/"]');
-            if (theme !== 'classic') {ldelim}
-                var href = '/public/css/themes/' + theme + '{$min}.css?v={$asset_v}';
-                if ($themeLink.length) {ldelim}
-                    $themeLink.attr('href', href);
-                {rdelim} else {ldelim}
-                    $('<link rel="stylesheet">').attr('href', href).appendTo('head');
-                {rdelim}
-            {rdelim} else {ldelim}
-                $themeLink.remove();
-            {rdelim}
-
-            TinyShop.toast('Theme updated!');
-        }).fail(function(xhr) {
-            var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to update theme';
-            TinyShop.toast(msg, 'error');
-        });
-    });
-
     // Phone fields: strip non-numeric chars on input (allow + at start)
     $('#contactWhatsapp, #contactPhone').on('input', function() {
         var v = $(this).val().replace(/[^0-9+\s\-]/g, '');
@@ -1271,42 +975,6 @@ $(function() {
     $('#socialInstagram, #socialTiktok').on('input', function() {
         var v = $(this).val().replace(/^@/, '');
         $(this).val(v);
-    });
-
-    // Logo upload (auto-saves immediately)
-    $('#logoZone').on('click', function() { $('#logoInput').click(); });
-    $('#logoInput').on('change', function() {
-        var file = this.files[0];
-        if (!file) return;
-        TinyShop.uploadFile(file, function(url) {
-            $('#shopLogo').val(url);
-            $('#logoPreview img').attr('src', url);
-            $('#logoPreview').show();
-            $('#logoPlaceholder').hide();
-            TinyShop.api('PUT', '/api/shop', { shop_logo: url }).done(function() {
-                TinyShop.toast('Logo saved!');
-            }).fail(function() {
-                TinyShop.toast('Logo uploaded but failed to save', 'error');
-            });
-        });
-    });
-
-    // Favicon upload (auto-saves immediately)
-    $('#faviconZone').on('click', function() { $('#faviconInput').click(); });
-    $('#faviconInput').on('change', function() {
-        var file = this.files[0];
-        if (!file) return;
-        TinyShop.uploadFile(file, function(url) {
-            $('#shopFavicon').val(url);
-            $('#faviconPreview img').attr('src', url);
-            $('#faviconPreview').show();
-            $('#faviconPlaceholder').hide();
-            TinyShop.api('PUT', '/api/shop', { shop_favicon: url }).done(function() {
-                TinyShop.toast('Favicon saved!');
-            }).fail(function() {
-                TinyShop.toast('Favicon uploaded but failed to save', 'error');
-            });
-        });
     });
 
     // Save form

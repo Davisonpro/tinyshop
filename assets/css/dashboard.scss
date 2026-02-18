@@ -1964,6 +1964,271 @@ body.page-dashboard {
     margin-bottom: 12px;
 }
 
+/* --- Color Palette Picker --- */
+.palette-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.palette-swatch {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg);
+    border: 2px solid $border-default;
+    border-radius: $radius-card;
+    cursor: pointer;
+    overflow: hidden;
+    @include tap-reset;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+
+    input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &.active {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(30, 35, 48, 0.1);
+    }
+
+    &:active {
+        transform: scale(0.97);
+    }
+}
+
+.palette-preview {
+    display: flex;
+    width: 100%;
+    height: 56px;
+}
+
+.palette-strip {
+    flex: 1;
+}
+
+.palette-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text);
+    padding: 10px 12px;
+    text-align: center;
+}
+
+.palette-check {
+    display: none;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: $white;
+    font-size: 0.625rem;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+    .active & {
+        display: flex;
+    }
+}
+
+/* --- Alignment Toggle --- */
+.alignment-toggle {
+    display: flex;
+    gap: 8px;
+}
+
+.alignment-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--color-bg);
+    border: 2px solid $border-default;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    @include tap-reset;
+    transition: border-color 0.15s ease, color 0.15s ease;
+
+    &.active {
+        border-color: var(--color-primary);
+        color: var(--color-text);
+        font-weight: 600;
+    }
+
+    &:active {
+        transform: scale(0.97);
+    }
+
+    i {
+        font-size: 0.875rem;
+    }
+}
+
+/* --- Hero Slide Manager --- */
+.hero-slide-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.hero-slide-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: var(--color-bg);
+    border: 1px solid $border-default;
+    border-radius: 12px;
+}
+
+.hero-slide-thumb {
+    flex-shrink: 0;
+    width: 72px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: $bg-neutral;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.hero-slide-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.hero-slide-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hero-slide-link {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+.hero-slide-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.hero-slide-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    @include tap-reset;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:active {
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    &.hero-slide-delete:active {
+        color: $ios-red;
+    }
+}
+
+.hero-slide-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: none;
+    border: 2px dashed $border-light;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    @include tap-reset;
+    transition: border-color 0.15s ease, color 0.15s ease;
+
+    &:active {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+}
+
+/* --- Slide Upload Zone (in modal) --- */
+.slide-upload-zone {
+    border: 2px dashed $border-light;
+    border-radius: 12px;
+    cursor: pointer;
+    overflow: hidden;
+    @include tap-reset;
+    transition: border-color 0.15s ease;
+
+    &:active {
+        border-color: var(--color-accent);
+    }
+}
+
+.slide-upload-preview {
+    position: relative;
+    aspect-ratio: 16 / 7;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.slide-upload-change {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    color: $white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.slide-upload-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 40px 16px;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+}
+
 /* --- Product Card Badges (dashboard) --- */
 .product-card-badge {
     position: absolute;
@@ -2781,6 +3046,66 @@ a.top-product-row:active {
 .account-row-chevron {
     flex-shrink: 0;
     color: $chevron;
+}
+
+/* --- Design Link Card --- */
+.design-link-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 0;
+    margin: 12px 0 8px;
+    background: linear-gradient(135deg, #F0EDFF 0%, #E8E4FF 100%);
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--color-text);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s ease;
+
+    &:active {
+        transform: scale(0.98);
+    }
+
+    .account-row-chevron {
+        color: #6C5CE7;
+        margin-right: 16px;
+    }
+}
+
+.design-link-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.design-link-icon {
+    flex-shrink: 0;
+    font-size: 1.5rem;
+    color: #6C5CE7;
+    background: #FFFFFF;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(108, 92, 231, 0.15);
+    margin-left: 16px;
+}
+
+.design-link-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 2px;
+}
+
+.design-link-desc {
+    font-size: 0.75rem;
+    color: #666;
+    line-height: 1.4;
 }
 
 /* --- Custom Domain Status --- */
@@ -5196,3 +5521,59 @@ a.top-product-row:active {
 }
 [data-theme="dark"] .plan-limit-banner-warning p { color: #FDE68A; }
 [data-theme="dark"] .plan-limit-banner-warning a { color: #FCD34D; }
+
+/* --- Label icons (inside form labels) --- */
+.label-icon {
+    margin-right: 6px;
+}
+.label-icon-sm {
+    margin-right: 6px;
+    font-size: 0.8em;
+}
+
+/* Brand colors for icons */
+.icon-whatsapp   { color: $whatsapp; }
+.icon-instagram  { color: #E4405F; }
+.icon-tiktok     { color: #000000; }
+.icon-facebook   { color: $facebook; }
+.icon-maps       { color: #EA4335; }
+.icon-stripe     { color: $stripe; }
+.icon-paypal     { color: $paypal; }
+.icon-mpesa      { color: #4CAF50; }
+.icon-cod        { color: $success; }
+.icon-danger     { color: $ios-red; }
+.icon-accent     { color: var(--color-accent); }
+.icon-muted      { color: var(--color-text-muted); }
+
+/* Dash form flush (no top padding for continuation sections) */
+.dash-form-flush { padding-top: 0; }
+
+/* Danger row label */
+.account-row-danger { color: $ios-red; }
+
+/* Social hint at section level */
+.form-section-hint {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin-bottom: 12px;
+}
+
+/* Logout link reset */
+.account-row-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* COD row — no pointer */
+.account-row-static { cursor: default; }
+
+/* Dark mode — design link card */
+[data-theme="dark"] .design-link-card {
+    background: linear-gradient(135deg, rgba(108,92,231,0.12) 0%, rgba(108,92,231,0.08) 100%);
+}
+[data-theme="dark"] .design-link-title { color: #E0E0E0; }
+[data-theme="dark"] .design-link-desc { color: var(--color-text-muted); }
+[data-theme="dark"] .design-link-icon {
+    background: $dark-elevated;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}

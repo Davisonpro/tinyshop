@@ -3,9 +3,22 @@
 {block name="body_class"}page-shop page-product{/block}
 
 {block name="body"}
+{include file="partials/palette_vars.tpl" palette_scope="page-product"}
 {include file="partials/desktop_header.tpl"}
+{include file="partials/search_overlay.tpl"}
 <div class="product-page" id="main-content">
     <div class="container">
+        {* Breadcrumb — desktop only, above gallery *}
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="/">Shop</a>
+            {if $product.category_name && $product.category_slug}
+                <span class="breadcrumb-sep" aria-hidden="true">/</span>
+                <a href="/collections/{$product.category_slug|escape}">{$product.category_name|escape}</a>
+            {/if}
+            <span class="breadcrumb-sep" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">{$product.name|escape|truncate:40}</span>
+        </nav>
+
         {* Full-bleed Image Gallery *}
         <div class="product-gallery" id="productGallery">
             {* Floating nav: back + share *}
@@ -19,7 +32,7 @@
                 {if !empty($has_payments)}
                 <button type="button" class="product-nav-btn cart-trigger" aria-label="Shopping cart">
                     <i class="fa-solid fa-cart-shopping"></i>
-                    <span class="cart-badge" style="display:none">0</span>
+                    <span class="cart-badge cart-badge-hidden">0</span>
                 </button>
                 {/if}
             </div>
@@ -54,28 +67,24 @@
                 </div>
             {else}
                 <div class="product-gallery-empty">
-                    <i class="fa-solid fa-image" style="font-size:48px;color:#D1D5DB"></i>
+                    <i class="fa-solid fa-image product-gallery-empty-icon"></i>
                 </div>
             {/if}
 
             {* Badge overlay *}
-            {if $product.is_sold}
-                <span class="product-detail-badge badge-sold">Sold Out</span>
-            {elseif $product.is_featured}
-                <span class="product-detail-badge badge-featured">Featured</span>
-            {/if}
+            <div class="product-detail-badges">
+                {if $product.is_sold}
+                    <span class="product-detail-badge badge-sold">Sold Out</span>
+                {else}
+                    {if $product.is_featured}
+                        <span class="product-detail-badge badge-featured">Best Seller</span>
+                    {/if}
+                    {if $product.created_at|is_recent:14}
+                        <span class="product-detail-badge badge-new">New</span>
+                    {/if}
+                {/if}
+            </div>
         </div>
-
-        {* Breadcrumb Navigation *}
-        <nav class="breadcrumb" aria-label="Breadcrumb">
-            <a href="/">Shop</a>
-            {if $product.category_name && $product.category_slug}
-                <span class="breadcrumb-sep" aria-hidden="true">/</span>
-                <a href="/category/{$product.category_slug|escape}">{$product.category_name|escape}</a>
-            {/if}
-            <span class="breadcrumb-sep" aria-hidden="true">/</span>
-            <span class="breadcrumb-current" aria-current="page">{$product.name|escape|truncate:40}</span>
-        </nav>
 
         {* Product Info *}
         <div class="product-info">
@@ -112,7 +121,7 @@
 
             {if $product.description}
                 <div class="product-info-desc" id="productDesc">{$product.description nofilter}</div>
-                <button type="button" class="product-desc-toggle" id="descToggle" style="display:none">Read more</button>
+                <button type="button" class="product-desc-toggle product-desc-toggle-hidden" id="descToggle">Read more</button>
             {/if}
         </div>
 
@@ -167,13 +176,13 @@
         {* Inline share buttons *}
         <div class="product-share-inline">
             <span class="product-share-label">Share</span>
-            <a href="https://wa.me/?text={$product.name|escape:'url'}%20{$smarty.server.REQUEST_URI|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on WhatsApp">
+            <a href="https://wa.me/?text={$product.name|escape:'url'}%20{$base_url}/{$product.slug|default:$product.id|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on WhatsApp">
                 <i class="fa-brands fa-whatsapp"></i>
             </a>
-            <a href="https://www.facebook.com/sharer/sharer.php?u={$smarty.server.REQUEST_URI|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on Facebook">
+            <a href="https://www.facebook.com/sharer/sharer.php?u={$base_url}/{$product.slug|default:$product.id|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on Facebook">
                 <i class="fa-brands fa-facebook-f"></i>
             </a>
-            <a href="https://twitter.com/intent/tweet?text={$product.name|escape:'url'}&url={$smarty.server.REQUEST_URI|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on X">
+            <a href="https://twitter.com/intent/tweet?text={$product.name|escape:'url'}&url={$base_url}/{$product.slug|default:$product.id|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on X">
                 <i class="fa-brands fa-x-twitter"></i>
             </a>
             <button type="button" class="product-share-btn" data-share-trigger aria-label="More sharing options">
@@ -186,20 +195,12 @@
     {if $more_products|@count > 0}
     <div class="container">
         <div class="more-products">
-            <h2 class="more-products-title">{if $shop_theme == 'monaco'}From the Collection{elseif $shop_theme == 'obsidian'}More Drops{elseif $shop_theme == 'ember'}You Might Also Love{elseif $shop_theme == 'bloom'}More Picks for You{elseif $shop_theme == 'ivory'}More{elseif $shop_theme == 'volt'}Related{elseif $shop_theme == 'halloween'}You Might Like{else}More from this shop{/if}</h2>
-            <div class="more-products-scroll">
-                {foreach $more_products as $mp}
-                    <a href="/{$mp.slug|default:$mp.id}" class="more-product-card">
-                        <div class="more-product-img">
-                            {if $mp.image_url}
-                                <img src="{$mp.image_url|escape}" alt="{$mp.name|escape}" loading="lazy" onload="this.classList.add('loaded')">
-                            {else}
-                                <img src="/public/img/placeholder.svg" alt="{$mp.name|escape}" loading="lazy" onload="this.classList.add('loaded')">
-                            {/if}
-                        </div>
-                        <div class="more-product-name">{$mp.name|escape}</div>
-                        <div class="more-product-price">{$currency_symbol}{$mp.price|format_price}</div>
-                    </a>
+            <h2 class="more-products-title">More from this shop</h2>
+            <div class="more-products-scroll hide-scrollbar">
+                {foreach $more_products as $product}
+                    <div class="more-product-card">
+                        {include file="partials/product_card.tpl"}
+                    </div>
                 {/foreach}
             </div>
         </div>
@@ -285,15 +286,19 @@
     var desc = document.getElementById('productDesc');
     var toggle = document.getElementById('descToggle');
     if (desc && toggle) {
-        // Show toggle + gradient only if text overflows
-        if (desc.scrollHeight > desc.offsetHeight + 4) {
-            desc.classList.add('has-overflow');
-            toggle.style.display = '';
-            toggle.addEventListener('click', function() {
-                var expanded = desc.classList.toggle('expanded');
-                toggle.textContent = expanded ? 'Show less' : 'Read more';
-            });
+        function checkOverflow() {
+            if (desc.scrollHeight > desc.offsetHeight + 1) {
+                desc.classList.add('has-overflow');
+                toggle.classList.remove('product-desc-toggle-hidden');
+            }
         }
+        toggle.addEventListener('click', function() {
+            var expanded = desc.classList.toggle('expanded');
+            toggle.textContent = expanded ? 'Show less' : 'Read more';
+        });
+        // Check after layout settles and after images/fonts load
+        requestAnimationFrame(checkOverflow);
+        window.addEventListener('load', checkOverflow);
     }
 
     var track = document.getElementById('galleryTrack');
