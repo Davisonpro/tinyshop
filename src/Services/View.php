@@ -10,7 +10,7 @@ use TinyShop\Models\Setting;
 
 final class View
 {
-    public const ASSET_VERSION = '1.0.1';
+    public const ASSET_VERSION = '1.0.20';
 
     private readonly Smarty $smarty;
     private readonly string $baseTemplatesDir;

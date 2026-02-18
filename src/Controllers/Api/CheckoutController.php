@@ -364,7 +364,8 @@ final class CheckoutController
                     $currency,
                     $successUrl,
                     $cancelUrl,
-                    $paypalSandbox
+                    $paypalSandbox,
+                    $shop['store_name'] ?? ''
                 );
             }
         } catch (\Throwable $e) {

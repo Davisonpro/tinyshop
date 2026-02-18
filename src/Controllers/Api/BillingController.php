@@ -121,7 +121,8 @@ final class BillingController
                 $currency,
                 $ppSuccessUrl,
                 $cancelUrl,
-                $sandbox
+                $sandbox,
+                $this->settingModel->get('app_name', '')
             );
 
             if (!$redirectUrl) {

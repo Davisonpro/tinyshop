@@ -477,9 +477,13 @@
 /* 3:4 portrait images — fashion editorial proportions */
 .theme-monaco .product-card-img {
   border-radius: 2px 2px 0 0;
-  background: var(--color-bg-alt);
+  background: #fff;
   aspect-ratio: 3/4;
   overflow: hidden;
+}
+
+.theme-monaco .product-card-img:has(img.loaded) {
+  background: #fff;
 }
 
 .theme-monaco .product-card-img img {

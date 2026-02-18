@@ -100,8 +100,6 @@
             {/if}
         </div>
 
-        {include file="partials/product_whatsapp.tpl"}
-
         {* Variations *}
         {if !empty($product.variations_data)}
         <div class="product-variations" id="productVariations">
@@ -145,9 +143,11 @@
         </script>
         {/if}
 
+        {include file="partials/product_whatsapp.tpl"}
+
         {include file="partials/product_cta.tpl"}
 
-        {* Inline share buttons — desktop only via CSS *}
+        {* Inline share buttons *}
         <div class="product-share-inline">
             <span class="product-share-label">Share</span>
             <a href="https://wa.me/?text={$product.name|escape:'url'}%20{$smarty.server.REQUEST_URI|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on WhatsApp">

@@ -383,9 +383,10 @@
 .theme-obsidian .product-card-img {
     border-radius: 0;
     aspect-ratio: 1 / 1;
-    background: var(--color-bg-alt);
+    background: #1c1c1e;
     overflow: hidden;
 }
+.theme-obsidian .product-card-img:has(img.loaded) { background: #1c1c1e; }
 .theme-obsidian .product-card-img img {
     object-fit: cover;
     width: 100%;

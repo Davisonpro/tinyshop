@@ -508,6 +508,7 @@ TinyShop.initShop = function() {
     ajaxMode: false
   };
   var apiBase = "/products";
+  var _activeXhr = null;
   function buildQuery(overrides) {
     var o = overrides || {};
     var params = {
@@ -558,7 +559,10 @@ TinyShop.initShop = function() {
     }
   }
   function fetchProducts(opts) {
-    if (state.loading) return;
+    if (_activeXhr) {
+      _activeXhr.abort();
+      _activeXhr = null;
+    }
     state.loading = true;
     state.ajaxMode = true;
     var append = opts && opts.append;
@@ -572,7 +576,7 @@ TinyShop.initShop = function() {
     } else {
       $loadMoreBtn.addClass("loading").text("Loading...");
     }
-    $.getJSON(apiBase + "?" + query).done(function(data) {
+    _activeXhr = $.getJSON(apiBase + "?" + query).done(function(data) {
       var products = data.products || [];
       var total = data.total || 0;
       if (append) {
@@ -606,6 +610,7 @@ TinyShop.initShop = function() {
       }
     }).always(function() {
       state.loading = false;
+      _activeXhr = null;
       var $ss = $("#shopSearch");
       if ($ss.length) $ss.removeClass("search-loading");
       $loadMoreBtn.removeClass("loading").html('Show more products <span class="load-more-count" id="loadMoreCount"></span>');
@@ -1232,7 +1237,7 @@ TinyShop.spa = {
   _applyPage: function(data, url, isPopState) {
     var self = this;
     function doSwap(onDomReady) {
-      document.title = data.title || "TinyShop";
+      document.title = data.title || (document.querySelector('meta[name="apple-mobile-web-app-title"]') || {}).content || "Shop";
       var announcer = document.getElementById("spaAnnouncer");
       if (!announcer) {
         announcer = document.createElement("div");

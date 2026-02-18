@@ -51,23 +51,13 @@
 {* Low Stock Alert *}
 {if !empty($low_stock_products)}
 <div class="low-stock-card">
-    <div class="low-stock-header">
-        <div class="low-stock-icon">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-        </div>
-        <div>
-            <div class="low-stock-title">Low Stock</div>
-            <div class="low-stock-subtitle">{$low_stock_products|@count} {if $low_stock_products|@count == 1}product needs{else}products need{/if} restocking</div>
-        </div>
-    </div>
-    <div class="low-stock-items">
-        {foreach $low_stock_products as $p}
-        <a href="/dashboard/products/{$p.id}/edit" class="low-stock-item">
-            <span class="low-stock-item-name">{$p.name|escape}</span>
-            <span class="low-stock-badge">{$p.stock_quantity} left</span>
-        </a>
-        {/foreach}
-    </div>
+    <div class="low-stock-label"><i class="fa-solid fa-arrow-down"></i> Low Stock</div>
+    {foreach $low_stock_products as $p}
+    <a href="/dashboard/products/{$p.id}/edit" class="low-stock-item">
+        <span class="low-stock-item-name">{$p.name|escape}</span>
+        <span class="low-stock-badge">{$p.stock_quantity} left</span>
+    </a>
+    {/foreach}
 </div>
 {/if}
 
@@ -308,7 +298,7 @@ $(function() {
         var $banner = $('<div class="dash-section" id="installBanner">' +
             '<div class="share-card" style="display:flex;align-items:center;gap:14px">' +
                 '<div style="flex:1">' +
-                    '<div style="font-weight:600;font-size:0.9375rem;margin-bottom:2px">Install TinyShop</div>' +
+                    '<div style="font-weight:600;font-size:0.9375rem;margin-bottom:2px">Install {$app_name}</div>' +
                     '<div style="font-size:0.75rem;color:var(--color-text-muted)">Add to home screen for quick access</div>' +
                 '</div>' +
                 '<button type="button" id="installBtn" style="flex-shrink:0;padding:10px 20px;background:var(--color-accent);color:#fff;border:none;border-radius:10px;font-size:0.8125rem;font-weight:600;font-family:inherit;cursor:pointer">Install</button>' +
@@ -320,7 +310,7 @@ $(function() {
             _deferredPrompt.prompt();
             _deferredPrompt.userChoice.then(function(choice) {
                 if (choice.outcome === 'accepted') {
-                    TinyShop.toast('TinyShop installed!');
+                    TinyShop.toast('{$app_name|escape:"javascript"} installed!');
                 }
                 _deferredPrompt = null;
                 $('#installBanner').slideUp(200);

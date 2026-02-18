@@ -392,10 +392,11 @@
 
 .theme-ember .product-card-img {
     aspect-ratio: 3 / 4;
-    background: var(--color-bg-secondary);
+    background: #fff;
     border-radius: 0;
     overflow: hidden;
 }
+.theme-ember .product-card-img:has(img.loaded) { background: #fff; }
 
 .theme-ember .product-card-img img {
     object-fit: cover;

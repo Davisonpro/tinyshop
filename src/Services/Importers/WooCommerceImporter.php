@@ -276,14 +276,27 @@ final class WooCommerceImporter implements ImporterInterface
     {
         $images = [];
 
-        // WooCommerce product gallery
-        $nodes = $xpath->query('//*[contains(@class,"woocommerce-product-gallery__image")]//a/@href');
-        if ($nodes !== false) {
-            foreach ($nodes as $attr) {
-                $href = trim($attr->nodeValue);
-                if ($href !== '' && !in_array($href, $images, true)) {
-                    $images[] = $href;
+        // WooCommerce product gallery — multiple gallery patterns (order matters):
+        // 1. Standard: .woocommerce-product-gallery__image > a[href]
+        // 2. CommerceGurus Swiper: .cg-main-swiper a.swiper-slide-imglink[href] (finds ALL slides)
+        // 3. Reversed (CommerceGurus): a > .woocommerce-product-gallery__image (fallback, may find only 1)
+        $galleryQueries = [
+            '//*[contains(@class,"woocommerce-product-gallery__image")]//a/@href',
+            '//*[contains(@class,"cg-main-swiper")]//a[contains(@class,"swiper-slide-imglink")]/@href',
+            '//a[.//*[contains(@class,"woocommerce-product-gallery__image")]]/@href',
+        ];
+        foreach ($galleryQueries as $query) {
+            $nodes = $xpath->query($query);
+            if ($nodes !== false) {
+                foreach ($nodes as $attr) {
+                    $href = trim($attr->nodeValue);
+                    if ($href !== '' && $this->looksLikeImageUrl($href) && !in_array($href, $images, true)) {
+                        $images[] = $href;
+                    }
                 }
+            }
+            if (!empty($images)) {
+                break;
             }
         }
 
@@ -469,6 +482,12 @@ final class WooCommerceImporter implements ImporterInterface
         }
 
         return [];
+    }
+
+    private function looksLikeImageUrl(string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+        return (bool) preg_match('/\.(jpe?g|png|webp|gif|avif|bmp|svg)/i', $path);
     }
 
     private function isJunkCategory(string $name): bool

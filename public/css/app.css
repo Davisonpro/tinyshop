@@ -1637,7 +1637,7 @@ textarea.form-control {
 
 .product-card-img:has(img.loaded) {
   animation: none;
-  background: var(--color-bg-alt);
+  background: #fff;
 }
 
 .product-card-body {
@@ -2245,15 +2245,44 @@ a.product-whatsapp-cta:active {
   transform: scale(0.97);
 }
 
-/* Inline share — hidden on mobile, shown on desktop */
+/* Inline share — visible on all sizes */
 .product-share-inline {
-  display: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.product-share-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.product-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+.product-share-btn:active {
+  opacity: 0.6;
 }
 
 /* Variations on detail page */
 .product-variations {
-  margin-bottom: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
 }
 
 .product-variation-group {
@@ -3389,7 +3418,11 @@ button, a, input[type=submit], select, [role=button] {
 }
 
 [data-theme=dark] .product-card-img {
-  background: var(--color-bg-alt);
+  background: #1c1c1e;
+}
+
+[data-theme=dark] .product-card-img:has(img.loaded) {
+  background: #1c1c1e;
 }
 
 [data-theme=dark] .sticky-cta {
@@ -3730,7 +3763,7 @@ button, a, input[type=submit], select, [role=button] {
    ============================================================ */
 @media (min-width: 1024px) {
   :root {
-    --max-width: 960px;
+    --max-width: 1100px;
   }
   .container {
     padding: 0 24px;
@@ -4063,6 +4096,7 @@ button, a, input[type=submit], select, [role=button] {
     overflow: visible;
     position: sticky;
     top: 92px;
+    min-width: 0;
   }
   /* Move background from container to track so thumbnails don't inherit it */
   .product-page .product-gallery,
@@ -4157,36 +4191,19 @@ button, a, input[type=submit], select, [role=button] {
   .product-page .product-info-price .price-compare {
     font-size: 1rem;
   }
-  /* Inline share buttons on desktop — below CTA */
+  /* Inline share buttons on desktop — grid placement + subtle style */
   .product-share-inline {
-    display: flex;
-    align-items: center;
     gap: 12px;
     margin-top: var(--spacing-md);
     grid-column: 2;
-    grid-row: 4;
-  }
-  .product-share-label {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--color-text-muted);
   }
   .product-share-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 32px;
     height: 32px;
     border-radius: 6px;
-    border: none;
     background: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    transition: color 0.15s, opacity 0.15s;
-    padding: 0;
-    font-family: inherit;
-    text-decoration: none;
     opacity: 0.5;
+    transition: color 0.15s, opacity 0.15s;
   }
   .product-share-btn:hover {
     color: var(--color-text);

@@ -345,11 +345,12 @@
 
 .theme-halloween .product-card-img {
     aspect-ratio: 3 / 4;
-    background: var(--color-bg-secondary);
+    background: #1c1c1e;
     border-radius: 0;
     overflow: hidden;
     position: relative;
 }
+.theme-halloween .product-card-img:has(img.loaded) { background: #1c1c1e; }
 
 /* Subtle dark gradient at image bottom — name/price reads easier */
 .theme-halloween .product-card-img::after {

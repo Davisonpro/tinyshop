@@ -102,6 +102,9 @@ final class HttpClient
             throw new RuntimeException('Cannot create temp file');
         }
 
+        // Build a Referer from the image URL's origin (helps bypass Cloudflare)
+        $origin = parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST);
+
         $ch = curl_init();
         $opts = [
             CURLOPT_URL            => $url,
@@ -112,6 +115,19 @@ final class HttpClient
             CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_USERAGENT      => self::USER_AGENT,
             CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_ENCODING       => '',
+            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_2_0,
+            CURLOPT_HTTPHEADER     => [
+                'Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept-Language: en-GB,en-US;q=0.9,en;q=0.8',
+                'Referer: ' . $origin . '/',
+                'sec-ch-ua: "Google Chrome";v="145", "Chromium";v="145", "Not-A.Brand";v="24"',
+                'sec-ch-ua-mobile: ?0',
+                'sec-ch-ua-platform: "macOS"',
+                'Sec-Fetch-Dest: image',
+                'Sec-Fetch-Mode: no-cors',
+                'Sec-Fetch-Site: same-origin',
+            ],
         ];
 
         $caBundle = self::findCaBundle();

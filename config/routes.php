@@ -217,6 +217,8 @@ return function (App $app): void {
             $admin->delete('/help-articles/{id}', [AdminController::class, 'deleteHelpArticle']);
             $admin->post('/import/fetch', [AdminController::class, 'fetchImport']);
             $admin->post('/import/save', [AdminController::class, 'saveImport']);
+            $admin->get('/import/categories/{seller_id}', [AdminController::class, 'importCategories']);
+            $admin->post('/import/save-category', [AdminController::class, 'importSaveCategory']);
 
             $admin->get('/pages', [AdminController::class, 'listPages']);
             $admin->post('/pages', [AdminController::class, 'createPage']);

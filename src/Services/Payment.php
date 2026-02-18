@@ -90,7 +90,8 @@ final class Payment
         string $currency,
         string $successUrl,
         string $cancelUrl,
-        bool $sandbox = true
+        bool $sandbox = true,
+        string $brandName = ''
     ): ?string {
         $baseUrl = $sandbox
             ? 'https://api-m.sandbox.paypal.com'
@@ -110,7 +111,7 @@ final class Payment
                 'return_url' => $successUrl,
                 'cancel_url' => $cancelUrl,
                 'user_action' => 'PAY_NOW',
-                'brand_name' => 'TinyShop',
+                'brand_name' => $brandName ?: 'TinyShop',
             ],
         ];
 

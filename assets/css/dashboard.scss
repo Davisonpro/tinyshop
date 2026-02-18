@@ -1109,6 +1109,29 @@ body.page-dashboard {
     transform: scale(0.85);
 }
 
+.image-gallery-uploading {
+    pointer-events: none;
+}
+.image-gallery-preview-img {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.5;
+}
+.image-gallery-loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.image-gallery-loader .btn-spinner {
+    width: 24px;
+    height: 24px;
+    border-width: 2.5px;
+}
+
 .image-gallery-add {
     aspect-ratio: 1 / 1;
     border: 2px dashed $border-light;
@@ -4090,54 +4113,46 @@ a.top-product-row:active {
    Low Stock Alert
    ============================================================ */
 .low-stock-card {
+    margin: 0 20px 16px;
     background: var(--color-bg);
     border-radius: $radius-section;
-    overflow: hidden;
-    border-left: 3px solid $warning;
-    margin: 0 20px 16px;
+    padding: 14px 16px;
 }
-.low-stock-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    border-bottom: 1px solid var(--color-border);
+.low-stock-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #D97706;
+    margin-bottom: 10px;
+    i { margin-right: 4px; font-size: 0.6875rem; }
 }
-.low-stock-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(245, 158, 11, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.low-stock-icon i { font-size: 18px; color: $warning; }
-.low-stock-title { font-size: 1rem; font-weight: 700; }
-.low-stock-subtitle { font-size: 0.8125rem; color: var(--color-text-muted); margin-top: 2px; }
-.low-stock-items { padding: 0; }
 .low-stock-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--color-border);
+    gap: 12px;
+    padding: 8px 0;
     text-decoration: none;
     color: inherit;
-    min-height: 48px;
     @include tap-reset;
+    & + & { border-top: 1px solid var(--color-border); }
 }
-.low-stock-item:last-child { border-bottom: none; }
-.low-stock-item:active { opacity: 0.7; }
-.low-stock-item-name { font-size: 0.9375rem; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; }
+.low-stock-item:active { opacity: 0.6; }
+.low-stock-item-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .low-stock-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 12px;
-    background: rgba(245, 158, 11, 0.15);
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.12);
     color: #D97706;
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 700;
     white-space: nowrap;
 }

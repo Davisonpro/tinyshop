@@ -412,9 +412,13 @@
 
 .theme-bloom .product-card-img {
   border-radius: 0;
-  background: var(--color-bg-secondary);
+  background: #fff;
   aspect-ratio: 4/5;
   overflow: hidden;
+}
+
+.theme-bloom .product-card-img:has(img.loaded) {
+  background: #fff;
 }
 
 .theme-bloom .product-card-img img {
@@ -1259,7 +1263,10 @@
     border-color: var(--color-border);
   }
   .theme-bloom .product-card-img {
-    background: var(--color-bg-secondary);
+    background: #1c1c1e;
+  }
+  .theme-bloom .product-card-img:has(img.loaded) {
+    background: #1c1c1e;
   }
   .theme-bloom .product-badge-sale {
     background: var(--color-accent);

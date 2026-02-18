@@ -403,7 +403,7 @@ TinyShop.spa = {
         var self = this;
 
         function doSwap(onDomReady) {
-            document.title = data.title || 'TinyShop';
+            document.title = data.title || (document.querySelector('meta[name="apple-mobile-web-app-title"]') || {}).content || 'Shop';
 
             var announcer = document.getElementById('spaAnnouncer');
             if (!announcer) {

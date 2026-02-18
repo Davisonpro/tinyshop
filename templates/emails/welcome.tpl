@@ -148,7 +148,7 @@
                                 &copy; {$smarty.now|date_format:"%Y"} {$app_name}
                             </p>
                             <p style="margin: 0; font-size: 11px; color: #cccccc; line-height: 1.5;">
-                                Powered by TinyShop
+                                Powered by {$app_name}
                             </p>
                         </td>
                     </tr>

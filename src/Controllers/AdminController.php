@@ -1092,6 +1092,36 @@ final class AdminController
         ]);
     }
 
+    public function importCategories(Request $request, Response $response, array $args): Response
+    {
+        $sellerId = (int) $args['seller_id'];
+        $tree = $this->categoryModel->findByUserAsTree($sellerId);
+        return $this->json($response, ['categories' => $tree]);
+    }
+
+    public function importSaveCategory(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $sellerId = (int) ($data['seller_id'] ?? 0);
+        $name = trim($data['name'] ?? '');
+
+        if ($sellerId <= 0 || $name === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Seller and category name are required'], 422);
+        }
+
+        $existing = $this->categoryModel->findByUserNameAndParent($sellerId, $name, null);
+        if ($existing) {
+            return $this->json($response, ['category' => $existing]);
+        }
+
+        $id = $this->categoryModel->create([
+            'user_id' => $sellerId,
+            'name' => $name,
+        ]);
+
+        return $this->json($response, ['category' => ['id' => $id, 'name' => $name]]);
+    }
+
     public function fetchImport(Request $request, Response $response): Response
     {
         $data     = (array) $request->getParsedBody();
@@ -1167,16 +1197,27 @@ final class AdminController
             }
         }
 
-        // Download and store images
+        // Download and store images (fall back to remote URL if download fails e.g. Cloudflare)
         $imageUrls = [];
+        $failedImages = [];
         $remoteImages = $data['images'] ?? [];
         if (is_array($remoteImages)) {
             foreach ($remoteImages as $imgUrl) {
                 $stored = $this->downloadAndStoreImage($imgUrl);
                 if ($stored !== null) {
                     $imageUrls[] = $stored;
+                } else {
+                    // Keep the remote URL so the product isn't left without images
+                    $imageUrls[] = $imgUrl;
+                    $failedImages[] = $imgUrl;
                 }
             }
+        }
+        if (!empty($failedImages)) {
+            $this->logger->warning('import.image_download_failed', [
+                'failed' => $failedImages,
+                'reason' => 'Likely Cloudflare challenge or 403',
+            ]);
         }
 
         $comparePrice = isset($data['compare_price']) && $data['compare_price'] !== '' && $data['compare_price'] !== null
@@ -1222,10 +1263,16 @@ final class AdminController
             'title'      => $title,
         ]);
 
+        $msg = 'Product imported successfully';
+        if (!empty($failedImages)) {
+            $msg .= '. ' . count($failedImages) . ' image(s) could not be downloaded (Cloudflare blocked) — using remote URLs instead.';
+        }
+
         return $this->json($response, [
-            'success'    => true,
-            'product_id' => $productId,
-            'message'    => 'Product imported successfully',
+            'success'       => true,
+            'product_id'    => $productId,
+            'message'       => $msg,
+            'failed_images' => $failedImages,
         ], 201);
     }
 

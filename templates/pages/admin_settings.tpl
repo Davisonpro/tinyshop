@@ -84,7 +84,7 @@
         </div>
         <div class="form-group">
             <label for="mailFromName">From Name</label>
-            <input type="text" class="form-control" id="mailFromName" value="{$settings.mail_from_name|escape}" data-key="mail_from_name" placeholder="TinyShop" autocomplete="off">
+            <input type="text" class="form-control" id="mailFromName" value="{$settings.mail_from_name|escape}" data-key="mail_from_name" placeholder="{$app_name|escape}" autocomplete="off">
         </div>
         <div class="form-group">
             <label for="mailFromEmail">From Email</label>

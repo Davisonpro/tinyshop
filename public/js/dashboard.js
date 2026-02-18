@@ -170,6 +170,8 @@ TinyShop.initAutosize = function() {
 TinyShop.initProductList = function() {
   var $grid = $("#productGrid");
   if (!$grid.length) return;
+  if ($grid.data("initialized")) return;
+  $grid.data("initialized", true);
   var $filterBar = $("#categoryFilterBar");
   var $searchBar = $("#productSearchBar");
   var $searchInput = $("#productSearch");
@@ -347,6 +349,8 @@ TinyShop.initProductList = function() {
 TinyShop.initProductForm = function() {
   var $form = $("#productForm");
   if (!$form.length || typeof _productFormConfig === "undefined") return;
+  if ($form.data("initialized")) return;
+  $form.data("initialized", true);
   var isEdit = _productFormConfig.isEdit;
   var productId = _productFormConfig.productId;
   var DRAFT_KEY = "product_draft_new";
@@ -378,6 +382,16 @@ TinyShop.initProductForm = function() {
     bindDrag($item[0]);
     saveDraft();
   }
+  function addImagePlaceholder(file) {
+    var $item = $('<div class="image-gallery-item image-gallery-uploading"><div class="image-gallery-preview-img"></div><div class="image-gallery-loader"><span class="btn-spinner"></span></div></div>');
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      $item.find(".image-gallery-preview-img").css("background-image", "url(" + e.target.result + ")");
+    };
+    reader.readAsDataURL(file);
+    $addBtn.before($item);
+    return $item;
+  }
   $addBtn.on("click", function() {
     $fileInput.click();
   });
@@ -386,9 +400,14 @@ TinyShop.initProductForm = function() {
     if (!files.length) return;
     for (var i = 0; i < files.length; i++) {
       (function(file) {
+        var $placeholder = addImagePlaceholder(file);
         TinyShop.uploadFile(file, function(url) {
-          addImageToGallery(url);
-          TinyShop.toast("Image uploaded");
+          var $item = $('<div class="image-gallery-item" draggable="true" data-url="' + escapeHtml(url) + '"><img src="' + escapeHtml(url) + '" alt=""><button type="button" class="image-gallery-remove">&times;</button></div>');
+          $placeholder.replaceWith($item);
+          bindDrag($item[0]);
+          saveDraft();
+        }, function() {
+          $placeholder.remove();
         });
       })(files[i]);
     }

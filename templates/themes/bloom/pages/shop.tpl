@@ -56,7 +56,7 @@
                     <i class="fa-solid fa-heart" style="font-size:64px;color:var(--color-text-muted);opacity:0.4;margin-bottom:16px"></i>
                     <p><strong>Coming soon</strong></p>
                     <p style="font-size:0.8125rem; color:var(--color-text-muted)">This shop is getting ready &mdash; check back soon!</p>
-                    <p style="font-size:0.6875rem; color:var(--color-text-muted); margin-top:24px">Powered by TinyShop</p>
+                    <p style="font-size:0.6875rem; color:var(--color-text-muted); margin-top:24px">Powered by {$app_name}</p>
                 </div>
             {/foreach}
         </section>

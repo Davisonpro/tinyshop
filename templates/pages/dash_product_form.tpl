@@ -109,7 +109,7 @@
 
     <div class="form-section">
         <div class="form-section-title">Photos</div>
-        <p class="form-hint mb-md">First photo is the main one customers see. Drag to reorder.</p>
+        <p class="form-hint" style="margin-bottom:16px">First photo is the main one customers see. Drag to reorder.</p>
         <div class="image-gallery" id="imageGallery">
             {if $is_edit}
                 {foreach $images as $img}
@@ -129,7 +129,7 @@
 
     <div class="form-section">
         <div class="form-section-title">Options</div>
-        <p class="form-hint mb-md">Does this come in different sizes, colors, or styles? You can set a different price for each.</p>
+        <p class="form-hint" style="margin-bottom:16px">Does this come in different sizes, colors, or styles? You can set a different price for each.</p>
         <div id="variationGroups"></div>
         <button type="button" class="variation-add-group" id="addVariationGroup">
             <i class="fa-solid fa-plus"></i>

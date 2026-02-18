@@ -20,21 +20,24 @@
             </div>
         </div>
         <div class="form-group">
-            <label>Product URL</label>
-            <div class="import-url-row">
-                <input type="url" id="importUrl" class="form-control" placeholder="https://example.com/product/...">
-                <button type="button" id="fetchBtn" class="btn btn-primary import-fetch-btn">
-                    <span class="fetch-btn-label"><i class="fa-solid fa-magnifying-glass"></i> Fetch</span>
-                    <span class="fetch-btn-loading" style="display:none"><span class="btn-spinner"></span> Fetching...</span>
-                </button>
+            <label>Product source</label>
+            <div class="import-source-tabs">
+                <button type="button" class="import-source-tab active" data-tab="link">Link</button>
+                <button type="button" class="import-source-tab" data-tab="html">Page Source</button>
             </div>
-            <p class="form-hint">Paste any product link from a supported store</p>
-        </div>
-        <div id="pasteHtmlWrap" style="display:none">
-            <div class="form-group">
-                <label>Page source <span style="font-weight:400;color:var(--color-text-muted)">(fallback)</span></label>
+            <div id="tabLink" class="import-tab-panel">
+                <div class="import-url-row">
+                    <input type="url" id="importUrl" class="form-control" placeholder="https://example.com/product/...">
+                    <button type="button" id="fetchBtn" class="btn btn-primary import-fetch-btn">
+                        <span class="fetch-btn-label"><i class="fa-solid fa-magnifying-glass"></i> Fetch</span>
+                        <span class="fetch-btn-loading" style="display:none"><span class="btn-spinner"></span> Fetching...</span>
+                    </button>
+                </div>
+                <p class="form-hint">Paste any product link from a supported store</p>
+            </div>
+            <div id="tabHtml" class="import-tab-panel" style="display:none">
                 <textarea id="pasteHtml" class="form-control" rows="5" placeholder="Right-click the product page > View Page Source > Select All > Paste here"></textarea>
-                <p class="form-hint">The site blocked our server. Open the product page in your browser, copy the page source, and paste it above.</p>
+                <p class="form-hint">Open the product page in your browser, copy the page source, and paste it above.</p>
                 <button type="button" id="parseHtmlBtn" class="btn btn-primary import-fetch-btn" style="margin-top:8px">
                     <span class="parse-btn-label"><i class="fa-solid fa-code"></i> Parse</span>
                     <span class="parse-btn-loading" style="display:none"><span class="btn-spinner"></span> Parsing...</span>
@@ -86,6 +89,15 @@
         <div class="form-section">
             <div class="form-section-title">Categories</div>
             <div id="prevCategories" class="import-categories"></div>
+            <div class="category-select-row" style="margin-top:12px">
+                <div class="category-picker-btn" id="openImportCatPicker">
+                    <span id="importCatPickerLabel" class="picker-placeholder">Select a category</span>
+                    <i class="fa-solid fa-chevron-down" style="font-size:12px;color:#C7C7CC"></i>
+                </div>
+                <button type="button" class="btn-add-category" id="addImportCatBtn" title="Add category">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
         </div>
 
         <div id="prevVariationsWrap" style="display:none">
@@ -273,10 +285,32 @@ var _sellersData = [{foreach $sellers as $s}{ldelim}"id":{$s.id},"store_name":"{
             $('#importSellerId').val(id);
             $('#sellerPickerLabel').text(name).removeClass('picker-placeholder');
             TinyShop.closeModal();
+            // Load this seller's category tree
+            _sellerCategoryTree = [];
+            TinyShop.api('GET', '/api/admin/import/categories/' + id).done(function(res) {
+                _sellerCategoryTree = res.categories || [];
+            });
         });
     }
 
     $('#openSellerPicker').on('click', openSellerPicker);
+
+    // ── Source tabs (Link / Page Source) ──
+    $('.import-source-tab').on('click', function() {
+        var tab = $(this).data('tab');
+        $('.import-source-tab').removeClass('active');
+        $(this).addClass('active');
+        if (tab === 'link') {
+            $('#tabLink').show();
+            $('#tabHtml').hide();
+        } else {
+            $('#tabLink').hide();
+            $('#tabHtml').show();
+        }
+    });
+
+    // ── Seller category tree (loaded on seller pick) ──
+    var _sellerCategoryTree = [];
 
     // ── Fetch ──
     $('#fetchBtn').on('click', function() {
@@ -298,14 +332,16 @@ var _sellersData = [{foreach $sellers as $s}{ldelim}"id":{$s.id},"store_name":"{
                 fetchedData = res.product;
                 renderPreview(res.product);
                 $('#importPreview').show();
-                $('#pasteHtmlWrap').hide();
             })
             .fail(function(xhr) {
                 var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to fetch product';
-                // Show paste-HTML fallback when server can't reach the site
+                // Switch to Page Source tab when server can't reach the site
                 if (msg.indexOf('403') !== -1 || msg.indexOf('HTTP') !== -1 || msg.indexOf('failed') !== -1) {
-                    $('#pasteHtmlWrap').show();
-                    TinyShop.toast('Site blocked our server. Paste the page source below.', 'error');
+                    $('.import-source-tab').removeClass('active');
+                    $('.import-source-tab[data-tab="html"]').addClass('active');
+                    $('#tabLink').hide();
+                    $('#tabHtml').show();
+                    TinyShop.toast('Site blocked our server. Paste the page source instead.', 'error');
                 } else {
                     TinyShop.toast(msg, 'error');
                 }
@@ -337,7 +373,6 @@ var _sellersData = [{foreach $sellers as $s}{ldelim}"id":{$s.id},"store_name":"{
                 fetchedData = res.product;
                 renderPreview(res.product);
                 $('#importPreview').show();
-                $('#pasteHtmlWrap').hide();
                 $('#pasteHtml').val('');
             })
             .fail(function(xhr) {
@@ -362,15 +397,8 @@ var _sellersData = [{foreach $sellers as $s}{ldelim}"id":{$s.id},"store_name":"{
         $('#prevCurrencyPrefix').text(p.currency || 'KES');
         $('#prevCompareCurrencyPrefix').text(p.currency || 'KES');
 
-        // Categories
-        var $cats = $('#prevCategories').empty();
-        if (p.categories && p.categories.length) {
-            p.categories.forEach(function(c) {
-                $cats.append('<span class="import-cat-chip"><i class="fa-solid fa-tag"></i> ' + escHtml(c) + '</span>');
-            });
-        } else {
-            $cats.append('<p class="form-hint" style="margin:0">No categories found</p>');
-        }
+        // Categories (editable chips)
+        renderCategories();
 
         // Images — use the same .image-gallery pattern as the product form
         var $gallery = $('#prevImages').empty();
@@ -412,6 +440,141 @@ var _sellersData = [{foreach $sellers as $s}{ldelim}"id":{$s.id},"store_name":"{
         TinyShop.initPriceInput($('#prevPrice'));
         TinyShop.initPriceInput($('#prevComparePrice'));
     }
+
+    // ── Editable categories (chips with remove) ──
+    function renderCategories() {
+        var $cats = $('#prevCategories').empty();
+        var cats = fetchedData ? (fetchedData.categories || []) : [];
+        if (cats.length) {
+            cats.forEach(function(c, i) {
+                $cats.append(
+                    '<span class="import-cat-chip">'
+                    + '<i class="fa-solid fa-tag"></i> ' + escHtml(c)
+                    + '<button type="button" class="import-cat-remove" data-index="' + i + '">&times;</button>'
+                    + '</span>'
+                );
+            });
+        } else {
+            $cats.append('<p class="form-hint" style="margin:0">No categories yet</p>');
+        }
+    }
+
+    $(document).on('click', '.import-cat-remove', function(e) {
+        e.stopPropagation();
+        var idx = $(this).data('index');
+        if (fetchedData && fetchedData.categories) {
+            fetchedData.categories.splice(idx, 1);
+            renderCategories();
+        }
+    });
+
+    // ── Category picker modal (select existing from seller's store) ──
+    $('#openImportCatPicker').on('click', function() {
+        if (!$('#importSellerId').val()) {
+            TinyShop.toast('Select a seller first', 'error');
+            return;
+        }
+        var existingCats = fetchedData ? (fetchedData.categories || []) : [];
+        var html = '<div class="category-picker-search">'
+            + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+            + '<input type="text" id="importCatSearchInput" placeholder="Search categories..." autocomplete="off">'
+            + '</div>';
+        html += '<div class="category-picker-list">';
+        if (!_sellerCategoryTree.length) {
+            html += '<p class="form-hint" style="padding:20px 16px;margin:0">This seller has no categories yet. Use the + button to create one.</p>';
+        }
+        _sellerCategoryTree.forEach(function(parent) {
+            var already = existingCats.indexOf(parent.name) !== -1;
+            html += '<div class="category-picker-group" data-search-parent="' + escHtml(parent.name.toLowerCase()) + '">';
+            html += '<div class="category-picker-item category-picker-item-parent' + (already ? ' selected' : '') + '" data-name="' + escHtml(parent.name) + '" data-search-name="' + escHtml(parent.name.toLowerCase()) + '">'
+                + '<span>' + escHtml(parent.name) + '</span>'
+                + '<span class="category-picker-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>'
+                + '</div>';
+            (parent.children || []).forEach(function(child) {
+                var childAlready = existingCats.indexOf(child.name) !== -1;
+                html += '<div class="category-picker-item category-picker-item-child' + (childAlready ? ' selected' : '') + '" data-name="' + escHtml(child.name) + '" data-search-name="' + escHtml(child.name.toLowerCase()) + '">'
+                    + '<span>' + escHtml(child.name) + '</span>'
+                    + '<span class="category-picker-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>'
+                    + '</div>';
+            });
+            html += '</div>';
+        });
+        html += '</div>';
+        TinyShop.openModal('Select Category', html);
+
+        var _t;
+        $('#importCatSearchInput').on('input', function() {
+            var q = $(this).val().trim().toLowerCase();
+            clearTimeout(_t);
+            _t = setTimeout(function() {
+                var $list = $('#modalBody .category-picker-list');
+                if (!q) { $list.find('.category-picker-group, .category-picker-item').show(); return; }
+                $list.find('.category-picker-group').each(function() {
+                    var $group = $(this);
+                    var parentMatch = ($group.find('.category-picker-item-parent').data('search-name') || '').indexOf(q) !== -1;
+                    var anyChildMatch = false;
+                    $group.find('.category-picker-item-child').each(function() {
+                        var match = ($(this).data('search-name') || '').indexOf(q) !== -1;
+                        $(this).toggle(match || parentMatch);
+                        if (match) anyChildMatch = true;
+                    });
+                    $group.find('.category-picker-item-parent').toggle(parentMatch || anyChildMatch);
+                    $group.toggle(parentMatch || anyChildMatch);
+                });
+            }, 80);
+        }).focus();
+
+        $('#modalBody').on('click', '.category-picker-item', function() {
+            var name = $(this).data('name');
+            if (!fetchedData) fetchedData = { categories: [] };
+            if (!fetchedData.categories) fetchedData.categories = [];
+            if (fetchedData.categories.indexOf(name) === -1) {
+                fetchedData.categories.push(name);
+            }
+            renderCategories();
+            TinyShop.closeModal();
+        });
+    });
+
+    // ── Add new category (create in seller's store + add to list) ──
+    $('#addImportCatBtn').on('click', function() {
+        var sellerId = $('#importSellerId').val();
+        if (!sellerId) {
+            TinyShop.toast('Select a seller first', 'error');
+            return;
+        }
+        var html = '<form id="newImportCatForm" autocomplete="off">'
+            + '<div class="form-group"><label for="newImportCatName">Category Name</label>'
+            + '<input type="text" class="form-control" id="newImportCatName" placeholder="e.g. Accessories" required autofocus autocomplete="off">'
+            + '</div>'
+            + '<button type="submit" class="btn btn-primary" id="saveImportCatBtn" style="width:100%;min-height:52px;font-size:1rem;font-weight:600;border-radius:14px;border:none;cursor:pointer;font-family:inherit;">Add Category</button>'
+            + '</form>';
+        TinyShop.openModal('New Category', html);
+        $('#newImportCatForm').on('submit', function(e) {
+            e.preventDefault();
+            var name = $('#newImportCatName').val().trim();
+            if (!name) return;
+            var $btn = $('#saveImportCatBtn').prop('disabled', true).text('Adding...');
+            TinyShop.api('POST', '/api/admin/import/save-category', { seller_id: parseInt(sellerId, 10), name: name })
+                .done(function(res) {
+                    var cat = res.category;
+                    _sellerCategoryTree.push({ id: cat.id, name: cat.name, children: [] });
+                    if (!fetchedData) fetchedData = { categories: [] };
+                    if (!fetchedData.categories) fetchedData.categories = [];
+                    if (fetchedData.categories.indexOf(cat.name) === -1) {
+                        fetchedData.categories.push(cat.name);
+                    }
+                    renderCategories();
+                    TinyShop.toast('Category added');
+                    TinyShop.closeModal();
+                })
+                .fail(function(xhr) {
+                    var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to add category';
+                    TinyShop.toast(msg, 'error');
+                    $btn.prop('disabled', false).text('Add Category');
+                });
+        });
+    });
 
     // Remove image
     $(document).on('click', '#prevImages .image-gallery-remove', function(e) {

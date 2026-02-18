@@ -314,10 +314,11 @@
 .theme-volt .product-card-img {
     aspect-ratio: 1 / 1;
     border-radius: 0;
-    background: var(--color-bg-alt);
+    background: #fff;
     overflow: hidden;
     position: relative;
 }
+.theme-volt .product-card-img:has(img.loaded) { background: #fff; }
 .theme-volt .product-card-img img {
     object-fit: cover;
     width: 100%;

@@ -5,6 +5,10 @@ TinyShop.initProductList = function() {
     var $grid = $('#productGrid');
     if (!$grid.length) return;
 
+    // Prevent duplicate bindings on SPA re-navigation
+    if ($grid.data('initialized')) return;
+    $grid.data('initialized', true);
+
     var $filterBar = $('#categoryFilterBar');
     var $searchBar = $('#productSearchBar');
     var $searchInput = $('#productSearch');

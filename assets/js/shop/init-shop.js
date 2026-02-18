@@ -32,6 +32,7 @@ TinyShop.initShop = function() {
 
     // API base URL
     var apiBase = '/products';
+    var _activeXhr = null;
 
     function buildQuery(overrides) {
         var o = overrides || {};
@@ -93,7 +94,12 @@ TinyShop.initShop = function() {
 
     // Fetch products from API
     function fetchProducts(opts) {
-        if (state.loading) return;
+        // Abort any in-flight request so the new filter takes priority
+        if (_activeXhr) {
+            _activeXhr.abort();
+            _activeXhr = null;
+        }
+
         state.loading = true;
         state.ajaxMode = true;
 
@@ -112,7 +118,7 @@ TinyShop.initShop = function() {
             $loadMoreBtn.addClass('loading').text('Loading...');
         }
 
-        $.getJSON(apiBase + '?' + query)
+        _activeXhr = $.getJSON(apiBase + '?' + query)
             .done(function(data) {
                 var products = data.products || [];
                 var total = data.total || 0;
@@ -151,6 +157,7 @@ TinyShop.initShop = function() {
             })
             .always(function() {
                 state.loading = false;
+                _activeXhr = null;
                 var $ss = $('#shopSearch');
                 if ($ss.length) $ss.removeClass('search-loading');
                 $loadMoreBtn.removeClass('loading').html('Show more products <span class="load-more-count" id="loadMoreCount"></span>');
