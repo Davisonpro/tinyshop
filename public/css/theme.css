@@ -965,7 +965,10 @@
     .clean-header {
         background: #FFFFFF;
         border-bottom: none;
+        padding-top: 12px;
+        padding-bottom: 12px;
         margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     /* Container wraps inner — remove duplicate constraints */
