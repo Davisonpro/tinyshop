@@ -19,6 +19,7 @@ final class JsonResponse implements MiddlewareInterface
             $response = $response->withHeader('Content-Type', 'application/json');
         }
 
-        return $response;
+        // Prevent browsers and proxies from caching API responses
+        return $response->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 }
