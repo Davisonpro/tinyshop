@@ -507,7 +507,7 @@ TinyShop.initShop = function() {
     loading: false,
     ajaxMode: false
   };
-  var apiBase = "/products";
+  var apiBase = "/api/shop/" + encodeURIComponent(subdomain) + "/products";
   var _activeXhr = null;
   function buildQuery(overrides) {
     var o = overrides || {};

@@ -30,8 +30,8 @@ TinyShop.initShop = function() {
         ajaxMode: false
     };
 
-    // API base URL
-    var apiBase = '/products';
+    // API base URL — routed through /api group for proper cache/CSRF headers
+    var apiBase = '/api/shop/' + encodeURIComponent(subdomain) + '/products';
     var _activeXhr = null;
 
     function buildQuery(overrides) {

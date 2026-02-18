@@ -183,6 +183,9 @@ return function (App $app): void {
             $protected->get('/billing/status', [ApiBillingController::class, 'checkBillingStatus']);
         })->add(AuthGuard::class)->add(new RateLimit(maxAttempts: 60, windowSeconds: 60));
 
+        // Public shop API (product search, no auth required)
+        $api->get('/shop/{subdomain}/products', [ShopController::class, 'searchProducts']);
+
         // Public checkout API (rate-limited)
         $api->group('/checkout', function (RouteCollectorProxy $checkout) {
             $checkout->post('/validate', [ApiCheckoutController::class, 'validateCart']);
