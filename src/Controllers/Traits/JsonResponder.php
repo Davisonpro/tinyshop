@@ -14,6 +14,7 @@ trait JsonResponder
 
         return $response
             ->withStatus($status)
-            ->withHeader('Content-Type', 'application/json');
+            ->withHeader('Content-Type', 'application/json')
+            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 }
