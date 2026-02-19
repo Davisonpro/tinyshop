@@ -89,6 +89,7 @@ return function (App $app): void {
     $app->get('/~shop/{subdomain}/order/{orderNumber}', [CheckoutController::class, 'showConfirmation']);
     $app->get('/~shop/{subdomain}/orders/track', [ShopController::class, 'orderTracking']);
     $app->post('/~shop/{subdomain}/orders/lookup', [ShopController::class, 'orderLookup'])->add(CsrfGuard::class);
+    $app->get('/~shop/{subdomain}/search', [ShopController::class, 'showSearchPage']);
     $app->get('/~shop/{subdomain}/products', [ShopController::class, 'searchProducts']);
     $app->get('/~shop/{subdomain}/{slug}', [ShopController::class, 'showProduct']);
 

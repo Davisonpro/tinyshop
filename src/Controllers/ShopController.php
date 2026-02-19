@@ -222,6 +222,46 @@ final class ShopController
         return $this->view->render($response, 'pages/collection.tpl', $viewData);
     }
 
+    public function showSearchPage(Request $request, Response $response, array $args): Response
+    {
+        $shop = $this->resolveShop($args);
+        if (!$shop) {
+            return $this->render404($response, 'Shop Not Found');
+        }
+
+        $shopId = (int) $shop['id'];
+        $params = $request->getQueryParams();
+        $query = isset($params['q']) ? trim($params['q']) : '';
+
+        $products = [];
+        $totalProducts = 0;
+
+        if ($query !== '') {
+            $products = $this->productModel->findActiveByUserPaginated(
+                $shopId, self::PRODUCTS_PER_PAGE, 0, $query
+            );
+            $totalProducts = $this->productModel->countActiveByUser($shopId, $query);
+            $products = $this->prepareProducts($products, $shop);
+        }
+
+        $this->activateTheme($shop);
+        $ctx = $this->buildShopContext($shop);
+        $shopName = $shop['store_name'] ?? '';
+
+        $viewData = [
+            'page_title'       => ($query !== '' ? 'Search: ' . $query : 'Search') . ' — ' . $shopName,
+            'meta_description' => 'Search results for "' . $query . '" from ' . $shopName,
+            'shop'             => $shop,
+            'search_query'     => $query,
+            'products'         => $products,
+            'total_products'   => $totalProducts,
+            'products_limit'   => self::PRODUCTS_PER_PAGE,
+            ...$ctx,
+        ];
+
+        return $this->view->render($response, 'pages/search_results.tpl', $viewData);
+    }
+
     // ── API Handlers ──────────────────────────────────────────
 
     public function searchProducts(Request $request, Response $response, array $args): Response

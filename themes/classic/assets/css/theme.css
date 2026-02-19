@@ -213,29 +213,6 @@
     color: #222222;
 }
 
-.search-overlay-results {
-    max-width: 640px;
-    margin: 0 auto;
-    max-height: calc(100vh - 120px);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.search-overlay-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 16px 0 8px;
-}
-
-.search-overlay-loading,
-.search-overlay-empty {
-    text-align: center;
-    padding: 32px 16px;
-    color: #6B6B6B;
-    font-size: 0.9375rem;
-}
-
 
 /* ============================================================
    NO-HERO STATE — Tighter spacing when hero slider is absent
@@ -1910,6 +1887,82 @@ a.product-whatsapp-cta {
         color: var(--color-text);
         opacity: 1;
     }
+}
+
+
+/* ============================================================
+   SEARCH PAGE
+   ============================================================ */
+
+.search-page-header {
+    padding: 24px 16px 8px;
+}
+
+.search-page-form {
+    max-width: 640px;
+    margin: 0 auto 12px;
+}
+
+.search-page-bar {
+    position: relative;
+}
+
+.search-page-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6B6B6B;
+    font-size: 16px;
+    pointer-events: none;
+}
+
+.search-page-input {
+    width: 100%;
+    padding: 14px 48px 14px 48px;
+    border: 2px solid #E0E0E0;
+    border-radius: var(--radius-full);
+    background: #FFFFFF;
+    color: #222222;
+    font-family: inherit;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-page-input:focus {
+    border-color: #222222;
+}
+
+.search-page-input::placeholder {
+    color: #999;
+}
+
+.search-page-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6B6B6B;
+    font-size: 18px;
+    border-radius: 50%;
+    transition: background 0.15s;
+}
+
+.search-page-clear:hover {
+    background: #F6F6F6;
+    color: #222222;
+}
+
+.search-page-count {
+    text-align: center;
+    color: #6B6B6B;
+    font-size: 0.875rem;
 }
 
 
