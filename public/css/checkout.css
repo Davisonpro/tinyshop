@@ -30,8 +30,8 @@
 .checkout-section {
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
-  padding: 14px;
-  margin-bottom: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
 }
 
 .checkout-section-title {
@@ -115,7 +115,7 @@
 }
 
 .checkout-field {
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .checkout-field:last-child {
@@ -124,20 +124,21 @@
 
 .checkout-field label {
   display: block;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .checkout-field input, .checkout-field textarea {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
+  padding: 14px 16px;
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: inherit;
+  min-height: 48px;
 }
 
 .checkout-field input:focus, .checkout-field textarea:focus {
@@ -148,7 +149,7 @@
 
 .checkout-field textarea {
   resize: vertical;
-  min-height: 64px;
+  min-height: 80px;
 }
 
 .checkout-field .field-optional {
@@ -317,14 +318,15 @@
 
 .checkout-coupon-row input {
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
+  padding: 14px 16px;
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: inherit;
   text-transform: uppercase;
+  min-height: 48px;
 }
 
 .checkout-coupon-row input:focus {
