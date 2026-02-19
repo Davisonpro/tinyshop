@@ -282,6 +282,13 @@
 
         var input   = overlay.querySelector('.search-overlay-input');
         var closeBtn = overlay.querySelector('.search-overlay-close');
+        var results  = document.getElementById('searchOverlayResults');
+
+        var shopPage = document.querySelector('.shop-page');
+        var subdomain = shopPage ? shopPage.getAttribute('data-subdomain') : null;
+        var currency  = shopPage ? (shopPage.getAttribute('data-currency') || '') : '';
+        var searchTimer = null;
+        var activeXhr = null;
 
         function open() {
             overlay.classList.add('active');
@@ -293,6 +300,70 @@
         function close() {
             overlay.classList.remove('active');
             if (input) input.value = '';
+            if (results) results.innerHTML = '';
+            if (activeXhr) { activeXhr.abort(); activeXhr = null; }
+        }
+
+        function doSearch(query) {
+            if (!subdomain || !results) return;
+            if (activeXhr) { activeXhr.abort(); activeXhr = null; }
+
+            if (!query) {
+                results.innerHTML = '';
+                return;
+            }
+
+            results.innerHTML = '<div class="search-overlay-loading"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+
+            activeXhr = $.getJSON('/api/shop/' + encodeURIComponent(subdomain) + '/products', {
+                search: query,
+                limit: 8,
+                format: 'html'
+            }).done(function (data) {
+                if (!data.html || data.total === 0) {
+                    results.innerHTML = '<div class="search-overlay-empty">No products found</div>';
+                    return;
+                }
+                results.innerHTML = '<div class="search-overlay-grid">' + data.html + '</div>';
+            }).fail(function (_, status) {
+                if (status !== 'abort') {
+                    results.innerHTML = '<div class="search-overlay-empty">Search failed</div>';
+                }
+            }).always(function () {
+                activeXhr = null;
+            });
+        }
+
+        // Live search on input
+        if (input) {
+            input.addEventListener('input', function () {
+                var query = input.value.trim();
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function () {
+                    doSearch(query);
+                }, 300);
+            });
+
+            // Submit on Enter — navigate to main catalogue with search
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var query = input.value.trim();
+                    if (!query) return;
+                    // If on the shop page, use the existing search input
+                    var mainSearch = document.getElementById('searchInput');
+                    if (mainSearch) {
+                        mainSearch.value = query;
+                        $(mainSearch).trigger('input');
+                        close();
+                        var catalogue = document.getElementById('catalogue');
+                        if (catalogue) catalogue.scrollIntoView({ behavior: 'smooth' });
+                    } else if (subdomain) {
+                        // Navigate to shop page with search
+                        window.location.href = '/?search=' + encodeURIComponent(query);
+                    }
+                }
+            });
         }
 
         // Toggle buttons (any .search-toggle on the page)

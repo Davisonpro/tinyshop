@@ -8,6 +8,7 @@
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
+        <div class="search-overlay-results" id="searchOverlayResults"></div>
     </div>
 </div>
 {hook name="theme.search_overlay.after"}
