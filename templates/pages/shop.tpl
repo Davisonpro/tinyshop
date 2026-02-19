@@ -11,6 +11,7 @@
     --palette-bar: {$palette_css.bar};
     --palette-bar-text: {$palette_css.bar_text};
     --palette-accent: {$palette_css.accent};
+    --product-image-fit: {$product_image_fit|default:'cover'};
 }
 </style>
 {/if}

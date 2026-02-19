@@ -229,6 +229,45 @@
 
         if (prevBtn) prevBtn.addEventListener('click', function () { scrollBy(-1); });
         if (nextBtn) nextBtn.addEventListener('click', function () { scrollBy(1); });
+
+        // Mouse drag-to-scroll for desktop
+        var dragging = false;
+        var startX = 0;
+        var scrollStart = 0;
+        var moved = false;
+
+        container.addEventListener('mousedown', function (e) {
+            if (e.button !== 0) return;
+            dragging = true;
+            moved = false;
+            startX = e.pageX;
+            scrollStart = container.scrollLeft;
+            container.style.cursor = 'grabbing';
+            container.style.userSelect = 'none';
+        });
+
+        window.addEventListener('mousemove', function (e) {
+            if (!dragging) return;
+            var dx = e.pageX - startX;
+            if (Math.abs(dx) > 3) moved = true;
+            container.scrollLeft = scrollStart - dx;
+        });
+
+        window.addEventListener('mouseup', function () {
+            if (!dragging) return;
+            dragging = false;
+            container.style.cursor = '';
+            container.style.userSelect = '';
+        });
+
+        // Prevent click on links after drag
+        container.addEventListener('click', function (e) {
+            if (moved) {
+                e.preventDefault();
+                e.stopPropagation();
+                moved = false;
+            }
+        }, true);
     }
 
 

@@ -1781,7 +1781,7 @@ a.product-card {
   right: 0;
   display: flex;
   justify-content: space-between;
-  padding: 12px 12px 0;
+  padding: max(12px, env(safe-area-inset-top)) 12px 0;
   z-index: 5;
   pointer-events: none;
 }
@@ -1790,17 +1790,16 @@ a.product-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.25);
-  color: #fff;
-  font-size: 16px;
+  background: #fff;
+  color: #1A1A1A;
+  font-size: 15px;
   border: none;
   cursor: pointer;
   pointer-events: auto;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   -webkit-tap-highlight-color: transparent;
   text-decoration: none;
   transition: background 0.15s, transform 0.1s;
@@ -1808,15 +1807,12 @@ a.product-card {
 
 /* Ensure nav-btn styling wins over .cart-trigger defaults */
 .product-nav-btn.cart-trigger {
-  background: rgba(0, 0, 0, 0.25);
-  color: #fff;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #fff;
+  color: #1A1A1A;
 }
 
 .product-nav-btn:hover {
-  background: rgba(0, 0, 0, 0.45);
-  color: #fff;
+  background: #f5f5f5;
 }
 
 .product-nav-btn:active {
@@ -2221,7 +2217,6 @@ a.product-whatsapp-cta {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: 100%;
   padding: 16px 24px;
   margin: 16px 0;
   background: #25D366;
@@ -2251,7 +2246,43 @@ a.product-whatsapp-cta:active {
   transform: scale(0.97);
 }
 
-/* Inline share — visible on all sizes */
+/* Product info header — name + share button row */
+.product-info-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.product-info-header > div {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mobile share trigger — next to product name */
+.product-mobile-share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  flex-shrink: 0;
+  margin-top: 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.product-mobile-share:active {
+  background: var(--color-bg-secondary);
+}
+
+/* Inline share — desktop only */
 .product-share-inline {
   display: none;
   align-items: center;
@@ -3108,6 +3139,12 @@ button, a, input[type=submit], select, [role=button] {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+a.cart-item-link {
+  color: inherit;
+  text-decoration: none;
+  display: block;
 }
 
 .cart-item-variation {
@@ -4166,7 +4203,7 @@ button, a, input[type=submit], select, [role=button] {
   .product-page .product-info-price .price-compare {
     font-size: 1rem;
   }
-  /* Inline share buttons on desktop — grid placement + subtle style */
+  /* Inline share — shown on desktop */
   .product-share-inline {
     display: flex;
     gap: 12px;
@@ -4185,7 +4222,14 @@ button, a, input[type=submit], select, [role=button] {
     color: var(--color-text);
     opacity: 1;
   }
+  /* Hide mobile share trigger on desktop */
+  .product-mobile-share {
+    display: none;
+  }
   .product-page .product-variations {
+    grid-column: 2;
+  }
+  .product-page .product-whatsapp-wrap {
     grid-column: 2;
   }
   /* --- Product CTA: inline on desktop (not fixed at bottom) --- */

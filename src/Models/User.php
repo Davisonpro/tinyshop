@@ -201,7 +201,7 @@ final class User
             'shop_logo', 'shop_favicon', 'shop_tagline', 'contact_whatsapp', 'contact_email',
             'contact_phone', 'map_link', 'currency', 'is_active',
             'social_instagram', 'social_tiktok', 'social_facebook',
-            'shop_theme', 'color_palette', 'logo_alignment',
+            'shop_theme', 'color_palette', 'logo_alignment', 'product_image_fit',
             'stripe_public_key', 'stripe_secret_key', 'stripe_mode', 'stripe_enabled',
             'paypal_client_id', 'paypal_secret', 'paypal_mode', 'paypal_enabled',
             'cod_enabled',

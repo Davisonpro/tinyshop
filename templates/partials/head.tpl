@@ -47,7 +47,7 @@
 <noscript><link rel="stylesheet" href="/public/css/fontawesome.min.css?v={$asset_v}"></noscript>
 <link rel="stylesheet" href="/public/css/app{$min}.css?v={$asset_v}">
 {if !empty($shop)}
-<link rel="stylesheet" href="/public/css/storefront.css?v={$asset_v}">
+<link rel="stylesheet" href="/public/css/storefront{$min}.css?v={$asset_v}">
 {/if}
 {if !empty($theme_font_link)}
 <link rel="stylesheet" href="{$theme_font_link|escape}">

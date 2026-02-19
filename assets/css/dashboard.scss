@@ -158,12 +158,13 @@ body.page-dashboard {
 }
 
 .dash-greeting h1 {
-    font-size: 1.625rem;
+    font-size: clamp(1.25rem, 5vw, 1.625rem);
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.2;
     margin-top: 2px;
     color: var(--color-text);
+    word-break: break-word;
 }
 
 .dash-avatar {

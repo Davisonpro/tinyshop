@@ -1491,6 +1491,7 @@
 
 .product-page .product-info,
 .product-page .product-variations,
+.product-page .product-whatsapp-wrap,
 .product-page .product-share-inline,
 .product-page .sticky-cta,
 .product-page .breadcrumb,
@@ -1522,26 +1523,22 @@
     opacity: 1;
 }
 
-/* Floating nav buttons — frosted glass, light */
+/* Floating nav buttons — clean white */
 .product-nav-btn {
     width: 40px;
     height: 40px;
-    background: rgba(255, 255, 255, 0.85);
+    background: #fff;
     color: var(--color-text);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .product-nav-btn.cart-trigger {
-    background: rgba(255, 255, 255, 0.85);
+    background: #fff;
     color: var(--color-text);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
 }
 
 .product-nav-btn:hover {
-    background: #fff;
+    background: #f5f5f5;
     color: var(--color-text);
 }
 
@@ -1822,6 +1819,7 @@ a.product-whatsapp-cta {
 
     .product-page .product-info,
     .product-page .product-variations,
+    .product-page .product-whatsapp-wrap,
     .product-page .product-share-inline,
     .product-page .sticky-cta,
     .product-page .breadcrumb,

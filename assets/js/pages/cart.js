@@ -305,10 +305,11 @@ TinyShop.Cart = (function() {
         _items.forEach(function(item) {
             var key = item.productId + '-' + (item.variation || '');
             var imgSrc = item.image || '/public/img/placeholder.svg';
+            var productUrl = '/' + escapeHtml(item.slug || item.productId);
             html += '<div class="cart-item" data-key="' + escapeHtml(key) + '">' +
-                '<div class="cart-item-img"><img src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(item.name) + '"></div>' +
+                '<a href="' + productUrl + '" class="cart-item-img cart-item-link"><img src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(item.name) + '"></a>' +
                 '<div class="cart-item-info">' +
-                    '<div class="cart-item-name">' + escapeHtml(item.name) + '</div>' +
+                    '<a href="' + productUrl + '" class="cart-item-name cart-item-link">' + escapeHtml(item.name) + '</a>' +
                     (item.variation ? '<div class="cart-item-variation">' + escapeHtml(item.variation) + '</div>' : '') +
                     '<div class="cart-item-price">' + escapeHtml(currencySymbol) + formatNum(item.price) + '</div>' +
                 '</div>' +
@@ -553,6 +554,12 @@ TinyShop.Cart = (function() {
             $badge.removeClass('bounce');
             $badge[0] && $badge[0].offsetWidth;
             $badge.addClass('bounce');
+        });
+
+        // Cart drawer: clicking a product link closes the drawer
+        $(document).on('click', '.cart-item-link', function() {
+            $('#cartDrawerBackdrop').removeClass('active');
+            document.body.style.overflow = '';
         });
 
         // ── Checkout button ──

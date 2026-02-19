@@ -58,20 +58,12 @@ const jsEntries = Object.entries(jsBundles).map(([name, files]) => ({
 
 // ── SCSS entries (assets/css/ → public/css/) ──
 
-const scssEntries = [
-  ...findFiles('assets/css', '.scss').map(src => ({
-    name: basename(src, '.scss'),
-    src,
-    outMin: `public/css/${basename(src, '.scss')}.min.css`,
-    outDev: `public/css/${basename(src, '.scss')}.css`,
-  })),
-  ...findFiles('assets/css/themes', '.scss').map(src => ({
-    name: `themes/${basename(src, '.scss')}`,
-    src,
-    outMin: `public/css/themes/${basename(src, '.scss')}.min.css`,
-    outDev: `public/css/themes/${basename(src, '.scss')}.css`,
-  })),
-];
+const scssEntries = findFiles('assets/css', '.scss').map(src => ({
+  name: basename(src, '.scss'),
+  src,
+  outMin: `public/css/${basename(src, '.scss')}.min.css`,
+  outDev: `public/css/${basename(src, '.scss')}.css`,
+}));
 
 // ── Build functions ──
 
@@ -151,7 +143,7 @@ function watchJs() {
 }
 
 function watchScss() {
-  const dirs = ['assets/css', 'assets/css/themes'].filter(existsSync);
+  const dirs = ['assets/css'].filter(existsSync);
 
   dirs.forEach(dir => {
     watch(resolve(dir), (_, filename) => {

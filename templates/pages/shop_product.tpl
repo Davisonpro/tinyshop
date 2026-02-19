@@ -21,19 +21,21 @@
 
         {* Full-bleed Image Gallery *}
         <div class="product-gallery" id="productGallery">
-            {* Floating nav: back + share *}
+            {* Floating nav: back left, home center, cart right *}
             <div class="product-gallery-nav">
                 <button type="button" class="product-nav-btn" onclick="if(history.length>1){ldelim}history.back(){rdelim}else{ldelim}location.href='/'{rdelim}" aria-label="Back">
                     <i class="fa-solid fa-chevron-left"></i>
                 </button>
-                <button type="button" class="product-nav-btn" data-share-trigger aria-label="Share">
-                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                </button>
+                <a href="/" class="product-nav-btn" aria-label="Home">
+                    <i class="fa-solid fa-house"></i>
+                </a>
                 {if !empty($has_payments)}
                 <button type="button" class="product-nav-btn cart-trigger" aria-label="Shopping cart">
                     <i class="fa-solid fa-cart-shopping"></i>
                     <span class="cart-badge cart-badge-hidden">0</span>
                 </button>
+                {else}
+                <span></span>
                 {/if}
             </div>
 
@@ -88,10 +90,17 @@
 
         {* Product Info *}
         <div class="product-info">
-            {if $product.category_name}
-                <span class="product-info-category">{$product.category_name|escape}</span>
-            {/if}
-            <h1 class="product-info-name">{$product.name|escape}</h1>
+            <div class="product-info-header">
+                <div>
+                    {if $product.category_name}
+                        <span class="product-info-category">{$product.category_name|escape}</span>
+                    {/if}
+                    <h1 class="product-info-name">{$product.name|escape}</h1>
+                </div>
+                <button type="button" class="product-mobile-share" data-share-trigger aria-label="Share">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                </button>
+            </div>
 
             <div class="product-info-price" id="productPriceArea">
                 {if $product.compare_price && $product.compare_price > $product.price && !$product.is_sold}
@@ -173,22 +182,6 @@
         {* Sticky CTA — inside container for desktop grid placement *}
         {include file="partials/product_cta.tpl"}
 
-        {* Inline share buttons *}
-        <div class="product-share-inline">
-            <span class="product-share-label">Share</span>
-            <a href="https://wa.me/?text={$product.name|escape:'url'}%20{$base_url}/{$product.slug|default:$product.id|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on WhatsApp">
-                <i class="fa-brands fa-whatsapp"></i>
-            </a>
-            <a href="https://www.facebook.com/sharer/sharer.php?u={$base_url}/{$product.slug|default:$product.id|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on Facebook">
-                <i class="fa-brands fa-facebook-f"></i>
-            </a>
-            <a href="https://twitter.com/intent/tweet?text={$product.name|escape:'url'}&url={$base_url}/{$product.slug|default:$product.id|escape:'url'}" target="_blank" rel="noopener" class="product-share-btn" aria-label="Share on X">
-                <i class="fa-brands fa-x-twitter"></i>
-            </a>
-            <button type="button" class="product-share-btn" data-share-trigger aria-label="More sharing options">
-                <i class="fa-solid fa-arrow-up-from-bracket"></i>
-            </button>
-        </div>
     </div>
 
     {* More Products *}

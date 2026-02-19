@@ -248,7 +248,8 @@ TinyShop.Cart = /* @__PURE__ */ function() {
     _items.forEach(function(item) {
       var key = item.productId + "-" + (item.variation || "");
       var imgSrc = item.image || "/public/img/placeholder.svg";
-      html += '<div class="cart-item" data-key="' + escapeHtml(key) + '"><div class="cart-item-img"><img src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(item.name) + '"></div><div class="cart-item-info"><div class="cart-item-name">' + escapeHtml(item.name) + "</div>" + (item.variation ? '<div class="cart-item-variation">' + escapeHtml(item.variation) + "</div>" : "") + '<div class="cart-item-price">' + escapeHtml(currencySymbol) + formatNum(item.price) + '</div></div><div class="cart-item-actions"><div class="cart-qty-controls"><button type="button" class="cart-qty-btn cart-qty-minus" data-pid="' + item.productId + '" data-var="' + escapeHtml(item.variation) + '">-</button><span class="cart-qty-value">' + item.quantity + '</span><button type="button" class="cart-qty-btn cart-qty-plus" data-pid="' + item.productId + '" data-var="' + escapeHtml(item.variation) + '">+</button></div><button type="button" class="cart-item-remove" data-pid="' + item.productId + '" data-var="' + escapeHtml(item.variation) + '" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>';
+      var productUrl = "/" + escapeHtml(item.slug || item.productId);
+      html += '<div class="cart-item" data-key="' + escapeHtml(key) + '"><a href="' + productUrl + '" class="cart-item-img cart-item-link"><img src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(item.name) + '"></a><div class="cart-item-info"><a href="' + productUrl + '" class="cart-item-name cart-item-link">' + escapeHtml(item.name) + "</a>" + (item.variation ? '<div class="cart-item-variation">' + escapeHtml(item.variation) + "</div>" : "") + '<div class="cart-item-price">' + escapeHtml(currencySymbol) + formatNum(item.price) + '</div></div><div class="cart-item-actions"><div class="cart-qty-controls"><button type="button" class="cart-qty-btn cart-qty-minus" data-pid="' + item.productId + '" data-var="' + escapeHtml(item.variation) + '">-</button><span class="cart-qty-value">' + item.quantity + '</span><button type="button" class="cart-qty-btn cart-qty-plus" data-pid="' + item.productId + '" data-var="' + escapeHtml(item.variation) + '">+</button></div><button type="button" class="cart-item-remove" data-pid="' + item.productId + '" data-var="' + escapeHtml(item.variation) + '" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>';
     });
     $body.html(html);
     $("#cartDrawerCount").text("(" + getCount() + ")");
@@ -427,6 +428,10 @@ TinyShop.Cart = /* @__PURE__ */ function() {
       $badge.removeClass("bounce");
       $badge[0] && $badge[0].offsetWidth;
       $badge.addClass("bounce");
+    });
+    $(document).on("click", ".cart-item-link", function() {
+      $("#cartDrawerBackdrop").removeClass("active");
+      document.body.style.overflow = "";
     });
     $(document).on("click", "#cartCheckoutBtn", function() {
       if (_items.length === 0) return;
