@@ -274,6 +274,24 @@
             </label>
         </div>
 
+        <div class="form-subsection-label" style="margin-top:24px">Product Images</div>
+        <div class="form-group" style="margin-bottom:0">
+            <label>How images display in product cards</label>
+            <div class="alignment-toggle" id="imageFitToggle">
+                {assign var="currentFit" value=$user.product_image_fit|default:'cover'}
+                <button type="button" class="alignment-btn{if $currentFit == 'cover'} active{/if}" data-value="cover">
+                    <i class="fa-solid fa-crop"></i> Fill
+                </button>
+                <button type="button" class="alignment-btn{if $currentFit == 'contain'} active{/if}" data-value="contain">
+                    <i class="fa-solid fa-expand"></i> Fit
+                </button>
+            </div>
+            <div class="form-hint" style="margin-top:10px">
+                <div style="margin-bottom:6px"><strong>Fill</strong> (recommended) &mdash; Images fill the entire card for a clean, uniform grid. Some edges may be cropped if the photo isn't the same shape as the card.</div>
+                <div><strong>Fit</strong> &mdash; Shows the complete image with nothing cut off. Great for products where every detail matters, like shoes, electronics, or artwork.</div>
+            </div>
+        </div>
+
     </div>
 </div>
 {/block}
@@ -336,6 +354,18 @@ $(function() {ldelim}
         $(this).addClass('active');
         TinyShop.api('PUT', '/api/shop', {ldelim} logo_alignment: val {rdelim}).done(function() {ldelim}
             TinyShop.toast('Logo alignment updated!');
+        {rdelim}).fail(function() {ldelim}
+            TinyShop.toast('Failed to update', 'error');
+        {rdelim});
+    {rdelim});
+
+    // --- Product Image Fit ---
+    $('#imageFitToggle').on('click', '.alignment-btn', function() {ldelim}
+        var val = $(this).data('value');
+        $('#imageFitToggle .alignment-btn').removeClass('active');
+        $(this).addClass('active');
+        TinyShop.api('PUT', '/api/shop', {ldelim} product_image_fit: val {rdelim}).done(function() {ldelim}
+            TinyShop.toast('Image display updated!');
         {rdelim}).fail(function() {ldelim}
             TinyShop.toast('Failed to update', 'error');
         {rdelim});

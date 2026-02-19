@@ -1,25 +1,15 @@
 /**
  * TinyShop — Service Worker
- * Cache-first for static assets, stale-while-revalidate for pages.
- * Offline fallback page when network is unavailable.
+ * Network-first for everything. Cache only used as offline fallback.
  */
-var CACHE_NAME = 'tinyshop-v4';
+var CACHE_NAME = 'tinyshop-v5';
 var OFFLINE_URL = '/offline.html';
-var STATIC_ASSETS = [
-    '/public/css/app.css',
-    '/public/css/dashboard.css',
-    '/public/js/jquery.min.js',
-    '/public/js/app.js',
-    '/public/js/dashboard.js',
-    '/public/img/placeholder.svg',
-    OFFLINE_URL
-];
 
-// Install — cache static assets + offline page
+// Install — cache offline page only
 self.addEventListener('install', function(e) {
     e.waitUntil(
         caches.open(CACHE_NAME).then(function(cache) {
-            return cache.addAll(STATIC_ASSETS);
+            return cache.add(OFFLINE_URL);
         })
     );
     self.skipWaiting();
@@ -38,69 +28,34 @@ self.addEventListener('activate', function(e) {
     self.clients.claim();
 });
 
-// Fetch — cache-first for static, stale-while-revalidate for pages
+// Fetch — network-first, cache fallback for offline only
 self.addEventListener('fetch', function(e) {
     var url = new URL(e.request.url);
 
-    // Only handle same-origin http(s) GET requests — skip extensions, API, and SPA fragments
     if (e.request.method !== 'GET') return;
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
     if (url.origin !== self.location.origin) return;
     if (url.pathname.startsWith('/api/')) return;
-    if (e.request.headers.get('X-SPA') === '1') return;
 
-    // Static assets: cache-first
-    if (url.pathname.startsWith('/public/')) {
-        e.respondWith(
-            caches.match(e.request).then(function(cached) {
-                return cached || fetch(e.request).then(function(res) {
-                    var clone = res.clone();
-                    caches.open(CACHE_NAME).then(function(cache) {
-                        cache.put(e.request, clone);
-                    });
-                    return res;
+    var isHTML = e.request.headers.get('Accept') && e.request.headers.get('Accept').includes('text/html');
+
+    e.respondWith(
+        fetch(e.request).then(function(res) {
+            // Cache HTML pages for offline fallback
+            if (isHTML && res.ok) {
+                var clone = res.clone();
+                caches.open(CACHE_NAME).then(function(cache) {
+                    cache.put(e.request, clone);
                 });
-            })
-        );
-        return;
-    }
-
-    // HTML pages: stale-while-revalidate (serve cached instantly, update in background)
-    if (e.request.headers.get('Accept') && e.request.headers.get('Accept').includes('text/html')) {
-        e.respondWith(
-            caches.match(e.request).then(function(cached) {
-                var fetchPromise = fetch(e.request).then(function(res) {
-                    if (res.ok) {
-                        var clone = res.clone();
-                        caches.open(CACHE_NAME).then(function(cache) {
-                            cache.put(e.request, clone);
-                        });
-                    }
-                    return res;
-                }).catch(function() {
+            }
+            return res;
+        }).catch(function() {
+            if (isHTML) {
+                return caches.match(e.request).then(function(cached) {
                     return cached || caches.match(OFFLINE_URL);
                 });
-
-                return cached || fetchPromise;
-            })
-        );
-        return;
-    }
-
-    // Other GET requests (images, fonts): cache-first
-    e.respondWith(
-        caches.match(e.request).then(function(cached) {
-            return cached || fetch(e.request).then(function(res) {
-                if (res.ok) {
-                    var clone = res.clone();
-                    caches.open(CACHE_NAME).then(function(cache) {
-                        cache.put(e.request, clone);
-                    });
-                }
-                return res;
-            }).catch(function() {
-                return new Response('', { status: 408 });
-            });
+            }
+            return caches.match(e.request);
         })
     );
 });

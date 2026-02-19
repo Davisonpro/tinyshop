@@ -72,6 +72,11 @@ final class ShopController
             return $this->json($response, ['error' => true, 'message' => 'Invalid logo alignment'], 422);
         }
 
+        // Validate product image fit
+        if (isset($data['product_image_fit']) && !in_array($data['product_image_fit'], ['cover', 'contain'], true)) {
+            return $this->json($response, ['error' => true, 'message' => 'Invalid image fit value'], 422);
+        }
+
         // Validate payment modes (per-gateway)
         foreach (['payment_mode', 'stripe_mode', 'paypal_mode', 'mpesa_mode'] as $modeField) {
             if (isset($data[$modeField]) && !in_array($data[$modeField], ['test', 'live'], true)) {

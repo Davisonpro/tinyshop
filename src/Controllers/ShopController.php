@@ -499,11 +499,12 @@ final class ShopController
         $paletteCss = $palettes[$paletteKey] ?? $palettes['default'];
 
         return [
-            'currency'        => $currency,
-            'currency_symbol' => $currencySymbol,
-            'has_payments'    => $hasPayments,
-            'shop_theme'      => $shop['shop_theme'] ?? 'classic',
-            'palette_css'     => $paletteCss,
+            'currency'          => $currency,
+            'currency_symbol'   => $currencySymbol,
+            'has_payments'      => $hasPayments,
+            'shop_theme'        => $shop['shop_theme'] ?? 'classic',
+            'palette_css'       => $paletteCss,
+            'product_image_fit' => $shop['product_image_fit'] ?? 'cover',
         ];
     }
 

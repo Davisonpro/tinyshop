@@ -6,6 +6,7 @@
     --palette-bar-text: {$palette_css.bar_text};
     --palette-accent: {$palette_css.accent};
     --palette-accent-hover: {$palette_css.accent};
+    --product-image-fit: {$product_image_fit|default:'cover'};
 {rdelim}
 </style>
 {/if}
