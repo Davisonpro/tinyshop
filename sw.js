@@ -2,7 +2,7 @@
  * TinyShop — Service Worker
  * Network-first for everything. Cache only used as offline fallback.
  */
-var CACHE_NAME = 'tinyshop-v5';
+var CACHE_NAME = 'tinyshop-v6';
 var OFFLINE_URL = '/offline.html';
 
 // Install — cache offline page only
@@ -36,6 +36,9 @@ self.addEventListener('fetch', function(e) {
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
     if (url.origin !== self.location.origin) return;
     if (url.pathname.startsWith('/api/')) return;
+
+    // Skip static assets — let the browser handle caching via HTTP headers
+    if (/\.(css|js|png|jpe?g|gif|webp|svg|woff2?|ico|json)$/i.test(url.pathname)) return;
 
     var isHTML = e.request.headers.get('Accept') && e.request.headers.get('Accept').includes('text/html');
 

@@ -721,6 +721,10 @@
   margin-bottom: 28px;
 }
 
+.category-band > .section-header {
+  padding: 0 16px;
+}
+
 .category-band-track {
   display: flex;
   gap: 20px;
@@ -961,6 +965,10 @@
 .product-slider-section {
   position: relative;
   margin-bottom: 32px;
+}
+
+.product-slider-section > .section-header {
+  padding: 0 16px;
 }
 
 .product-slider-track {
