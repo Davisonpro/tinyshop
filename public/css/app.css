@@ -1767,7 +1767,7 @@ a.product-card {
 /* Full-bleed gallery */
 .product-gallery {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   background: var(--color-bg-alt);
   margin-left: -12px;
   margin-right: -12px;
@@ -1824,6 +1824,7 @@ a.product-card {
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
   scrollbar-width: none;
 }
 .product-gallery-track::-webkit-scrollbar {
@@ -4119,7 +4120,6 @@ a.cart-item-link {
   }
   .product-page .product-gallery-track {
     border-radius: 18px;
-    overflow: hidden;
     background: var(--color-bg-alt);
   }
   .product-page .product-gallery-slide {

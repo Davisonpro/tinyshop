@@ -1506,7 +1506,7 @@
     margin-right: 0;
     border-radius: 0;
     background: var(--color-bg-alt);
-    overflow: hidden;
+    overflow: clip;
 }
 
 .product-gallery-track {
