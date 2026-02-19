@@ -208,6 +208,9 @@
         <div class="hero-slide-list" id="heroSlideList">
             {foreach $hero_slides as $slide}
             <div class="hero-slide-card" data-id="{$slide.id}">
+                <div class="hero-slide-handle" aria-label="Drag to reorder">
+                    <i class="fa-solid fa-grip-vertical"></i>
+                </div>
                 <div class="hero-slide-thumb">
                     <img src="{$slide.image_url|escape}" alt="{$slide.heading|escape}">
                 </div>
@@ -509,6 +512,139 @@ $(function() {ldelim}
             if (slide) openSlideModal(slide);
         {rdelim});
     {rdelim});
+
+    // --- Drag to reorder ---
+    (function() {ldelim}
+        var list = document.getElementById('heroSlideList');
+        if (!list) return;
+        var dragEl = null;
+
+        // Only allow drag from handle
+        list.addEventListener('mousedown', function(e) {ldelim}
+            var handle = e.target.closest('.hero-slide-handle');
+            if (!handle) return;
+            var card = handle.closest('.hero-slide-card');
+            if (card) card.setAttribute('draggable', 'true');
+        {rdelim});
+        list.addEventListener('mouseup', function() {ldelim}
+            list.querySelectorAll('.hero-slide-card').forEach(function(c) {ldelim}
+                c.removeAttribute('draggable');
+            {rdelim});
+        {rdelim});
+
+        // HTML5 drag events (desktop)
+        list.addEventListener('dragstart', function(e) {ldelim}
+            var card = e.target.closest('.hero-slide-card');
+            if (!card) return;
+            dragEl = card;
+            card.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', '');
+        {rdelim});
+        list.addEventListener('dragover', function(e) {ldelim}
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            var target = e.target.closest('.hero-slide-card');
+            list.querySelectorAll('.hero-slide-card').forEach(function(c) {ldelim} c.classList.remove('drag-over'); {rdelim});
+            if (target && target !== dragEl) target.classList.add('drag-over');
+        {rdelim});
+        list.addEventListener('drop', function(e) {ldelim}
+            e.preventDefault();
+            var target = e.target.closest('.hero-slide-card');
+            if (target && dragEl && target !== dragEl) {ldelim}
+                var cards = Array.from(list.querySelectorAll('.hero-slide-card'));
+                var fromIdx = cards.indexOf(dragEl);
+                var toIdx = cards.indexOf(target);
+                if (fromIdx < toIdx) {ldelim}
+                    target.parentNode.insertBefore(dragEl, target.nextSibling);
+                {rdelim} else {ldelim}
+                    target.parentNode.insertBefore(dragEl, target);
+                {rdelim}
+                saveOrder();
+            {rdelim}
+        {rdelim});
+        list.addEventListener('dragend', function() {ldelim}
+            list.querySelectorAll('.hero-slide-card').forEach(function(c) {ldelim}
+                c.classList.remove('dragging', 'drag-over');
+            {rdelim});
+            dragEl = null;
+        {rdelim});
+
+        // Touch events (mobile)
+        var touchCard = null;
+        var touchClone = null;
+        var touchStartY = 0;
+        var touchOffsetY = 0;
+
+        list.addEventListener('touchstart', function(e) {ldelim}
+            var handle = e.target.closest('.hero-slide-handle');
+            if (!handle) return;
+            var card = handle.closest('.hero-slide-card');
+            if (!card) return;
+            touchCard = card;
+            var rect = card.getBoundingClientRect();
+            touchStartY = e.touches[0].clientY;
+            touchOffsetY = touchStartY - rect.top;
+
+            touchClone = card.cloneNode(true);
+            touchClone.classList.add('drag-clone');
+            touchClone.style.width = rect.width + 'px';
+            touchClone.style.top = rect.top + 'px';
+            touchClone.style.left = rect.left + 'px';
+            document.body.appendChild(touchClone);
+
+            card.classList.add('dragging');
+        {rdelim}, {ldelim} passive: true {rdelim});
+
+        list.addEventListener('touchmove', function(e) {ldelim}
+            if (!touchCard || !touchClone) return;
+            e.preventDefault();
+            var y = e.touches[0].clientY;
+            touchClone.style.top = (y - touchOffsetY) + 'px';
+
+            // Find card under finger
+            touchClone.style.pointerEvents = 'none';
+            var el = document.elementFromPoint(e.touches[0].clientX, y);
+            touchClone.style.pointerEvents = '';
+            var target = el ? el.closest('.hero-slide-card') : null;
+            list.querySelectorAll('.hero-slide-card').forEach(function(c) {ldelim} c.classList.remove('drag-over'); {rdelim});
+            if (target && target !== touchCard) target.classList.add('drag-over');
+        {rdelim}, {ldelim} passive: false {rdelim});
+
+        list.addEventListener('touchend', function() {ldelim}
+            if (!touchCard) return;
+            var overCard = list.querySelector('.hero-slide-card.drag-over');
+            if (overCard && overCard !== touchCard) {ldelim}
+                var cards = Array.from(list.querySelectorAll('.hero-slide-card'));
+                var fromIdx = cards.indexOf(touchCard);
+                var toIdx = cards.indexOf(overCard);
+                if (fromIdx < toIdx) {ldelim}
+                    overCard.parentNode.insertBefore(touchCard, overCard.nextSibling);
+                {rdelim} else {ldelim}
+                    overCard.parentNode.insertBefore(touchCard, overCard);
+                {rdelim}
+                saveOrder();
+            {rdelim}
+            list.querySelectorAll('.hero-slide-card').forEach(function(c) {ldelim}
+                c.classList.remove('dragging', 'drag-over');
+            {rdelim});
+            if (touchClone) touchClone.remove();
+            touchCard = null;
+            touchClone = null;
+        {rdelim});
+
+        function saveOrder() {ldelim}
+            var ids = [];
+            list.querySelectorAll('.hero-slide-card').forEach(function(c) {ldelim}
+                ids.push(Number(c.dataset.id));
+            {rdelim});
+            TinyShop.api('PUT', '/api/hero-slides/reorder', {ldelim} ids: ids {rdelim}).done(function() {ldelim}
+                TinyShop.toast('Slide order saved');
+            {rdelim}).fail(function() {ldelim}
+                TinyShop.toast('Failed to save order', 'error');
+            {rdelim});
+        {rdelim}
+    {rdelim})();
 
     // Delete slide
     $('#heroSlideList').on('click', '.hero-slide-delete', function() {ldelim}

@@ -3280,6 +3280,9 @@ a.cart-item-link {
   padding: 0 4px;
   line-height: 1;
 }
+.cart-badge.cart-badge-hidden {
+  display: none;
+}
 
 /* Stock notice */
 .stock-notice {
@@ -3933,6 +3936,9 @@ a.cart-item-link {
     align-items: center;
     justify-content: center;
     padding: 0 4px;
+  }
+  .desktop-header-btn .cart-badge.cart-badge-hidden {
+    display: none;
   }
   /* --- Desktop Footer: show & style --- */
   .desktop-footer {

@@ -2092,6 +2092,37 @@ body.page-dashboard {
     background: var(--color-bg);
     border: 1px solid $border-default;
     border-radius: 12px;
+    transition: opacity 0.15s ease, border-color 0.15s ease;
+
+    &.dragging {
+        opacity: 0.4;
+    }
+
+    &.drag-over {
+        border-color: var(--color-primary);
+    }
+}
+
+.hero-slide-handle {
+    flex-shrink: 0;
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    cursor: grab;
+    touch-action: none;
+    opacity: 0.4;
+    font-size: 0.875rem;
+}
+
+.drag-clone {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.85;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
 }
 
 .hero-slide-thumb {
