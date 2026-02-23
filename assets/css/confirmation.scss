@@ -40,6 +40,10 @@
 .confirm-track-link { display: inline-block; margin-top: 12px; font-size: 0.875rem; color: var(--color-text-muted); text-decoration: none; }
 .confirm-track-link:hover { color: var(--color-accent); text-decoration: underline; }
 
+@media (max-width: 1023px) {
+    .confirm-page { padding-bottom: 80px; }
+}
+
 @media print {
     body { background: #fff !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .shop-header, .desktop-header, .desktop-footer, .floating-contact-cta,

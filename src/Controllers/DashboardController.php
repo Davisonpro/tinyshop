@@ -6,7 +6,6 @@ namespace TinyShop\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use TinyShop\Models\HeroSlide;
 use TinyShop\Models\Plan;
 use TinyShop\Models\Product;
 use TinyShop\Models\ProductImage;
@@ -15,6 +14,7 @@ use TinyShop\Models\Order;
 use TinyShop\Models\Setting;
 use TinyShop\Models\ShopView;
 use TinyShop\Models\Subscription;
+use TinyShop\Models\ThemeOption;
 use TinyShop\Models\User;
 use TinyShop\Services\Auth;
 use TinyShop\Services\PlanGuard;
@@ -37,13 +37,13 @@ final class DashboardController
         private readonly PlanGuard $planGuard,
         private readonly Theme $themeService,
         private readonly Setting $settingModel,
-        private readonly HeroSlide $heroSlideModel
+        private readonly ThemeOption $themeOptionModel
     ) {}
 
     public function home(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         $productCount = $this->productModel->countByUser($userId);
         $viewStats = $this->shopViewModel->getStats($userId);
         $orderStats = $this->orderModel->getStats($userId);
@@ -54,13 +54,13 @@ final class DashboardController
             ['key' => 'logo', 'label' => 'Upload a logo', 'done' => !empty($user['shop_logo']), 'link' => '/dashboard/shop'],
             ['key' => 'product', 'label' => 'Add your first product', 'done' => $productCount > 0, 'link' => '/dashboard/products/add'],
             ['key' => 'contact', 'label' => 'Add contact info', 'done' => !empty($user['contact_whatsapp']) || !empty($user['contact_email']) || !empty($user['contact_phone']), 'link' => '/dashboard/shop'],
-            ['key' => 'payments', 'label' => 'Set up payments', 'done' => !empty($user['stripe_enabled']) || !empty($user['paypal_enabled']) || !empty($user['cod_enabled']) || !empty($user['mpesa_enabled']), 'link' => '/dashboard/shop'],
+            ['key' => 'payments', 'label' => 'Set up payments', 'done' => (!empty($user['stripe_enabled']) && !empty($user['stripe_public_key'])) || (!empty($user['paypal_enabled']) && !empty($user['paypal_client_id'])) || !empty($user['cod_enabled']) || (!empty($user['mpesa_enabled']) && !empty($user['mpesa_shortcode'])), 'link' => '/dashboard/shop'],
             ['key' => 'homescreen', 'label' => 'Add to homescreen', 'done' => false, 'link' => '#add-to-homescreen'],
         ];
 
         $usage = $this->planGuard->getUsageSummary($userId);
 
-        return $this->view->render($response, 'pages/dash_home.tpl', [
+        return $this->view->render($response, 'pages/dashboard/home.tpl', [
             'page_title'         => 'Dashboard',
             'user'               => $user,
             'product_count'      => $productCount,
@@ -77,10 +77,10 @@ final class DashboardController
     public function products(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         $usage = $this->planGuard->getUsageSummary($userId);
 
-        return $this->view->render($response, 'pages/dash_products.tpl', [
+        return $this->view->render($response, 'pages/dashboard/products.tpl', [
             'page_title'  => 'Products',
             'active_page' => 'products',
             'user'        => $user,
@@ -91,13 +91,13 @@ final class DashboardController
     public function shop(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         $usage = $this->planGuard->getUsageSummary($userId);
 
         // List available themes from themes/ directory
         $availableThemes = $this->themeService->listAvailable();
 
-        return $this->view->render($response, 'pages/dash_shop.tpl', [
+        return $this->view->render($response, 'pages/dashboard/shop.tpl', [
             'page_title'        => 'Shop Settings',
             'user'              => $user,
             'active_page'       => 'shop',
@@ -109,9 +109,9 @@ final class DashboardController
     public function categories(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
 
-        return $this->view->render($response, 'pages/dash_categories.tpl', [
+        return $this->view->render($response, 'pages/dashboard/categories.tpl', [
             'page_title'  => 'Categories',
             'active_page' => 'products',
             'user'        => $user,
@@ -121,11 +121,24 @@ final class DashboardController
     public function orders(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
 
-        return $this->view->render($response, 'pages/dash_orders.tpl', [
+        return $this->view->render($response, 'pages/dashboard/orders.tpl', [
             'page_title'  => 'Orders',
             'active_page' => 'orders',
+            'user'        => $user,
+            'currency'    => $user['currency'] ?? 'KES',
+        ]);
+    }
+
+    public function customers(Request $request, Response $response): Response
+    {
+        $userId = $this->auth->userId();
+        $user = User::find($userId);
+
+        return $this->view->render($response, 'pages/dashboard/customers.tpl', [
+            'page_title'  => 'Customers',
+            'active_page' => 'customers',
             'user'        => $user,
             'currency'    => $user['currency'] ?? 'KES',
         ]);
@@ -134,10 +147,10 @@ final class DashboardController
     public function coupons(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         $usage = $this->planGuard->getUsageSummary($userId);
 
-        return $this->view->render($response, 'pages/dash_coupons.tpl', [
+        return $this->view->render($response, 'pages/dashboard/coupons.tpl', [
             'page_title'  => 'Coupons',
             'active_page' => 'orders',
             'user'        => $user,
@@ -149,7 +162,7 @@ final class DashboardController
     public function analytics(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         $viewStats = $this->shopViewModel->getStats($userId);
 
         $params = $request->getQueryParams();
@@ -163,31 +176,33 @@ final class DashboardController
 
         $dailyViews = $this->shopViewModel->getDailyViews($userId, $viewDays);
         $topProducts = $this->shopViewModel->getTopProducts($userId, 5);
+        $trafficSources = $this->shopViewModel->getTrafficSources($userId);
 
         $orderStats = $this->orderModel->getStats($userId);
         $dailySales = $this->orderModel->getDailySales($userId, $salesDays);
         $currency = $user['currency'] ?? 'KES';
 
-        return $this->view->render($response, 'pages/dash_analytics.tpl', [
-            'page_title'    => 'Analytics',
-            'active_page'   => 'analytics',
-            'user'          => $user,
-            'view_stats'    => $viewStats,
-            'daily_views'   => $dailyViews,
-            'top_products'  => $topProducts,
-            'order_stats'   => $orderStats,
-            'daily_sales'   => $dailySales,
-            'currency'      => $currency,
-            'view_days'     => $viewDays,
-            'sales_days'    => $salesDays,
-            'subdomain'     => $user['subdomain'] ?? '',
+        return $this->view->render($response, 'pages/dashboard/analytics.tpl', [
+            'page_title'       => 'Analytics',
+            'active_page'      => 'analytics',
+            'user'             => $user,
+            'view_stats'       => $viewStats,
+            'daily_views'      => $dailyViews,
+            'top_products'     => $topProducts,
+            'traffic_sources'  => $trafficSources,
+            'order_stats'      => $orderStats,
+            'daily_sales'      => $dailySales,
+            'currency'         => $currency,
+            'view_days'        => $viewDays,
+            'sales_days'       => $salesDays,
+            'subdomain'        => $user['subdomain'] ?? '',
         ]);
     }
 
     public function billing(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         $usage = $this->planGuard->getUsageSummary($userId);
         $plans = $this->planModel->findAll();
         $history = $this->subscriptionModel->findByUser($userId);
@@ -202,20 +217,23 @@ final class DashboardController
             return $plan;
         }, $plans);
 
-        // Determine which payment gateways are configured by the admin
+        // Determine which payment gateways are enabled and configured by the admin
         $settings = $this->settingModel->all();
         $gateways = [];
-        if (!empty($settings['platform_stripe_secret_key'])) {
+        if (!empty($settings['platform_stripe_enabled']) && !empty($settings['platform_stripe_secret_key'])) {
             $gateways[] = 'stripe';
         }
-        if (!empty($settings['platform_paypal_client_id']) && !empty($settings['platform_paypal_secret'])) {
+        if (!empty($settings['platform_paypal_enabled']) && !empty($settings['platform_paypal_client_id']) && !empty($settings['platform_paypal_secret'])) {
             $gateways[] = 'paypal';
         }
-        if (!empty($settings['platform_mpesa_shortcode']) && !empty($settings['platform_mpesa_consumer_key'])) {
+        if (!empty($settings['platform_mpesa_enabled']) && !empty($settings['platform_mpesa_shortcode']) && !empty($settings['platform_mpesa_consumer_key'])) {
             $gateways[] = 'mpesa';
         }
+        if (!empty($settings['platform_pesapal_enabled']) && !empty($settings['platform_pesapal_consumer_key']) && !empty($settings['platform_pesapal_consumer_secret'])) {
+            $gateways[] = 'pesapal';
+        }
 
-        return $this->view->render($response, 'pages/dash_billing.tpl', [
+        return $this->view->render($response, 'pages/dashboard/billing.tpl', [
             'page_title'  => 'Billing',
             'active_page' => 'shop',
             'user'        => $user,
@@ -230,7 +248,7 @@ final class DashboardController
     public function productForm(Request $request, Response $response, array $args = []): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         $categories = $this->categoryModel->findByUser($userId);
         $categoryTree = $this->categoryModel->findByUserAsTree($userId);
 
@@ -249,7 +267,7 @@ final class DashboardController
 
         $usage = $this->planGuard->getUsageSummary($userId);
 
-        return $this->view->render($response, 'pages/dash_product_form.tpl', [
+        return $this->view->render($response, 'pages/dashboard/product_form.tpl', [
             'page_title'  => $isEdit ? 'Edit Product' : 'Add Product',
             'active_page' => 'products',
             'user'        => $user,
@@ -266,14 +284,33 @@ final class DashboardController
     public function design(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
-        $heroSlides = $this->heroSlideModel->findByUser($userId);
+        $user = User::find($userId);
+        $usage = $this->planGuard->getUsageSummary($userId);
 
-        return $this->view->render($response, 'pages/dash_design.tpl', [
-            'page_title'   => 'Design',
-            'active_page'  => 'shop',
-            'user'         => $user,
-            'hero_slides'  => $heroSlides,
+        // Activate seller's theme to trigger customizer registration in functions.php
+        $themeSlug = $user['shop_theme'] ?? 'classic';
+        $this->themeService->activate($themeSlug, $this->view);
+
+        $customizer = $this->themeService->getCustomizer();
+        $schema = $customizer->getSchema();
+        $savedOptions = $this->themeOptionModel->getAll($userId, $themeSlug);
+        $resolvedOptions = $customizer->resolveOptions($savedOptions);
+
+        return $this->view->render($response, 'pages/dashboard/design.tpl', [
+            'page_title'                => 'Design',
+            'active_page'               => 'shop',
+            'user'                      => $user,
+            'customizer_schema'         => $schema,
+            'theme_option_values'       => $resolvedOptions,
+            'usage'                     => $usage,
+        ]);
+    }
+
+    public function import(Request $request, Response $response): Response
+    {
+        return $this->view->render($response, 'pages/dashboard/import.tpl', [
+            'page_title'  => 'Import Product',
+            'active_page' => 'products',
         ]);
     }
 }

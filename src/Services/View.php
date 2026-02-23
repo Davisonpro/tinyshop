@@ -10,7 +10,7 @@ use TinyShop\Models\Setting;
 
 final class View
 {
-    public const ASSET_VERSION = '1.0.43';
+    public const ASSET_VERSION = '1.0.112';
 
     private readonly Smarty $smarty;
     private readonly string $baseTemplatesDir;
@@ -114,6 +114,14 @@ final class View
         $this->smarty->assign('theme_styles', $styleUrls);
         $this->smarty->assign('theme_scripts', $scriptUrls);
         $this->smarty->assign('theme_font_link', $fontLink);
+    }
+
+    /**
+     * Assign a global template variable available in all subsequently rendered templates.
+     */
+    public function assign(string $key, mixed $value): void
+    {
+        $this->smarty->assign($key, $value);
     }
 
     public function render(ResponseInterface $response, string $template, array $data = []): ResponseInterface

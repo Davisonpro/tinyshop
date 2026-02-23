@@ -272,52 +272,6 @@
 
 
     /* ================================================================
-       SEARCH OVERLAY
-       Toggles .active class, traps focus, Esc to close.
-       ================================================================ */
-
-    function initSearchOverlay() {
-        var overlay = document.getElementById('searchOverlay');
-        if (!overlay) return;
-
-        var input   = overlay.querySelector('.search-overlay-input');
-        var closeBtn = overlay.querySelector('.search-overlay-close');
-
-        function open() {
-            overlay.classList.add('active');
-            if (input) {
-                setTimeout(function () { input.focus(); }, 300);
-            }
-        }
-
-        function close() {
-            overlay.classList.remove('active');
-            if (input) input.value = '';
-        }
-
-        // Toggle buttons (any .search-toggle on the page)
-        document.addEventListener('click', function (e) {
-            if (e.target.closest('.search-toggle')) {
-                e.preventDefault();
-                open();
-            }
-        });
-
-        if (closeBtn) closeBtn.addEventListener('click', close);
-
-        // Close on backdrop click
-        overlay.addEventListener('click', function (e) {
-            if (e.target === overlay) close();
-        });
-
-        // Esc key
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && overlay.classList.contains('active')) close();
-        });
-    }
-
-
-    /* ================================================================
        IMAGE REVEAL
        Progressive fade-in for lazy-loaded images inside product cards.
        Uses a single IntersectionObserver instead of per-image onload.
@@ -387,9 +341,6 @@
             scrollContainers[j].setAttribute('data-init', '1');
             initScrollArrows(scrollContainers[j]);
         }
-
-        // Search overlay
-        initSearchOverlay();
 
         // Image reveal
         initImageReveal();

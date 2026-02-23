@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Models\AuditLog;
+use TinyShop\Models\ThemeOption;
 use TinyShop\Models\User;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Hooks;
@@ -16,6 +17,7 @@ use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Theme;
 use TinyShop\Services\Upload;
 use TinyShop\Services\Validation;
+use TinyShop\Services\View;
 
 final class ShopController
 {
@@ -27,13 +29,15 @@ final class ShopController
         private readonly Upload $upload,
         private readonly PlanGuard $planGuard,
         private readonly Theme $themeService,
+        private readonly ThemeOption $themeOptionModel,
+        private readonly View $view,
         private readonly LoggerInterface $logger,
         private readonly AuditLog $auditLog
     ) {}
 
     public function get(Request $request, Response $response): Response
     {
-        $user = $this->userModel->findById($this->auth->userId());
+        $user = User::find($this->auth->userId());
         unset($user['password_hash']);
         return $this->json($response, ['shop' => $user]);
     }
@@ -78,21 +82,21 @@ final class ShopController
         }
 
         // Validate payment modes (per-gateway)
-        foreach (['payment_mode', 'stripe_mode', 'paypal_mode', 'mpesa_mode'] as $modeField) {
+        foreach (['payment_mode', 'stripe_mode', 'paypal_mode', 'mpesa_mode', 'pesapal_mode'] as $modeField) {
             if (isset($data[$modeField]) && !in_array($data[$modeField], ['test', 'live'], true)) {
                 $data[$modeField] = 'test';
             }
         }
 
         // Sanitize gateway enabled flags
-        foreach (['stripe_enabled', 'paypal_enabled', 'cod_enabled', 'mpesa_enabled'] as $enabledField) {
+        foreach (['stripe_enabled', 'paypal_enabled', 'cod_enabled', 'mpesa_enabled', 'pesapal_enabled'] as $enabledField) {
             if (isset($data[$enabledField])) {
                 $data[$enabledField] = $data[$enabledField] ? 1 : 0;
             }
         }
 
         // Sanitize design toggle flags
-        foreach (['show_store_name', 'show_tagline', 'show_search', 'show_categories', 'show_sort_toolbar', 'show_desktop_footer'] as $toggleField) {
+        foreach (['show_logo', 'show_store_name', 'show_tagline', 'show_search', 'show_categories', 'show_sort_toolbar', 'show_desktop_footer'] as $toggleField) {
             if (isset($data[$toggleField])) {
                 $data[$toggleField] = $data[$toggleField] ? 1 : 0;
             }
@@ -114,7 +118,8 @@ final class ShopController
 
         // Trim payment credential fields
         foreach (['stripe_public_key', 'stripe_secret_key', 'paypal_client_id', 'paypal_secret',
-                  'mpesa_shortcode', 'mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey'] as $payField) {
+                  'mpesa_shortcode', 'mpesa_consumer_key', 'mpesa_consumer_secret', 'mpesa_passkey',
+                  'pesapal_consumer_key', 'pesapal_consumer_secret'] as $payField) {
             if (isset($data[$payField])) {
                 $data[$payField] = trim($data[$payField]) ?: null;
             }
@@ -149,7 +154,7 @@ final class ShopController
             }
             $data['subdomain'] = $subdomain;
 
-            if ($this->userModel->subdomainExists($subdomain, $userId)) {
+            if (User::exists('subdomain', $subdomain, $userId)) {
                 return $this->json($response, ['error' => true, 'message' => 'This shop URL is already taken'], 409);
             }
         }
@@ -157,7 +162,7 @@ final class ShopController
         // Validate custom domain if being changed
         if (array_key_exists('custom_domain', $data)) {
             $domain = trim($data['custom_domain'] ?? '');
-            $currentUser = $this->userModel->findById($userId);
+            $currentUser = User::find($userId);
             $currentDomain = $currentUser['custom_domain'] ?? null;
 
             if ($domain === '') {
@@ -173,7 +178,7 @@ final class ShopController
                 if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z]{2,})+$/', $domain)) {
                     return $this->json($response, ['error' => true, 'message' => 'Please enter a valid domain (e.g. shop.example.com)'], 422);
                 }
-                if ($this->userModel->customDomainExists($domain, $userId)) {
+                if (User::exists('custom_domain', $domain, $userId)) {
                     return $this->json($response, ['error' => true, 'message' => 'This domain is already in use'], 409);
                 }
                 $data['custom_domain'] = $domain;
@@ -186,7 +191,7 @@ final class ShopController
 
         $this->auditLog->log('shop.update', $userId, 'user', $userId, ['fields' => array_keys($data)]);
 
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         unset($user['password_hash']);
 
         return $this->json($response, ['success' => true, 'shop' => $user]);
@@ -249,11 +254,11 @@ final class ShopController
             return $this->json($response, ['error' => true, 'message' => 'Current password is incorrect'], 403);
         }
 
-        if ($this->userModel->emailExists($newEmail, $userId)) {
+        if (User::exists('email', $newEmail, $userId)) {
             return $this->json($response, ['error' => true, 'message' => 'This email is already in use'], 409);
         }
 
-        $oldUser = $this->userModel->findById($userId);
+        $oldUser = User::find($userId);
         $this->userModel->updateEmail($userId, $newEmail);
 
         $this->logger->info('auth.email_changed', [
@@ -264,6 +269,83 @@ final class ShopController
         ]);
 
         return $this->json($response, ['success' => true, 'message' => 'Email updated']);
+    }
+
+    public function getThemeOptions(Request $request, Response $response): Response
+    {
+        $userId = $this->auth->userId();
+        $user = User::find($userId);
+        $themeSlug = $user['shop_theme'] ?? 'classic';
+
+        // Activate theme to trigger functions.php registration
+        $this->themeService->activate($themeSlug, $this->view);
+
+        $customizer = $this->themeService->getCustomizer();
+        $schema = $customizer->getSchema();
+        $saved = $this->themeOptionModel->getAll($userId, $themeSlug);
+        $resolved = $customizer->resolveOptions($saved);
+
+        return $this->json($response, [
+            'success' => true,
+            'schema'  => $schema,
+            'values'  => $resolved,
+        ]);
+    }
+
+    public function saveThemeOptions(Request $request, Response $response): Response
+    {
+        $userId = $this->auth->userId();
+        $user = User::find($userId);
+        $themeSlug = $user['shop_theme'] ?? 'classic';
+
+        // Activate theme to trigger functions.php registration
+        $this->themeService->activate($themeSlug, $this->view);
+
+        $customizer = $this->themeService->getCustomizer();
+        $data = (array) $request->getParsedBody();
+        $updates = [];
+
+        // Check if user is on a free plan (for pro-gated controls)
+        $plan = $this->planGuard->getUserPlan($userId);
+        $isFree = ((float) ($plan['price_monthly'] ?? 0)) === 0.0;
+
+        $proBlocked = 0;
+
+        foreach ($data as $key => $value) {
+            if (!$customizer->hasSetting($key)) {
+                continue;
+            }
+
+            // Prevent free users from changing pro-only settings
+            if ($isFree && $customizer->isProControl($key)) {
+                $proBlocked++;
+                continue;
+            }
+
+            $sanitized = $customizer->sanitizeValue($key, $value);
+            if ($sanitized !== null) {
+                $updates[$key] = $sanitized;
+            }
+        }
+
+        if ($updates === []) {
+            if ($proBlocked > 0) {
+                return $this->json($response, [
+                    'error'   => true,
+                    'message' => 'This setting requires a paid plan. Upgrade in Billing to unlock it.',
+                ], 403);
+            }
+            return $this->json($response, [
+                'error'   => true,
+                'message' => 'Nothing changed. Try updating a setting before saving.',
+            ], 422);
+        }
+
+        $this->themeOptionModel->setMany($userId, $themeSlug, $updates);
+
+        Hooks::doAction('theme_options.saved', $userId, $themeSlug, $updates);
+
+        return $this->json($response, ['success' => true]);
     }
 
     public function deleteAccount(Request $request, Response $response): Response
@@ -278,7 +360,7 @@ final class ShopController
             return $this->json($response, ['error' => true, 'message' => 'All fields are required'], 422);
         }
 
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         if (!$user) {
             return $this->json($response, ['error' => true, 'message' => 'Account not found'], 404);
         }

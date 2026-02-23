@@ -419,18 +419,7 @@ TinyShop.initShop = function() {
         }
     }
 
-    // Legacy: support ?category= query param (redirect to clean URL)
-    var urlCategory = urlParams.get('category');
-    if (urlCategory && !serverCategory) {
-        state.category = urlCategory;
-        syncCategoryUI(urlCategory);
-        var $activeTab = $('#categoryTabs .category-tab.active');
-        if ($activeTab.length && $activeTab.data('slug')) {
-            state.categorySlug = String($activeTab.data('slug'));
-            history.replaceState(null, '', '/collections/' + encodeURIComponent(state.categorySlug));
-        }
-        needsFetch = true;
-    }
+
 
     if (urlSearch && $searchInput.length) {
         $searchInput.val(urlSearch);

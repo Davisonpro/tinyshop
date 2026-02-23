@@ -1,0 +1,1 @@
+ALTER TABLE products MODIFY full_description LONGTEXT DEFAULT NULL;

@@ -30,6 +30,7 @@ const jsBundles = {
     'assets/js/components/image-viewer.js',
     'assets/js/shop/card-render.js',
     'assets/js/shop/init-shop.js',
+    'assets/js/shop/bottom-nav.js',
     'assets/js/spa/router.js',
     'assets/js/core/boot.js',
   ],

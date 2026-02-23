@@ -4,7 +4,7 @@
 
 {block name="head"}
     {$allow_dark = true}
-    {include file="partials/head.tpl"}
+    {include file="partials/shared/head.tpl"}
     <link rel="stylesheet" href="/public/css/dashboard{$min}.css?v={$asset_v}">
 {/block}
 
@@ -25,7 +25,7 @@
             <span class="dash-sidebar-logo">{$app_name|escape|substr:0:1|upper}</span>
             <span class="dash-sidebar-name">{$app_name|escape}</span>
         </div>
-        {include file="partials/dash_nav.tpl"}
+        {include file="partials/dashboard/nav.tpl"}
     </aside>
 </div>
 

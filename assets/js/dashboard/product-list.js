@@ -14,13 +14,21 @@ TinyShop.initProductList = function() {
     var $searchInput = $('#productSearch');
     var $summary = $('#productListSummary');
     var $loadMore = $('#productLoadMore');
+    var $bulkToggle = $('#bulkSelectToggle');
+    var $bulkBar = $('#bulkActionBar');
+    var $bulkCount = $('#bulkCount');
+    var $fab = $('#addProductFab');
     var _allProducts = [];
     var _filteredProducts = [];
     var _activeFilter = null;
     var _searchQuery = '';
     var _currency = (typeof _productListConfig !== 'undefined' && _productListConfig.currency) ? _productListConfig.currency : 'KES';
+    var _subdomain = (typeof _productListConfig !== 'undefined' && _productListConfig.subdomain) ? _productListConfig.subdomain : '';
+    var _baseDomain = (typeof _productListConfig !== 'undefined' && _productListConfig.baseDomain) ? _productListConfig.baseDomain : window.location.host;
     var PAGE_SIZE = 30;
     var _visibleCount = PAGE_SIZE;
+    var _selectMode = false;
+    var _selected = {};
 
     function loadProducts() {
         TinyShop.api('GET', '/api/products?limit=0').done(function(res) {
@@ -28,6 +36,9 @@ TinyShop.initProductList = function() {
             buildCategoryTabs(_allProducts);
             if (_allProducts.length >= 3) {
                 $searchBar.show();
+            }
+            if (_allProducts.length >= 2) {
+                $bulkToggle.show();
             }
 
             var scrollToId = null;
@@ -190,9 +201,17 @@ TinyShop.initProductList = function() {
                 priceHtml = TinyShop.formatPrice(p.price, _currency);
             }
             var catLabel = p.category_name ? '<div class="product-card-category">' + escapeHtml(p.category_name) + '</div>' : '';
+            var checkHtml = _selectMode
+                ? '<span class="product-select-check' + (_selected[p.id] ? ' checked' : '') + '"><i class="fa-solid fa-check"></i></span>'
+                : '';
+            var shareBtn = !_selectMode && !isHidden
+                ? '<button type="button" class="product-share-btn" data-slug="' + escapeHtml(p.slug || p.id) + '" data-name="' + escapeHtml(p.name) + '" title="Share"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>'
+                : '';
             html += '<a href="/dashboard/products/' + p.id + '/edit" class="' + cardClass + '" data-id="' + p.id + '">' +
+                checkHtml +
                 '<div class="product-card-img-wrap">' +
                     badge +
+                    shareBtn +
                     '<img src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(p.name) + '" loading="lazy">' +
                 '</div>' +
                 '<div class="product-card-body">' +
@@ -212,6 +231,160 @@ TinyShop.initProductList = function() {
             $loadMore.hide();
         }
     }
+
+    // --- Bulk select mode ---
+    function enterSelectMode() {
+        _selectMode = true;
+        _selected = {};
+        $grid.addClass('select-mode');
+        $bulkToggle.addClass('active');
+        $fab.hide();
+        updateBulkBar();
+        renderProducts();
+    }
+
+    function exitSelectMode() {
+        _selectMode = false;
+        _selected = {};
+        $grid.removeClass('select-mode');
+        $bulkToggle.removeClass('active');
+        $bulkBar.hide();
+        $fab.show();
+        renderProducts();
+    }
+
+    function updateBulkBar() {
+        var count = Object.keys(_selected).length;
+        if (count > 0) {
+            $bulkCount.text(count + ' selected');
+            $bulkBar.show();
+        } else {
+            $bulkBar.hide();
+        }
+    }
+
+    $bulkToggle.on('click', function() {
+        if (_selectMode) {
+            exitSelectMode();
+        } else {
+            enterSelectMode();
+        }
+    });
+
+    $grid.on('click', '.product-select-check', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var id = $(this).closest('.product-card-manage').data('id');
+        if (_selected[id]) {
+            delete _selected[id];
+            $(this).removeClass('checked');
+        } else {
+            _selected[id] = true;
+            $(this).addClass('checked');
+        }
+        updateBulkBar();
+    });
+
+    $grid.on('click', '.product-card-manage', function(e) {
+        if (!_selectMode) return;
+        e.preventDefault();
+        var id = $(this).data('id');
+        var $check = $(this).find('.product-select-check');
+        if (_selected[id]) {
+            delete _selected[id];
+            $check.removeClass('checked');
+        } else {
+            _selected[id] = true;
+            $check.addClass('checked');
+        }
+        updateBulkBar();
+    });
+
+    $('#bulkArchiveBtn').on('click', function() {
+        var ids = Object.keys(_selected).map(Number);
+        if (!ids.length) return;
+        var label = ids.length === 1 ? '1 product' : ids.length + ' products';
+        TinyShop.confirm('Hide ' + label + '?', 'They won\'t show in your shop until you unhide them.', 'Hide', function() {
+            TinyShop.closeModal();
+            TinyShop.api('POST', '/api/products/bulk-archive', { ids: ids }).done(function(res) {
+                TinyShop.toast(res.archived + ' product' + (res.archived !== 1 ? 's' : '') + ' hidden', 'success');
+                exitSelectMode();
+                loadProducts();
+            }).fail(function() {
+                TinyShop.toast('Something went wrong', 'error');
+            });
+        });
+    });
+
+    $('#bulkDeleteBtn').on('click', function() {
+        var ids = Object.keys(_selected).map(Number);
+        if (!ids.length) return;
+        var label = ids.length === 1 ? '1 product' : ids.length + ' products';
+        TinyShop.confirm('Delete ' + label + '?', 'This will permanently delete the selected products and their images. This cannot be undone.', 'Delete', function() {
+            TinyShop.closeModal();
+            TinyShop.api('POST', '/api/products/bulk-delete', { ids: ids }).done(function(res) {
+                TinyShop.toast(res.deleted + ' product' + (res.deleted !== 1 ? 's' : '') + ' deleted', 'success');
+                exitSelectMode();
+                loadProducts();
+            }).fail(function() {
+                TinyShop.toast('Something went wrong', 'error');
+            });
+        }, 'danger');
+    });
+
+    // --- Product share button ---
+    $grid.on('click', '.product-share-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var slug = $(this).data('slug');
+        var name = $(this).data('name');
+        var port = window.location.port ? ':' + window.location.port : '';
+        var productUrl = window.location.protocol + '//' + _subdomain + '.' + _baseDomain + port + '/' + slug;
+
+        var html = '<div class="share-quick-btns share-quick-btns-modal">' +
+            '<button type="button" class="share-quick-btn share-btn-whatsapp" data-channel="whatsapp" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>' +
+            '<button type="button" class="share-quick-btn share-btn-facebook" data-channel="facebook" title="Facebook"><i class="fa-brands fa-facebook-f"></i></button>' +
+            '<button type="button" class="share-quick-btn share-btn-x" data-channel="x" title="X (Twitter)"><i class="fa-brands fa-x-twitter"></i></button>' +
+            '<button type="button" class="share-quick-btn share-btn-email" data-channel="email" title="Email"><i class="fa-solid fa-envelope"></i></button>' +
+        '</div>' +
+        '<div class="share-link-row" style="margin-top:12px">' +
+            '<input type="text" value="' + escapeHtml(productUrl) + '" id="shareProductUrl" readonly>' +
+            '<button type="button" class="btn-copy" id="copyShareUrl">Copy</button>' +
+        '</div>';
+
+        TinyShop.openModal('Share ' + escapeHtml(name), html);
+
+        var text = encodeURIComponent('Check out ' + name + '!');
+        $('.share-quick-btns-modal .share-quick-btn').on('click', function() {
+            var channel = $(this).data('channel');
+            var tracked = encodeURIComponent(productUrl + '?utm_source=' + channel);
+            var link = '';
+            switch (channel) {
+                case 'whatsapp': link = 'https://wa.me/?text=' + text + '%20' + tracked; break;
+                case 'facebook': link = 'https://www.facebook.com/sharer/sharer.php?u=' + tracked; break;
+                case 'x': link = 'https://twitter.com/intent/tweet?text=' + text + '&url=' + tracked; break;
+                case 'email': link = 'mailto:?subject=' + text + '&body=' + tracked; break;
+            }
+            if (link) window.open(link, '_blank');
+        });
+
+        $('#copyShareUrl').on('click', function() {
+            var $btn = $(this);
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(productUrl).then(function() {
+                    $btn.text('Copied!');
+                    TinyShop.toast('Link copied');
+                    setTimeout(function() { $btn.text('Copy'); }, 2000);
+                });
+            } else {
+                $('#shareProductUrl').select();
+                document.execCommand('copy');
+                $btn.text('Copied!');
+                TinyShop.toast('Link copied');
+                setTimeout(function() { $btn.text('Copy'); }, 2000);
+            }
+        });
+    });
 
     loadProducts();
 };

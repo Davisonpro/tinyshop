@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace TinyShop\Models;
 
-use TinyShop\Services\DB;
-use PDO;
+use TinyShop\Enums\FieldType;
 
-final class ProductImage
+class ProductImage extends Model
 {
-    private readonly PDO $db;
-
-    public function __construct(DB $database)
-    {
-        $this->db = $database->pdo();
-    }
+    protected static array $definition = [
+        'table'   => 'product_images',
+        'primary' => 'id',
+        'fields'  => [
+            'product_id' => ['type' => FieldType::Int, 'required' => true],
+            'image_url'  => ['type' => FieldType::String, 'required' => true, 'maxLength' => 500],
+            'sort_order' => ['type' => FieldType::Int, 'default' => 0],
+            'created_at' => ['type' => FieldType::DateTime],
+        ],
+    ];
 
     /**
      * Batch-load images for multiple products in a single query.
@@ -27,11 +30,10 @@ final class ProductImage
         }
 
         $placeholders = implode(',', array_fill(0, count($productIds), '?'));
-        $stmt = $this->db->prepare(
-            "SELECT * FROM product_images WHERE product_id IN ({$placeholders}) ORDER BY sort_order ASC, id ASC"
+        $rows = static::rawQuery(
+            "SELECT * FROM product_images WHERE product_id IN ({$placeholders}) ORDER BY sort_order ASC, id ASC",
+            $productIds
         );
-        $stmt->execute($productIds);
-        $rows = $stmt->fetchAll();
 
         $grouped = [];
         foreach ($rows as $row) {
@@ -43,32 +45,30 @@ final class ProductImage
 
     public function findByProduct(int $productId): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC'
+        return static::rawQuery(
+            'SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC',
+            [$productId]
         );
-        $stmt->execute([$productId]);
-        return $stmt->fetchAll();
     }
 
     public function create(int $productId, string $imageUrl, int $sortOrder = 0): int
     {
-        $stmt = $this->db->prepare(
-            'INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)'
-        );
-        $stmt->execute([$productId, $imageUrl, $sortOrder]);
-        return (int) $this->db->lastInsertId();
-    }
-
-    public function delete(int $id): bool
-    {
-        $stmt = $this->db->prepare('DELETE FROM product_images WHERE id = ?');
-        return $stmt->execute([$id]);
+        $img = new static();
+        $img->fill([
+            'product_id' => $productId,
+            'image_url'  => $imageUrl,
+            'sort_order' => $sortOrder,
+        ]);
+        $img->save();
+        return (int) $img->getId();
     }
 
     public function deleteByProduct(int $productId): bool
     {
-        $stmt = $this->db->prepare('DELETE FROM product_images WHERE product_id = ?');
-        return $stmt->execute([$productId]);
+        return static::rawExecute(
+            'DELETE FROM product_images WHERE product_id = ?',
+            [$productId]
+        ) >= 0;
     }
 
     /**
@@ -92,13 +92,14 @@ final class ProductImage
      */
     public function syncPrimary(int $productId): void
     {
-        $stmt = $this->db->prepare(
-            'SELECT image_url FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC LIMIT 1'
+        $url = static::rawScalar(
+            'SELECT image_url FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC LIMIT 1',
+            [$productId]
         );
-        $stmt->execute([$productId]);
-        $url = $stmt->fetchColumn() ?: null;
 
-        $stmt = $this->db->prepare('UPDATE products SET image_url = ? WHERE id = ?');
-        $stmt->execute([$url, $productId]);
+        static::rawExecute(
+            'UPDATE products SET image_url = ? WHERE id = ?',
+            [$url ?: null, $productId]
+        );
     }
 }

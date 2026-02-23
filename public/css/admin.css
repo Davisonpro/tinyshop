@@ -1,4 +1,164 @@
 @charset "UTF-8";
+/* ── Import Tool Styles (shared between admin + dashboard) ── */
+.import-url-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.import-url-row .form-control {
+  width: 100%;
+}
+
+.import-fetch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 20px;
+  white-space: nowrap;
+  border-radius: 14px;
+  font-weight: 600;
+  min-height: 50px;
+  width: 100%;
+}
+
+.import-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.import-picker-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.import-picker-info span:first-child {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.import-picker-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.import-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.import-cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.import-cat-chip i {
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+}
+
+.import-cat-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+.import-cat-remove:active {
+  color: var(--color-danger);
+}
+
+.import-source-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--color-bg-secondary);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 12px;
+}
+
+.import-source-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+.import-source-tab.active {
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.import-source-tab:active {
+  opacity: 0.7;
+}
+
+.import-reimport-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+
+.import-reimport-notice i {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.import-source-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.import-source-row i {
+  font-size: 0.75rem;
+}
+
+/* Dark mode */
+[data-theme=dark] .import-cat-chip {
+  background: #2C2C2E;
+}
+
+[data-theme=dark] .import-picker-sub {
+  color: #8E8E93;
+}
+
 /* ============================================================
    TinyShop — Admin Panel Styles
    Uses the same dashboard shell (bottom tabs, mobile-first).
@@ -653,50 +813,6 @@ a.sd-product-name:hover {
   color: #DC2626;
 }
 
-/* Plan change modal */
-.sd-plan-form {
-  padding: 4px 0;
-}
-
-.sd-plan-field {
-  margin-bottom: 14px;
-}
-
-.sd-plan-field label {
-  display: block;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: var(--color-text);
-}
-
-.sd-plan-select,
-.sd-plan-input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  font-size: 0.9375rem;
-  background: var(--color-bg);
-  color: var(--color-text);
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.sd-plan-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
-}
-
-.sd-plan-select:focus,
-.sd-plan-input:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
-}
-
 /* Pagination */
 .pagination {
   display: flex;
@@ -1070,6 +1186,11 @@ a.sd-product-name:hover {
   color: #34D399;
 }
 
+[data-theme=dark] .gateway-status-badge.badge-disabled {
+  background: rgba(142, 142, 147, 0.15);
+  color: #8E8E93;
+}
+
 /* Plan cards dark mode */
 [data-theme=dark] .plan-feature i {
   background: rgba(64, 156, 255, 0.15);
@@ -1136,6 +1257,11 @@ a.sd-product-name:hover {
   border-radius: 6px;
   font-size: 0.6875rem;
   font-weight: 600;
+}
+
+.gateway-status-badge.badge-disabled {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
 }
 
 /* Gateway modal header (Stripe/PayPal setup modals) */
@@ -1732,174 +1858,4 @@ a.help-admin-article:hover .help-admin-article-arrow {
 /* ============================================================
    Product Import Tool
    ============================================================ */
-.import-url-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.import-url-row .form-control {
-  width: 100%;
-}
-
-.import-fetch-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 20px;
-  white-space: nowrap;
-  border-radius: 14px;
-  font-weight: 600;
-  min-height: 50px;
-  width: 100%;
-}
-
-.import-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 40px 20px;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-}
-
-.import-picker-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.import-picker-info span:first-child {
-  display: block;
-  font-weight: 600;
-  font-size: 0.9375rem;
-}
-
-.import-picker-sub {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.import-categories {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.import-cat-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 99px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  background: var(--color-bg-secondary);
-  color: var(--color-text);
-}
-
-.import-cat-chip i {
-  font-size: 0.625rem;
-  color: var(--color-text-muted);
-}
-
-.import-cat-remove {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0 0 0 4px;
-  font-size: 1rem;
-  line-height: 1;
-  color: var(--color-text-muted);
-}
-.import-cat-remove:active {
-  color: var(--color-danger);
-}
-
-.import-source-tabs {
-  display: flex;
-  gap: 0;
-  background: var(--color-bg-secondary);
-  border-radius: 10px;
-  padding: 3px;
-  margin-bottom: 12px;
-}
-
-.import-source-tab {
-  flex: 1;
-  padding: 8px 16px;
-  border: none;
-  background: none;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.15s, color 0.15s;
-}
-.import-source-tab.active {
-  background: var(--color-bg);
-  color: var(--color-text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-.import-source-tab:active {
-  opacity: 0.7;
-}
-
-.import-variations-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: var(--color-bg-secondary);
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.import-var-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 13px 16px;
-  background: var(--color-bg);
-}
-
-.import-var-name {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.import-var-price {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.import-source-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-}
-
-.import-source-row i {
-  font-size: 0.75rem;
-}
-
-/* Import tool dark mode */
-[data-theme=dark] .import-cat-chip {
-  background: #2C2C2E;
-}
-
-[data-theme=dark] .import-picker-sub {
-  color: #8E8E93;
-}
+/* Import styles are in _import.scss (shared with dashboard) */

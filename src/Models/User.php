@@ -4,88 +4,124 @@ declare(strict_types=1);
 
 namespace TinyShop\Models;
 
+use PDO;
+use TinyShop\Enums\FieldType;
 use TinyShop\Enums\OrderStatus;
 use TinyShop\Enums\UserRole;
-use TinyShop\Services\DB;
-use PDO;
 
-final class User
+class User extends Model
 {
-    private readonly PDO $db;
-
-    public function __construct(DB $database)
-    {
-        $this->db = $database->pdo();
-    }
+    protected static array $definition = [
+        'table'   => 'users',
+        'primary' => 'id',
+        'fields'  => [
+            'name'                   => ['type' => FieldType::String, 'maxLength' => 255],
+            'email'                  => ['type' => FieldType::String, 'required' => true, 'maxLength' => 255],
+            'password_hash'          => ['type' => FieldType::String, 'maxLength' => 255],
+            'oauth_provider'         => ['type' => FieldType::String, 'maxLength' => 50],
+            'oauth_id'               => ['type' => FieldType::String, 'maxLength' => 255],
+            'role'                   => ['type' => FieldType::Enum, 'values' => ['admin', 'seller'], 'default' => 'seller'],
+            'store_name'             => ['type' => FieldType::String, 'maxLength' => 255],
+            'subdomain'              => ['type' => FieldType::String, 'maxLength' => 100],
+            'custom_domain'          => ['type' => FieldType::String, 'maxLength' => 255],
+            'shop_logo'              => ['type' => FieldType::String, 'maxLength' => 500],
+            'shop_favicon'           => ['type' => FieldType::String, 'maxLength' => 500],
+            'shop_tagline'           => ['type' => FieldType::String, 'maxLength' => 255],
+            'contact_whatsapp'       => ['type' => FieldType::String, 'maxLength' => 50],
+            'contact_email'          => ['type' => FieldType::String, 'maxLength' => 255],
+            'contact_phone'          => ['type' => FieldType::String, 'maxLength' => 50],
+            'map_link'               => ['type' => FieldType::String, 'maxLength' => 500],
+            'currency'               => ['type' => FieldType::String, 'maxLength' => 10],
+            'is_active'              => ['type' => FieldType::Bool, 'default' => 1],
+            'social_instagram'       => ['type' => FieldType::String, 'maxLength' => 255],
+            'social_tiktok'          => ['type' => FieldType::String, 'maxLength' => 255],
+            'social_facebook'        => ['type' => FieldType::String, 'maxLength' => 255],
+            'shop_theme'             => ['type' => FieldType::String, 'maxLength' => 50],
+            'color_palette'          => ['type' => FieldType::String, 'maxLength' => 50],
+            'logo_alignment'         => ['type' => FieldType::String, 'maxLength' => 20],
+            'product_image_fit'      => ['type' => FieldType::String, 'maxLength' => 20],
+            'stripe_public_key'      => ['type' => FieldType::String, 'maxLength' => 255],
+            'stripe_secret_key'      => ['type' => FieldType::String, 'maxLength' => 255],
+            'stripe_mode'            => ['type' => FieldType::String, 'maxLength' => 10],
+            'stripe_enabled'         => ['type' => FieldType::Bool, 'default' => 0],
+            'paypal_client_id'       => ['type' => FieldType::String, 'maxLength' => 255],
+            'paypal_secret'          => ['type' => FieldType::String, 'maxLength' => 255],
+            'paypal_mode'            => ['type' => FieldType::String, 'maxLength' => 10],
+            'paypal_enabled'         => ['type' => FieldType::Bool, 'default' => 0],
+            'cod_enabled'            => ['type' => FieldType::Bool, 'default' => 0],
+            'mpesa_shortcode'        => ['type' => FieldType::String, 'maxLength' => 50],
+            'mpesa_consumer_key'     => ['type' => FieldType::String, 'maxLength' => 255],
+            'mpesa_consumer_secret'  => ['type' => FieldType::String, 'maxLength' => 255],
+            'mpesa_passkey'          => ['type' => FieldType::String, 'maxLength' => 255],
+            'mpesa_mode'             => ['type' => FieldType::String, 'maxLength' => 10],
+            'mpesa_enabled'          => ['type' => FieldType::Bool, 'default' => 0],
+            'pesapal_consumer_key'   => ['type' => FieldType::String, 'maxLength' => 255],
+            'pesapal_consumer_secret' => ['type' => FieldType::String, 'maxLength' => 255],
+            'pesapal_mode'           => ['type' => FieldType::String, 'maxLength' => 10],
+            'pesapal_enabled'        => ['type' => FieldType::Bool, 'default' => 0],
+            'plan_id'                => ['type' => FieldType::Int],
+            'plan_expires_at'        => ['type' => FieldType::DateTime],
+            'payment_mode'           => ['type' => FieldType::String, 'maxLength' => 20],
+            'is_showcased'           => ['type' => FieldType::Bool, 'default' => 0],
+            'show_logo'              => ['type' => FieldType::Bool, 'default' => 1],
+            'show_store_name'        => ['type' => FieldType::Bool, 'default' => 1],
+            'show_tagline'           => ['type' => FieldType::Bool, 'default' => 1],
+            'show_search'            => ['type' => FieldType::Bool, 'default' => 1],
+            'show_categories'        => ['type' => FieldType::Bool, 'default' => 1],
+            'show_sort_toolbar'      => ['type' => FieldType::Bool, 'default' => 1],
+            'show_desktop_footer'    => ['type' => FieldType::Bool, 'default' => 1],
+            'announcement_text'      => ['type' => FieldType::String, 'maxLength' => 500],
+            'google_verification'    => ['type' => FieldType::String, 'maxLength' => 255],
+            'bing_verification'      => ['type' => FieldType::String, 'maxLength' => 255],
+            'last_login_at'          => ['type' => FieldType::DateTime],
+            'login_count'            => ['type' => FieldType::Int, 'default' => 0],
+            'created_at'             => ['type' => FieldType::DateTime],
+            'updated_at'             => ['type' => FieldType::DateTime],
+        ],
+    ];
 
     // ── Finders ──
 
-    public function findById(int $id): ?array
-    {
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE id = ?');
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
-        return $row ?: null;
-    }
-
-    public function findByEmail(string $email): ?array
-    {
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE email = ?');
-        $stmt->execute([$email]);
-        $row = $stmt->fetch();
-        return $row ?: null;
-    }
-
     public function findByOAuth(string $provider, string $oauthId): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE oauth_provider = ? AND oauth_id = ?');
-        $stmt->execute([$provider, $oauthId]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        $result = static::findWhere(['oauth_provider' => $provider, 'oauth_id' => $oauthId]);
+        return $result?->toArray();
     }
 
     public function findBySubdomain(string $subdomain): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE subdomain = ? AND is_active = 1');
-        $stmt->execute([$subdomain]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        $rows = static::rawQuery(
+            'SELECT * FROM users WHERE subdomain = ? AND is_active = 1',
+            [$subdomain]
+        );
+        return $rows[0] ?? null;
     }
 
     public function findByCustomDomain(string $domain): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE custom_domain = ? AND is_active = 1');
-        $stmt->execute([$domain]);
-        $row = $stmt->fetch();
-        return $row ?: null;
-    }
-
-    public function customDomainExists(string $domain, ?int $excludeId = null): bool
-    {
-        if ($excludeId) {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE custom_domain = ? AND id != ?');
-            $stmt->execute([$domain, $excludeId]);
-        } else {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE custom_domain = ?');
-            $stmt->execute([$domain]);
-        }
-        return (int) $stmt->fetchColumn() > 0;
+        $rows = static::rawQuery(
+            'SELECT * FROM users WHERE custom_domain = ? AND is_active = 1',
+            [$domain]
+        );
+        return $rows[0] ?? null;
     }
 
     // ── Admin queries ──
 
     public function countByRole(string $role): int
     {
-        $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE role = ?');
-        $stmt->execute([$role]);
-        return (int) $stmt->fetchColumn();
+        return (int) static::rawScalar(
+            'SELECT COUNT(*) FROM users WHERE role = ?',
+            [$role]
+        );
     }
 
     public function countActive(): int
     {
-        $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE is_active = 1 AND role = ?');
-        $stmt->execute([UserRole::Seller->value]);
-        return (int) $stmt->fetchColumn();
+        return (int) static::rawScalar(
+            'SELECT COUNT(*) FROM users WHERE is_active = 1 AND role = ?',
+            [UserRole::Seller->value]
+        );
     }
 
     public function findSellers(int $limit = 50, int $offset = 0, string $search = ''): array
@@ -102,7 +138,8 @@ final class User
 
         $sql .= ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
 
-        $stmt = $this->db->prepare($sql);
+        $db = static::db();
+        $stmt = $db->prepare($sql);
         $i = 1;
         foreach ($params as $p) {
             $stmt->bindValue($i++, $p);
@@ -110,7 +147,7 @@ final class User
         $stmt->bindValue($i++, $limit, PDO::PARAM_INT);
         $stmt->bindValue($i, $offset, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function countSellers(string $search = ''): int
@@ -124,77 +161,78 @@ final class User
             $params = array_merge($params, [$like, $like, $like, $like]);
         }
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return (int) $stmt->fetchColumn();
+        return (int) static::rawScalar($sql, $params);
     }
 
     public function getSellerWithStats(int $id): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE id = ? AND role = ?');
-        $stmt->execute([$id, UserRole::Seller->value]);
-        $seller = $stmt->fetch();
-        if (!$seller) return null;
+        $rows = static::rawQuery(
+            'SELECT * FROM users WHERE id = ? AND role = ?',
+            [$id, UserRole::Seller->value]
+        );
+        $seller = $rows[0] ?? null;
+        if (!$seller) {
+            return null;
+        }
 
-        // Product count
-        $stmt = $this->db->prepare('SELECT COUNT(*) FROM products WHERE user_id = ?');
-        $stmt->execute([$id]);
-        $seller['product_count'] = (int) $stmt->fetchColumn();
+        $seller['product_count'] = (int) static::rawScalar(
+            'SELECT COUNT(*) FROM products WHERE user_id = ?',
+            [$id]
+        );
 
-        // Order stats
-        $stmt = $this->db->prepare(
+        $stats = static::rawQuery(
             'SELECT COUNT(*) as order_count,
                     COALESCE(SUM(amount), 0) as total_revenue,
                     COALESCE(SUM(CASE WHEN status = ? THEN amount ELSE 0 END), 0) as paid_revenue
-             FROM orders WHERE user_id = ?'
+             FROM orders WHERE user_id = ?',
+            [OrderStatus::Paid->value, $id]
         );
-        $stmt->execute([OrderStatus::Paid->value, $id]);
-        $stats = $stmt->fetch();
-        $seller['order_count'] = (int) $stats['order_count'];
-        $seller['total_revenue'] = (float) $stats['total_revenue'];
-        $seller['paid_revenue'] = (float) $stats['paid_revenue'];
+        $s = $stats[0] ?? ['order_count' => 0, 'total_revenue' => 0, 'paid_revenue' => 0];
+        $seller['order_count'] = (int) $s['order_count'];
+        $seller['total_revenue'] = (float) $s['total_revenue'];
+        $seller['paid_revenue'] = (float) $s['paid_revenue'];
 
-        // View count
-        $stmt = $this->db->prepare('SELECT COUNT(*) FROM shop_views WHERE user_id = ?');
-        $stmt->execute([$id]);
-        $seller['view_count'] = (int) $stmt->fetchColumn();
+        $seller['view_count'] = (int) static::rawScalar(
+            'SELECT COUNT(*) FROM shop_views WHERE user_id = ?',
+            [$id]
+        );
 
         return $seller;
     }
 
     public function recentSignups(int $days = 7): int
     {
-        $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM users WHERE role = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)'
+        return (int) static::rawScalar(
+            'SELECT COUNT(*) FROM users WHERE role = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)',
+            [UserRole::Seller->value, $days]
         );
-        $stmt->execute([UserRole::Seller->value, $days]);
-        return (int) $stmt->fetchColumn();
     }
 
     // ── Mutations ──
 
     public function create(array $data): int
     {
-        $stmt = $this->db->prepare(
-            'INSERT INTO users (name, email, password_hash, oauth_provider, oauth_id, role, store_name, subdomain) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
-            $data['name'] ?? $data['store_name'] ?? '',
-            $data['email'],
-            $data['password_hash'] ?? null,
-            $data['oauth_provider'] ?? null,
-            $data['oauth_id'] ?? null,
-            $data['role'] ?? UserRole::Seller->value,
-            $data['store_name'] ?? null,
-            $data['subdomain'] ?? null,
+        $user = new static();
+        $user->fill([
+            'name'           => $data['name'] ?? $data['store_name'] ?? '',
+            'email'          => $data['email'],
+            'password_hash'  => $data['password_hash'] ?? null,
+            'oauth_provider' => $data['oauth_provider'] ?? null,
+            'oauth_id'       => $data['oauth_id'] ?? null,
+            'role'           => $data['role'] ?? UserRole::Seller->value,
+            'store_name'     => $data['store_name'] ?? null,
+            'subdomain'      => $data['subdomain'] ?? null,
         ]);
-        return (int) $this->db->lastInsertId();
+        $user->save();
+        return (int) $user->getId();
     }
 
     public function update(int $id, array $data): bool
     {
-        $fields = [];
-        $values = [];
+        $user = static::find($id);
+        if (!$user) {
+            return false;
+        }
 
         $allowed = [
             'name', 'email', 'store_name', 'subdomain', 'custom_domain',
@@ -207,9 +245,11 @@ final class User
             'cod_enabled',
             'mpesa_shortcode', 'mpesa_consumer_key', 'mpesa_consumer_secret',
             'mpesa_passkey', 'mpesa_mode', 'mpesa_enabled',
+            'pesapal_consumer_key', 'pesapal_consumer_secret',
+            'pesapal_mode', 'pesapal_enabled',
             'plan_id', 'plan_expires_at',
             'payment_mode', 'is_showcased',
-            'show_store_name', 'show_tagline', 'show_search',
+            'show_logo', 'show_store_name', 'show_tagline', 'show_search',
             'show_categories', 'show_sort_toolbar', 'show_desktop_footer',
             'announcement_text',
             'google_verification', 'bing_verification',
@@ -217,100 +257,75 @@ final class User
 
         foreach ($allowed as $field) {
             if (array_key_exists($field, $data)) {
-                $fields[] = "`{$field}` = ?";
-                $values[] = $data[$field];
+                $user->{$field} = $data[$field];
             }
         }
 
-        if (empty($fields)) {
-            return false;
-        }
-
-        $values[] = $id;
-        $sql = 'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?';
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($values);
+        return $user->save();
     }
 
     public function recordLogin(int $id): void
     {
-        $stmt = $this->db->prepare(
-            'UPDATE users SET last_login_at = NOW(), login_count = login_count + 1 WHERE id = ?'
+        static::increment($id, 'login_count');
+        static::rawExecute(
+            'UPDATE users SET last_login_at = NOW() WHERE id = ?',
+            [$id]
         );
-        $stmt->execute([$id]);
     }
 
     public function isActive(int $id): bool
     {
-        $stmt = $this->db->prepare('SELECT is_active FROM users WHERE id = ?');
-        $stmt->execute([$id]);
-        return (int) $stmt->fetchColumn() === 1;
+        return (int) static::rawScalar(
+            'SELECT is_active FROM users WHERE id = ?',
+            [$id]
+        ) === 1;
     }
 
     public function toggleActive(int $id, bool $active): bool
     {
-        $stmt = $this->db->prepare('UPDATE users SET is_active = ? WHERE id = ?');
-        return $stmt->execute([$active ? 1 : 0, $id]);
-    }
-
-    public function subdomainExists(string $subdomain, ?int $excludeId = null): bool
-    {
-        if ($excludeId) {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE subdomain = ? AND id != ?');
-            $stmt->execute([$subdomain, $excludeId]);
-        } else {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE subdomain = ?');
-            $stmt->execute([$subdomain]);
-        }
-        return (int) $stmt->fetchColumn() > 0;
+        return static::rawExecute(
+            'UPDATE users SET is_active = ? WHERE id = ?',
+            [$active ? 1 : 0, $id]
+        ) > 0;
     }
 
     public function getPasswordHash(int $id): ?string
     {
-        $stmt = $this->db->prepare('SELECT password_hash FROM users WHERE id = ?');
-        $stmt->execute([$id]);
-        $hash = $stmt->fetchColumn();
+        $hash = static::rawScalar(
+            'SELECT password_hash FROM users WHERE id = ?',
+            [$id]
+        );
         return $hash ?: null;
     }
 
     public function updatePassword(int $id, string $hash): bool
     {
-        $stmt = $this->db->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
-        return $stmt->execute([$hash, $id]);
+        return static::rawExecute(
+            'UPDATE users SET password_hash = ? WHERE id = ?',
+            [$hash, $id]
+        ) > 0;
     }
 
     public function updateOAuth(int $id, string $provider, string $oauthId): bool
     {
-        $stmt = $this->db->prepare('UPDATE users SET oauth_provider = ?, oauth_id = ? WHERE id = ?');
-        return $stmt->execute([$provider, $oauthId, $id]);
+        return static::rawExecute(
+            'UPDATE users SET oauth_provider = ?, oauth_id = ? WHERE id = ?',
+            [$provider, $oauthId, $id]
+        ) > 0;
     }
 
     public function updateEmail(int $id, string $email): bool
     {
-        $stmt = $this->db->prepare('UPDATE users SET email = ? WHERE id = ?');
-        return $stmt->execute([$email, $id]);
+        return static::rawExecute(
+            'UPDATE users SET email = ? WHERE id = ?',
+            [$email, $id]
+        ) > 0;
     }
 
-    public function emailExists(string $email, ?int $excludeId = null): bool
-    {
-        if ($excludeId) {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE email = ? AND id != ?');
-            $stmt->execute([$email, $excludeId]);
-        } else {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE email = ?');
-            $stmt->execute([$email]);
-        }
-        return (int) $stmt->fetchColumn() > 0;
-    }
-
-    /**
-     * Permanently delete a user account and all associated data.
-     * Returns an array of uploaded file URLs for cleanup, or false on failure.
-     * @return string[]|false
-     */
     public function findShowcased(int $limit = 12): array
     {
-        $stmt = $this->db->prepare(
+        $db = static::db();
+        $stmt = $db->prepare(
             'SELECT id, store_name, subdomain, shop_logo, shop_tagline
              FROM users
              WHERE is_showcased = 1 AND is_active = 1 AND subdomain IS NOT NULL
@@ -318,92 +333,83 @@ final class User
              LIMIT ?'
         );
         $stmt->execute([$limit]);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Permanently delete a user account and all associated data.
+     * Returns an array of uploaded file URLs for cleanup, or false on failure.
+     * @return string[]|false
+     */
     public function deleteAccount(int $id): array|false
     {
+        $db = static::db();
+
         // Collect file URLs before deleting rows
         $urls = [];
 
-        $stmt = $this->db->prepare(
+        $stmt = $db->prepare(
             'SELECT pi.image_url FROM product_images pi
              INNER JOIN products p ON pi.product_id = p.id
              WHERE p.user_id = ? AND pi.image_url IS NOT NULL'
         );
         $stmt->execute([$id]);
         foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $url) {
-            if ($url) $urls[] = $url;
+            if ($url) {
+                $urls[] = $url;
+            }
         }
 
-        $stmt = $this->db->prepare('SELECT image_url FROM products WHERE user_id = ? AND image_url IS NOT NULL');
+        $stmt = $db->prepare('SELECT image_url FROM products WHERE user_id = ? AND image_url IS NOT NULL');
         $stmt->execute([$id]);
         foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $url) {
-            if ($url) $urls[] = $url;
+            if ($url) {
+                $urls[] = $url;
+            }
         }
 
-        $stmt = $this->db->prepare('SELECT image_url FROM categories WHERE user_id = ? AND image_url IS NOT NULL');
+        $stmt = $db->prepare('SELECT image_url FROM categories WHERE user_id = ? AND image_url IS NOT NULL');
         $stmt->execute([$id]);
         foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $url) {
-            if ($url) $urls[] = $url;
+            if ($url) {
+                $urls[] = $url;
+            }
         }
 
-        $stmt = $this->db->prepare('SELECT image_url FROM hero_slides WHERE user_id = ? AND image_url IS NOT NULL');
-        $stmt->execute([$id]);
-        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $url) {
-            if ($url) $urls[] = $url;
-        }
-
-        $stmt = $this->db->prepare('SELECT shop_logo FROM users WHERE id = ?');
+        $stmt = $db->prepare('SELECT shop_logo FROM users WHERE id = ?');
         $stmt->execute([$id]);
         $logo = $stmt->fetchColumn();
-        if ($logo) $urls[] = $logo;
+        if ($logo) {
+            $urls[] = $logo;
+        }
 
-        $this->db->beginTransaction();
         try {
-            // Delete product images
-            $this->db->prepare(
-                'DELETE pi FROM product_images pi
-                 INNER JOIN products p ON pi.product_id = p.id
-                 WHERE p.user_id = ?'
-            )->execute([$id]);
+            static::transaction(function (\PDO $db) use ($id): void {
+                $db->prepare(
+                    'DELETE pi FROM product_images pi
+                     INNER JOIN products p ON pi.product_id = p.id
+                     WHERE p.user_id = ?'
+                )->execute([$id]);
 
-            // Delete products
-            $this->db->prepare('DELETE FROM products WHERE user_id = ?')->execute([$id]);
+                $db->prepare('DELETE FROM products WHERE user_id = ?')->execute([$id]);
+                $db->prepare('DELETE FROM categories WHERE user_id = ?')->execute([$id]);
+                $db->prepare('DELETE FROM shop_views WHERE user_id = ?')->execute([$id]);
 
-            // Delete categories
-            $this->db->prepare('DELETE FROM categories WHERE user_id = ?')->execute([$id]);
+                $db->prepare(
+                    'DELETE oi FROM order_items oi
+                     INNER JOIN orders o ON oi.order_id = o.id
+                     WHERE o.user_id = ?'
+                )->execute([$id]);
+                $db->prepare('DELETE FROM orders WHERE user_id = ?')->execute([$id]);
 
-            // Delete shop views
-            $this->db->prepare('DELETE FROM shop_views WHERE user_id = ?')->execute([$id]);
-
-            // Delete orders
-            $this->db->prepare(
-                'DELETE oi FROM order_items oi
-                 INNER JOIN orders o ON oi.order_id = o.id
-                 WHERE o.user_id = ?'
-            )->execute([$id]);
-            $this->db->prepare('DELETE FROM orders WHERE user_id = ?')->execute([$id]);
-
-            // Delete billing pending records
-            $this->db->prepare('DELETE FROM billing_mpesa_pending WHERE user_id = ?')->execute([$id]);
-
-            // Delete hero slides
-            $this->db->prepare('DELETE FROM hero_slides WHERE user_id = ?')->execute([$id]);
-
-            // Delete coupons
-            $this->db->prepare('DELETE FROM coupons WHERE user_id = ?')->execute([$id]);
-
-            // Delete subscriptions
-            $this->db->prepare('DELETE FROM subscriptions WHERE user_id = ?')->execute([$id]);
-
-            // Delete the user
-            $this->db->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);
-
-            $this->db->commit();
+                $db->prepare('DELETE FROM billing_mpesa_pending WHERE user_id = ?')->execute([$id]);
+                $db->prepare('DELETE FROM theme_options WHERE user_id = ?')->execute([$id]);
+                $db->prepare('DELETE FROM coupons WHERE user_id = ?')->execute([$id]);
+                $db->prepare('DELETE FROM subscriptions WHERE user_id = ?')->execute([$id]);
+                $db->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);
+            });
             return $urls;
         } catch (\Throwable) {
-            $this->db->rollBack();
             return false;
         }
     }

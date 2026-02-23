@@ -44,7 +44,7 @@ final class CategoryController
 
         // Validate parent belongs to this user
         if ($parentId) {
-            $parent = $this->categoryModel->findById($parentId);
+            $parent = Category::find($parentId);
             if (!$parent || (int) $parent['user_id'] !== $this->auth->userId()) {
                 return $this->json($response, ['error' => true, 'message' => 'Parent category not found'], 404);
             }
@@ -62,14 +62,14 @@ final class CategoryController
             'sort_order' => (int) ($data['sort_order'] ?? 0),
         ]);
 
-        $category = $this->categoryModel->findById($id);
+        $category = Category::find($id);
         return $this->json($response, ['success' => true, 'category' => $category], 201);
     }
 
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
-        $category = $this->categoryModel->findById($id);
+        $category = Category::find($id);
 
         if (!$category || (int) $category['user_id'] !== $this->auth->userId()) {
             return $this->json($response, ['error' => true, 'message' => 'Category not found'], 404);
@@ -95,7 +95,7 @@ final class CategoryController
                     return $this->json($response, ['error' => true, 'message' => 'A category cannot be its own parent'], 422);
                 }
                 // Validate parent belongs to this user
-                $parent = $this->categoryModel->findById($newParentId);
+                $parent = Category::find($newParentId);
                 if (!$parent || (int) $parent['user_id'] !== $this->auth->userId()) {
                     return $this->json($response, ['error' => true, 'message' => 'Parent category not found'], 404);
                 }
@@ -108,7 +108,7 @@ final class CategoryController
         }
 
         $this->categoryModel->update($id, $updateData);
-        $category = $this->categoryModel->findById($id);
+        $category = Category::find($id);
 
         return $this->json($response, ['success' => true, 'category' => $category]);
     }
@@ -116,7 +116,7 @@ final class CategoryController
     public function delete(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
-        $category = $this->categoryModel->findById($id);
+        $category = Category::find($id);
 
         if (!$category || (int) $category['user_id'] !== $this->auth->userId()) {
             return $this->json($response, ['error' => true, 'message' => 'Category not found'], 404);

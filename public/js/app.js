@@ -244,10 +244,10 @@ $(function() {
   });
   $(document).on("click", "[data-share-trigger]", function(e) {
     e.preventDefault();
-    var url = window.location.href;
+    var baseUrl = window.location.href.split("?")[0];
     var title = document.title;
     if (navigator.share) {
-      navigator.share({ title, url }).then(function() {
+      navigator.share({ title, url: baseUrl + "?utm_source=native" }).then(function() {
         TinyShop.toast("Thanks for sharing!");
       }).catch(function() {
       });
@@ -256,19 +256,19 @@ $(function() {
     var $b = $("#shareSheetBackdrop");
     $b.find('[data-share-action="whatsapp"]').attr(
       "href",
-      "https://wa.me/?text=" + encodeURIComponent(title + " " + url)
+      "https://wa.me/?text=" + encodeURIComponent(title + " " + baseUrl + "?utm_source=whatsapp")
     );
     $b.find('[data-share-action="facebook"]').attr(
       "href",
-      "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url)
+      "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(baseUrl + "?utm_source=facebook")
     );
     $b.find('[data-share-action="twitter"]').attr(
       "href",
-      "https://twitter.com/intent/tweet?text=" + encodeURIComponent(title) + "&url=" + encodeURIComponent(url)
+      "https://twitter.com/intent/tweet?text=" + encodeURIComponent(title) + "&url=" + encodeURIComponent(baseUrl + "?utm_source=x")
     );
     $b.find('[data-share-action="email"]').attr(
       "href",
-      "mailto:?subject=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(url)
+      "mailto:?subject=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(baseUrl + "?utm_source=email")
     );
     $b.addClass("active");
     document.body.style.overflow = "hidden";
@@ -323,6 +323,9 @@ TinyShop.imageViewer = {
   _images: [],
   _current: 0,
   _keyBound: false,
+  _scale: 1,
+  _panX: 0,
+  _panY: 0,
   open: function(images, startIndex) {
     var self = this;
     self._images = images;
@@ -339,6 +342,7 @@ TinyShop.imageViewer = {
   close: function() {
     var self = this;
     if (!self._el) return;
+    if (self._resetZoom) self._resetZoom();
     self._el.classList.remove("active");
   },
   _build: function() {
@@ -371,16 +375,100 @@ TinyShop.imageViewer = {
         if (e.key === "ArrowRight") self._go(self._current + 1);
       });
     }
-    var startX = 0, startY = 0, tracking = false;
     var img = div.querySelector(".image-viewer-img");
+    var startX = 0, startY = 0, tracking = false;
+    var pinchStartDist = 0, pinchStartScale = 1;
+    var panStartX = 0, panStartY = 0, panBaseX = 0, panBaseY = 0, isPanning = false;
+    var lastTap = 0;
+    function getDistance(t1, t2) {
+      var dx = t1.clientX - t2.clientX;
+      var dy = t1.clientY - t2.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    function applyTransform() {
+      img.style.transform = "translate(" + self._panX + "px, " + self._panY + "px) scale(" + self._scale + ")";
+    }
+    self._resetZoom = function() {
+      self._scale = 1;
+      self._panX = 0;
+      self._panY = 0;
+      img.style.transform = "";
+      img.style.transition = "";
+    };
     img.addEventListener("touchstart", function(e) {
-      if (e.touches.length === 1) {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        tracking = true;
+      img.style.transition = "none";
+      if (e.touches.length === 2) {
+        tracking = false;
+        isPanning = false;
+        pinchStartDist = getDistance(e.touches[0], e.touches[1]);
+        pinchStartScale = self._scale;
+        return;
       }
-    }, { passive: true });
+      if (e.touches.length === 1) {
+        var now = Date.now();
+        if (now - lastTap < 300) {
+          e.preventDefault();
+          if (self._scale > 1.05) {
+            img.style.transition = "transform 0.25s ease";
+            self._scale = 1;
+            self._panX = 0;
+            self._panY = 0;
+          } else {
+            img.style.transition = "transform 0.25s ease";
+            self._scale = 2;
+            self._panX = 0;
+            self._panY = 0;
+          }
+          applyTransform();
+          lastTap = 0;
+          tracking = false;
+          return;
+        }
+        lastTap = now;
+        if (self._scale > 1.05) {
+          isPanning = true;
+          tracking = false;
+          panStartX = e.touches[0].clientX;
+          panStartY = e.touches[0].clientY;
+          panBaseX = self._panX;
+          panBaseY = self._panY;
+        } else {
+          isPanning = false;
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          tracking = true;
+        }
+      }
+    }, { passive: false });
+    img.addEventListener("touchmove", function(e) {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        var dist = getDistance(e.touches[0], e.touches[1]);
+        var newScale = pinchStartScale * (dist / pinchStartDist);
+        self._scale = Math.min(Math.max(newScale, 1), 3);
+        if (self._scale <= 1.02) {
+          self._panX = 0;
+          self._panY = 0;
+        }
+        applyTransform();
+        return;
+      }
+      if (isPanning && e.touches.length === 1) {
+        e.preventDefault();
+        self._panX = panBaseX + (e.touches[0].clientX - panStartX);
+        self._panY = panBaseY + (e.touches[0].clientY - panStartY);
+        applyTransform();
+      }
+    }, { passive: false });
     img.addEventListener("touchend", function(e) {
+      if (e.touches.length === 0 && isPanning) {
+        isPanning = false;
+        if (self._scale <= 1.02) {
+          img.style.transition = "transform 0.2s ease";
+          self._resetZoom();
+        }
+        return;
+      }
       if (!tracking) return;
       tracking = false;
       var dx = e.changedTouches[0].clientX - startX;
@@ -412,6 +500,7 @@ TinyShop.imageViewer = {
   _go: function(idx) {
     var self = this;
     if (self._images.length <= 1) return;
+    if (self._resetZoom) self._resetZoom();
     self._current = (idx % self._images.length + self._images.length) % self._images.length;
     self._show();
   }
@@ -821,17 +910,6 @@ TinyShop.initShop = function() {
       showSubcategoryRow(String(serverSlug));
     }
   }
-  var urlCategory = urlParams.get("category");
-  if (urlCategory && !serverCategory) {
-    state.category = urlCategory;
-    syncCategoryUI(urlCategory);
-    var $activeTab = $("#categoryTabs .category-tab.active");
-    if ($activeTab.length && $activeTab.data("slug")) {
-      state.categorySlug = String($activeTab.data("slug"));
-      history.replaceState(null, "", "/collections/" + encodeURIComponent(state.categorySlug));
-    }
-    needsFetch = true;
-  }
   if (urlSearch && $searchInput.length) {
     $searchInput.val(urlSearch);
     $searchClear.toggleClass("visible", urlSearch.length > 0);
@@ -896,6 +974,31 @@ TinyShop.initShop = function() {
 };
 $(document).on("page:init", function() {
   TinyShop.initShop();
+});
+$(function() {
+  $(document).on("click", ".contact-sheet-toggle", function(e) {
+    e.preventDefault();
+    $("#contactSheetBackdrop").addClass("active");
+    document.body.style.overflow = "hidden";
+  });
+  $(document).on("click", "#contactSheetBackdrop", function(e) {
+    if (e.target === this) {
+      $(this).removeClass("active");
+      document.body.style.overflow = "";
+    }
+  });
+  $(document).on("click", ".contact-sheet-close", function() {
+    $("#contactSheetBackdrop").removeClass("active");
+    document.body.style.overflow = "";
+  });
+  $(document).on("keydown", function(e) {
+    if (e.key !== "Escape") return;
+    var $contact = $("#contactSheetBackdrop");
+    if ($contact.hasClass("active")) {
+      $contact.removeClass("active");
+      document.body.style.overflow = "";
+    }
+  });
 });
 TinyShop.spa = {
   _ready: false,

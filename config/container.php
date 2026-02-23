@@ -8,13 +8,15 @@ use TinyShop\Services\DB;
 use TinyShop\Services\Logger;
 use TinyShop\Services\View;
 use TinyShop\Services\Auth;
+use TinyShop\Services\CustomerAuth;
 use TinyShop\Services\Upload;
-use TinyShop\Services\OAuth;
+use TinyShop\Services\OAuth\OAuthProviderFactory;
 use TinyShop\Services\Mailer;
-use TinyShop\Services\Payment;
+use TinyShop\Services\Gateways\GatewayFactory;
 use TinyShop\Services\Validation;
 use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Theme;
+use TinyShop\Services\ThemeCustomizer;
 use TinyShop\Models\Setting;
 use TinyShop\Models\Plan;
 use TinyShop\Models\Product;
@@ -34,6 +36,10 @@ return function (Config $config, array $dbConfig): array {
             return new Auth();
         },
 
+        CustomerAuth::class => function () {
+            return new CustomerAuth();
+        },
+
         View::class => function ($container) use ($config) {
             return new View($config, $container->get(Auth::class), $container->get(Setting::class));
         },
@@ -42,8 +48,8 @@ return function (Config $config, array $dbConfig): array {
             return new Upload($config, $container->get(Setting::class));
         },
 
-        OAuth::class => function () use ($oauthConfig, $config) {
-            return new OAuth($oauthConfig, $config->url());
+        OAuthProviderFactory::class => function () use ($oauthConfig, $config) {
+            return new OAuthProviderFactory($oauthConfig, $config->url());
         },
 
         Mailer::class => function ($container) use ($config) {
@@ -54,12 +60,16 @@ return function (Config $config, array $dbConfig): array {
             return new Validation();
         },
 
-        Payment::class => function () {
-            return new Payment();
+        GatewayFactory::class => function () {
+            return new GatewayFactory();
         },
 
-        Theme::class => function () use ($config) {
-            return new Theme($config);
+        ThemeCustomizer::class => function () {
+            return new ThemeCustomizer();
+        },
+
+        Theme::class => function ($container) use ($config) {
+            return new Theme($config, $container->get(ThemeCustomizer::class));
         },
 
         PlanGuard::class => function ($container) {

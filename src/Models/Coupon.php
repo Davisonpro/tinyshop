@@ -4,106 +4,91 @@ declare(strict_types=1);
 
 namespace TinyShop\Models;
 
-use TinyShop\Services\DB;
-use PDO;
+use TinyShop\Enums\FieldType;
 
-final class Coupon
+class Coupon extends Model
 {
-    private readonly PDO $db;
-
-    public function __construct(DB $database)
-    {
-        $this->db = $database->pdo();
-    }
+    protected static array $definition = [
+        'table'   => 'coupons',
+        'primary' => 'id',
+        'fields'  => [
+            'user_id'    => ['type' => FieldType::Int, 'required' => true],
+            'code'       => ['type' => FieldType::String, 'required' => true, 'maxLength' => 50],
+            'type'       => ['type' => FieldType::Enum, 'values' => ['percent', 'fixed'], 'default' => 'percent'],
+            'value'      => ['type' => FieldType::Decimal, 'required' => true],
+            'min_order'  => ['type' => FieldType::Decimal],
+            'max_uses'   => ['type' => FieldType::Int],
+            'used_count' => ['type' => FieldType::Int, 'default' => 0],
+            'is_active'  => ['type' => FieldType::Bool, 'default' => 1],
+            'expires_at' => ['type' => FieldType::DateTime],
+            'created_at' => ['type' => FieldType::DateTime],
+            'updated_at' => ['type' => FieldType::DateTime],
+        ],
+    ];
 
     public function findByUser(int $userId): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT * FROM coupons WHERE user_id = ? ORDER BY created_at DESC'
+        return static::rawQuery(
+            'SELECT * FROM coupons WHERE user_id = ? ORDER BY created_at DESC',
+            [$userId]
         );
-        $stmt->execute([$userId]);
-        return $stmt->fetchAll();
-    }
-
-    public function findById(int $id): ?array
-    {
-        $stmt = $this->db->prepare('SELECT * FROM coupons WHERE id = ?');
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
-        return $row ?: null;
     }
 
     public function findByUserAndCode(int $userId, string $code): ?array
     {
-        $stmt = $this->db->prepare(
-            'SELECT * FROM coupons WHERE user_id = ? AND code = ?'
+        $rows = static::rawQuery(
+            'SELECT * FROM coupons WHERE user_id = ? AND code = ?',
+            [$userId, strtoupper(trim($code))]
         );
-        $stmt->execute([$userId, strtoupper(trim($code))]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        return $rows[0] ?? null;
     }
 
     public function create(array $data): int
     {
-        $stmt = $this->db->prepare(
-            'INSERT INTO coupons (user_id, code, type, value, min_order, max_uses, is_active, expires_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
-            $data['user_id'],
-            strtoupper(trim($data['code'])),
-            $data['type'] ?? 'percent',
-            $data['value'],
-            $data['min_order'] ?? null,
-            $data['max_uses'] ?? null,
-            $data['is_active'] ?? 1,
-            $data['expires_at'] ?? null,
+        $coupon = new static();
+        $coupon->fill([
+            'user_id'    => $data['user_id'],
+            'code'       => strtoupper(trim($data['code'])),
+            'type'       => $data['type'] ?? 'percent',
+            'value'      => $data['value'],
+            'min_order'  => $data['min_order'] ?? null,
+            'max_uses'   => $data['max_uses'] ?? null,
+            'is_active'  => $data['is_active'] ?? 1,
+            'expires_at' => $data['expires_at'] ?? null,
         ]);
-        return (int) $this->db->lastInsertId();
+        $coupon->save();
+        return (int) $coupon->getId();
     }
 
     public function update(int $id, array $data): bool
     {
-        $allowed = ['code', 'type', 'value', 'min_order', 'max_uses', 'is_active', 'expires_at'];
-        $fields = [];
-        $values = [];
-
-        foreach ($data as $key => $value) {
-            if (in_array($key, $allowed, true)) {
-                if ($key === 'code') {
-                    $value = strtoupper(trim($value));
-                }
-                $fields[] = "$key = ?";
-                $values[] = $value;
-            }
-        }
-
-        if (empty($fields)) {
+        $coupon = static::find($id);
+        if (!$coupon) {
             return false;
         }
 
-        $values[] = $id;
-        $sql = 'UPDATE coupons SET ' . implode(', ', $fields) . ' WHERE id = ?';
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($values);
-    }
+        $allowed = ['code', 'type', 'value', 'min_order', 'max_uses', 'is_active', 'expires_at'];
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $value = $data[$field];
+                if ($field === 'code') {
+                    $value = strtoupper(trim($value));
+                }
+                $coupon->{$field} = $value;
+            }
+        }
 
-    public function delete(int $id): bool
-    {
-        $stmt = $this->db->prepare('DELETE FROM coupons WHERE id = ?');
-        return $stmt->execute([$id]);
+        return $coupon->save();
     }
 
     public function incrementUsage(int $id): void
     {
-        $stmt = $this->db->prepare('UPDATE coupons SET used_count = used_count + 1 WHERE id = ?');
-        $stmt->execute([$id]);
+        static::increment($id, 'used_count');
     }
 
     public function decrementUsage(int $id): void
     {
-        $stmt = $this->db->prepare('UPDATE coupons SET used_count = GREATEST(0, used_count - 1) WHERE id = ?');
-        $stmt->execute([$id]);
+        static::decrement($id, 'used_count');
     }
 
     /**
@@ -111,7 +96,7 @@ final class Coupon
      *
      * @return array{valid: bool, message: string, discount: float}
      */
-    public function validate(array $coupon, float $orderTotal): array
+    public function validateCoupon(array $coupon, float $orderTotal): array
     {
         if (!(int) $coupon['is_active']) {
             return ['valid' => false, 'message' => 'This coupon is no longer active', 'discount' => 0];

@@ -13,9 +13,10 @@ use TinyShop\Models\OrderItem;
 use TinyShop\Models\Product;
 use TinyShop\Models\Subscription;
 use TinyShop\Models\User;
+use TinyShop\Models\Setting;
 use TinyShop\Services\DB;
+use TinyShop\Services\Gateways\GatewayFactory;
 use TinyShop\Services\Mailer;
-use TinyShop\Services\Payment;
 
 final class WebhookController
 {
@@ -29,7 +30,8 @@ final class WebhookController
         private readonly Product $productModel,
         private readonly User $userModel,
         private readonly Subscription $subscriptionModel,
-        private readonly Payment $payment,
+        private readonly Setting $settingModel,
+        private readonly GatewayFactory $gatewayFactory,
         private readonly Mailer $mailer,
         private readonly LoggerInterface $logger,
         DB $database
@@ -73,7 +75,7 @@ final class WebhookController
             return $this->json($response, ['received' => true]);
         }
 
-        $seller = $this->userModel->findById((int) $order['user_id']);
+        $seller = User::find((int) $order['user_id']);
         if (!$seller || empty($seller['stripe_secret_key'])) {
             $this->logger->warning('webhook.stripe.no_credentials', ['order_number' => $orderNumber]);
             return $this->json($response, ['received' => true]);
@@ -81,7 +83,8 @@ final class WebhookController
 
         // Re-verify payment with Stripe API
         try {
-            $verified = $this->payment->verifyStripeSession($sessionId, $seller['stripe_secret_key']);
+            $gw = $this->gatewayFactory->create('stripe', $this->buildSellerGatewayConfig('stripe', $seller));
+            $verification = $gw->verifyPayment(['session_id' => $sessionId]);
         } catch (\Throwable $e) {
             $this->logger->error('webhook.stripe.verify_failed', [
                 'order_number' => $orderNumber,
@@ -90,17 +93,16 @@ final class WebhookController
             return $this->json($response, ['received' => true]);
         }
 
-        if (!empty($verified['paid'])) {
-            $this->orderModel->update((int) $order['id'], [
-                'status' => 'paid',
-                'payment_intent_id' => $verified['payment_intent'] ?? $sessionId,
-            ]);
-            $this->decrementStockForOrder((int) $order['id']);
-            $this->logger->info('webhook.stripe.paid', [
-                'order_id' => $order['id'],
-                'order_number' => $orderNumber,
-            ]);
-            $this->sendOrderEmails($order);
+        if ($verification->paid) {
+            $intentId = $verification->transactionId ?: $sessionId;
+            if ($this->orderModel->markPaid((int) $order['id'], $intentId)) {
+                $this->decrementStockForOrder((int) $order['id']);
+                $this->logger->info('webhook.stripe.paid', [
+                    'order_id' => $order['id'],
+                    'order_number' => $orderNumber,
+                ]);
+                $this->sendOrderEmails($order);
+            }
         }
 
         return $this->json($response, ['received' => true]);
@@ -142,21 +144,17 @@ final class WebhookController
             return $this->json($response, ['received' => true]);
         }
 
-        $seller = $this->userModel->findById((int) $order['user_id']);
+        $seller = User::find((int) $order['user_id']);
         if (!$seller || empty($seller['paypal_client_id']) || empty($seller['paypal_secret'])) {
             $this->logger->warning('webhook.paypal.no_credentials', ['order_id' => $order['id']]);
             return $this->json($response, ['received' => true]);
         }
 
         // Re-verify payment status with PayPal API
-        $sandbox = ($seller['paypal_mode'] ?? 'test') === 'test';
         try {
-            $verified = $this->payment->getPayPalOrderStatus(
-                $paypalOrderId,
-                $seller['paypal_client_id'],
-                $seller['paypal_secret'],
-                $sandbox
-            );
+            /** @var \TinyShop\Services\Gateways\PayPalGateway $gw */
+            $gw = $this->gatewayFactory->create('paypal', $this->buildSellerGatewayConfig('paypal', $seller));
+            $verification = $gw->getOrderStatus($paypalOrderId);
         } catch (\Throwable $e) {
             $this->logger->error('webhook.paypal.verify_failed', [
                 'order_id' => $order['id'],
@@ -165,14 +163,15 @@ final class WebhookController
             return $this->json($response, ['received' => true]);
         }
 
-        if ($verified && !empty($verified['paid'])) {
-            $this->orderModel->update((int) $order['id'], ['status' => 'paid']);
-            $this->decrementStockForOrder((int) $order['id']);
-            $this->logger->info('webhook.paypal.paid', [
-                'order_id' => $order['id'],
-                'paypal_order_id' => $paypalOrderId,
-            ]);
-            $this->sendOrderEmails($order);
+        if ($verification->paid) {
+            if ($this->orderModel->markPaid((int) $order['id'])) {
+                $this->decrementStockForOrder((int) $order['id']);
+                $this->logger->info('webhook.paypal.paid', [
+                    'order_id' => $order['id'],
+                    'paypal_order_id' => $paypalOrderId,
+                ]);
+                $this->sendOrderEmails($order);
+            }
         }
 
         return $this->json($response, ['received' => true]);
@@ -193,24 +192,29 @@ final class WebhookController
             return $this->json($response, ['ResultCode' => 1, 'ResultDesc' => 'Empty payload']);
         }
 
-        $result = $this->payment->parseMpesaCallback($payload);
-        if (!$result) {
+        // M-Pesa credentials not needed for callback parsing — use empty config
+        $gw = $this->gatewayFactory->create('mpesa', [
+            'consumer_key' => '', 'consumer_secret' => '',
+            'shortcode' => '', 'passkey' => '',
+        ]);
+        $verification = $gw->parseWebhook($payload);
+
+        if (!$verification->paid && $verification->reference === '') {
             return $this->json($response, ['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
         }
 
-        if ($result['paid'] && !empty($result['checkout_request_id'])) {
-            $order = $this->orderModel->findByPaymentIntent($result['checkout_request_id']);
-            if ($order && $order['status'] === 'pending') {
-                $this->orderModel->update((int) $order['id'], [
-                    'status' => 'paid',
-                    'payment_intent_id' => $result['receipt_number'] ?? $result['checkout_request_id'],
-                ]);
-                $this->decrementStockForOrder((int) $order['id']);
-                $this->logger->info('webhook.mpesa.paid', [
-                    'order_id' => $order['id'],
-                    'receipt' => $result['receipt_number'] ?? '',
-                ]);
-                $this->sendOrderEmails($order);
+        if ($verification->paid && $verification->reference !== '') {
+            $order = $this->orderModel->findByPaymentIntent($verification->reference);
+            if ($order) {
+                $intentId = $verification->transactionId ?: $verification->reference;
+                if ($this->orderModel->markPaid((int) $order['id'], $intentId)) {
+                    $this->decrementStockForOrder((int) $order['id']);
+                    $this->logger->info('webhook.mpesa.paid', [
+                        'order_id' => $order['id'],
+                        'receipt' => $verification->transactionId,
+                    ]);
+                    $this->sendOrderEmails($order);
+                }
             }
         }
 
@@ -232,20 +236,24 @@ final class WebhookController
             return $this->json($response, ['ResultCode' => 1, 'ResultDesc' => 'Empty payload']);
         }
 
-        $result = $this->payment->parseMpesaCallback($payload);
-        if (!$result || !$result['paid']) {
-            // Mark as failed if we can identify the request
-            if ($result && !$result['paid'] && !empty($result['checkout_request_id'])) {
+        $gw = $this->gatewayFactory->create('mpesa', [
+            'consumer_key' => '', 'consumer_secret' => '',
+            'shortcode' => '', 'passkey' => '',
+        ]);
+        $verification = $gw->parseWebhook($payload);
+
+        if (!$verification->paid) {
+            if ($verification->reference !== '') {
                 $stmt = $this->db->prepare(
                     'UPDATE billing_mpesa_pending SET status = ? WHERE checkout_request_id = ? AND status = ?'
                 );
-                $stmt->execute(['failed', $result['checkout_request_id'], 'pending']);
+                $stmt->execute(['failed', $verification->reference, 'pending']);
             }
             return $this->json($response, ['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
         }
 
-        $checkoutRequestId = $result['checkout_request_id'] ?? '';
-        if (empty($checkoutRequestId)) {
+        $checkoutRequestId = $verification->reference;
+        if ($checkoutRequestId === '') {
             return $this->json($response, ['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
         }
 
@@ -270,17 +278,181 @@ final class WebhookController
             (int) $pending['plan_id'],
             $pending['billing_cycle'],
             'mpesa',
-            $result['receipt_number'] ?? $checkoutRequestId,
+            $verification->transactionId ?: $checkoutRequestId,
             (float) $pending['amount']
         );
 
         $this->logger->info('webhook.mpesa.billing_paid', [
             'user_id' => $pending['user_id'],
             'plan_id' => $pending['plan_id'],
-            'receipt' => $result['receipt_number'] ?? '',
+            'receipt' => $verification->transactionId,
         ]);
 
         return $this->json($response, ['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+    }
+
+    /**
+     * GET /webhook/pesapal
+     * Handles Pesapal IPN for storefront orders.
+     * Re-verifies with Pesapal API.
+     */
+    public function pesapalWebhook(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $orderTrackingId = $params['OrderTrackingId'] ?? '';
+        $merchantRef = $params['OrderMerchantReference'] ?? '';
+
+        $this->logger->info('webhook.pesapal.received', [
+            'tracking_id' => $orderTrackingId,
+            'merchant_ref' => $merchantRef,
+        ]);
+
+        if (empty($orderTrackingId)) {
+            return $this->json($response, ['received' => true]);
+        }
+
+        // Find order by tracking ID (stored in payment_intent_id)
+        $order = $this->orderModel->findByPaymentIntent($orderTrackingId);
+        if (!$order || $order['status'] !== 'pending') {
+            return $this->json($response, ['received' => true]);
+        }
+
+        $seller = User::find((int) $order['user_id']);
+        if (!$seller || empty($seller['pesapal_consumer_key']) || empty($seller['pesapal_consumer_secret'])) {
+            $this->logger->warning('webhook.pesapal.no_credentials', ['order_id' => $order['id']]);
+            return $this->json($response, ['received' => true]);
+        }
+
+        try {
+            $gw = $this->gatewayFactory->create('pesapal', $this->buildSellerGatewayConfig('pesapal', $seller));
+            $verification = $gw->parseWebhook('', $params);
+        } catch (\Throwable $e) {
+            $this->logger->error('webhook.pesapal.verify_failed', [
+                'order_id' => $order['id'],
+                'error' => $e->getMessage(),
+            ]);
+            return $this->json($response, ['received' => true]);
+        }
+
+        if ($verification->paid) {
+            $intentId = $verification->transactionId ?: $orderTrackingId;
+            if ($this->orderModel->markPaid((int) $order['id'], $intentId)) {
+                $this->decrementStockForOrder((int) $order['id']);
+                $this->logger->info('webhook.pesapal.paid', [
+                    'order_id' => $order['id'],
+                    'confirmation' => $verification->transactionId,
+                ]);
+                $this->sendOrderEmails($order);
+            }
+        }
+
+        return $this->json($response, ['received' => true]);
+    }
+
+    /**
+     * GET /webhook/pesapal/billing
+     * Handles Pesapal IPN for platform billing payments.
+     */
+    public function pesapalBillingWebhook(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $orderTrackingId = $params['OrderTrackingId'] ?? '';
+        $merchantRef = $params['OrderMerchantReference'] ?? '';
+
+        $this->logger->info('webhook.pesapal.billing_received', [
+            'tracking_id' => $orderTrackingId,
+            'merchant_ref' => $merchantRef,
+        ]);
+
+        if (empty($orderTrackingId)) {
+            return $this->json($response, ['received' => true]);
+        }
+
+        // Find pending billing row by tracking ID
+        $stmt = $this->db->prepare(
+            'SELECT * FROM billing_pesapal_pending WHERE order_tracking_id = ? AND status = ? LIMIT 1'
+        );
+        $stmt->execute([$orderTrackingId, 'pending']);
+        $pending = $stmt->fetch();
+
+        if (!$pending) {
+            return $this->json($response, ['received' => true]);
+        }
+
+        $settings = $this->settingModel->all();
+        $config = $this->buildBillingGatewayConfig('pesapal', $settings);
+
+        if (($config['consumer_key'] ?? '') === '' || ($config['consumer_secret'] ?? '') === '') {
+            $this->logger->warning('webhook.pesapal.billing_no_credentials');
+            return $this->json($response, ['received' => true]);
+        }
+
+        try {
+            $gw = $this->gatewayFactory->create('pesapal', $config);
+            $verification = $gw->parseWebhook('', $params);
+        } catch (\Throwable $e) {
+            $this->logger->error('webhook.pesapal.billing_verify_failed', ['error' => $e->getMessage()]);
+            return $this->json($response, ['received' => true]);
+        }
+
+        if (!$verification->paid) {
+            $stmt = $this->db->prepare('UPDATE billing_pesapal_pending SET status = ? WHERE id = ?');
+            $stmt->execute(['failed', $pending['id']]);
+            return $this->json($response, ['received' => true]);
+        }
+
+        // Mark as paid
+        $stmt = $this->db->prepare('UPDATE billing_pesapal_pending SET status = ? WHERE id = ?');
+        $stmt->execute(['paid', $pending['id']]);
+
+        $this->activateBillingSubscription(
+            (int) $pending['user_id'],
+            (int) $pending['plan_id'],
+            $pending['billing_cycle'],
+            'pesapal',
+            $verification->transactionId ?: $orderTrackingId,
+            (float) $pending['amount']
+        );
+
+        $this->logger->info('webhook.pesapal.billing_paid', [
+            'user_id' => $pending['user_id'],
+            'plan_id' => $pending['plan_id'],
+            'confirmation' => $verification->transactionId,
+        ]);
+
+        return $this->json($response, ['received' => true]);
+    }
+
+    private function buildSellerGatewayConfig(string $gateway, array $seller): array
+    {
+        return match ($gateway) {
+            'stripe' => [
+                'secret_key' => $seller['stripe_secret_key'] ?? '',
+            ],
+            'paypal' => [
+                'client_id' => $seller['paypal_client_id'] ?? '',
+                'secret' => $seller['paypal_secret'] ?? '',
+                'sandbox' => ($seller['paypal_mode'] ?? 'test') === 'test',
+            ],
+            'pesapal' => [
+                'consumer_key' => $seller['pesapal_consumer_key'] ?? '',
+                'consumer_secret' => $seller['pesapal_consumer_secret'] ?? '',
+                'sandbox' => ($seller['pesapal_mode'] ?? 'test') === 'test',
+            ],
+            default => [],
+        };
+    }
+
+    private function buildBillingGatewayConfig(string $gateway, array $settings): array
+    {
+        return match ($gateway) {
+            'pesapal' => [
+                'consumer_key' => $settings['platform_pesapal_consumer_key'] ?? '',
+                'consumer_secret' => $settings['platform_pesapal_consumer_secret'] ?? '',
+                'sandbox' => ($settings['platform_pesapal_mode'] ?? 'test') !== 'live',
+            ],
+            default => [],
+        };
     }
 
     private function activateBillingSubscription(int $userId, int $planId, string $cycle, string $gateway, string $reference, float $amount): void
@@ -317,7 +489,7 @@ final class WebhookController
     private function sendOrderEmails(array $order): void
     {
         try {
-            $shop = $this->userModel->findById((int) $order['user_id']);
+            $shop = User::find((int) $order['user_id']);
             if (!$shop) {
                 return;
             }
@@ -325,7 +497,7 @@ final class WebhookController
             $items = $this->orderItemModel->findByOrder((int) $order['id']);
 
             // Re-fetch order to get updated status
-            $freshOrder = $this->orderModel->findById((int) $order['id']);
+            $freshOrder = Order::find((int) $order['id']);
             if (!$freshOrder) {
                 return;
             }

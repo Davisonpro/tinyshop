@@ -157,20 +157,22 @@
   font-weight: 400;
 }
 
+.gateway-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .gateway-option {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 14px;
   border: 2px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   -webkit-tap-highlight-color: transparent;
-}
-
-.gateway-option + .gateway-option {
-  margin-top: 6px;
 }
 
 .gateway-option.selected {
@@ -184,12 +186,37 @@
 
 .gateway-option-icon {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
+}
+
+.gateway-option-icon.mpesa {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.gateway-option-icon.pesapal {
+  background: rgba(10, 123, 196, 0.1);
+}
+
+.gateway-option-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.gateway-option-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.gateway-option-desc {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 1px;
 }
 
 .gateway-option-label {
@@ -210,20 +237,46 @@
   transition: all 0.15s;
 }
 
+.gateway-option-check i {
+  font-size: 10px;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
 .gateway-option.selected .gateway-option-check {
   border-color: var(--color-accent);
   background: var(--color-accent);
 }
 
+.gateway-option.selected .gateway-option-check i {
+  opacity: 1;
+}
+
+.checkout-continue-btn {
+  margin-top: 20px;
+}
+
+.checkout-continue-btn .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--radius-lg);
+}
+
 .checkout-pay-btn {
   position: fixed;
-  bottom: 0;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   padding: 12px var(--spacing-md);
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   background: var(--color-bg);
-  z-index: 100;
+  z-index: 101;
 }
 
 .checkout-pay-btn::before {
@@ -244,10 +297,24 @@
   padding: 16px 24px;
   font-size: 1rem;
   font-weight: 700;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-full);
   width: 100%;
 }
 
+@media (min-width: 768px) {
+  .checkout-page {
+    padding-bottom: 40px;
+  }
+  .checkout-pay-btn {
+    position: static;
+    padding: 20px 0 0;
+    background: none;
+    z-index: auto;
+  }
+  .checkout-pay-btn::before {
+    display: none;
+  }
+}
 .checkout-empty {
   text-align: center;
   padding: 60px 20px;
@@ -379,4 +446,15 @@
 /* M-Pesa phone field shown when gateway selected */
 #mpesaPhoneSection .checkout-field {
   margin-bottom: 0;
+}
+
+/* Dark mode */
+[data-theme=dark] .gateway-option.selected {
+  background: rgba(99, 91, 255, 0.08);
+}
+[data-theme=dark] .gateway-option-icon.mpesa {
+  background: rgba(76, 175, 80, 0.15);
+}
+[data-theme=dark] .gateway-option-icon.pesapal {
+  background: rgba(10, 123, 196, 0.15);
 }

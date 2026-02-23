@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace TinyShop\Services;
 
+use TinyShop\Models\ThemeOption;
+
 final class Theme
 {
     private string $themesDir;
@@ -13,8 +15,10 @@ final class Theme
     /** @var array<string, array> Cache of loaded manifests */
     private array $manifestCache = [];
 
-    public function __construct(private readonly Config $config)
-    {
+    public function __construct(
+        private readonly Config $config,
+        private readonly ThemeCustomizer $customizer
+    ) {
         $this->themesDir = dirname(__DIR__, 2) . '/themes';
     }
 
@@ -36,10 +40,13 @@ final class Theme
 
         $this->activeTheme = $themeSlug;
         $this->activeManifest = $manifest;
+        $this->customizer->reset();
 
         $themeTemplatesDir = $this->themesDir . '/' . $themeSlug . '/templates';
         $view->setThemeDir($themeTemplatesDir, $themeSlug);
 
+        // Make $customizer available to the theme's functions.php
+        $customizer = $this->customizer;
         $functionsFile = $this->themesDir . '/' . $themeSlug . '/functions.php';
         if (file_exists($functionsFile)) {
             require_once $functionsFile;
@@ -180,6 +187,23 @@ final class Theme
             }
         }
         return $themes;
+    }
+
+    public function getCustomizer(): ThemeCustomizer
+    {
+        return $this->customizer;
+    }
+
+    /**
+     * Load saved theme options for a seller and merge with theme defaults.
+     *
+     * @return array<string, mixed>
+     */
+    public function resolveOptions(int $userId, ThemeOption $themeOption): array
+    {
+        $themeSlug = $this->activeTheme ?? 'classic';
+        $saved = $themeOption->getAll($userId, $themeSlug);
+        return $this->customizer->resolveOptions($saved);
     }
 
     public function themesDir(): string

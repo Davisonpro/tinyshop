@@ -332,7 +332,7 @@
   color: var(--color-text-muted);
 }
 
-/* Payment method picker */
+/* Payment method picker (used both inline and inside modals) */
 .gateway-picker {
   display: flex;
   flex-direction: column;
@@ -340,7 +340,7 @@
   margin-bottom: 16px;
 }
 
-.billing-section .gateway-option {
+.gateway-option {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -353,15 +353,15 @@
   transition: border-color 0.15s, transform 0.1s;
 }
 
-.billing-section .gateway-option:active {
+.gateway-option:active {
   transform: scale(0.98);
 }
 
-.billing-section .gateway-option.selected {
+.gateway-option.selected {
   border-color: var(--color-accent);
 }
 
-.billing-section .gateway-option-icon {
+.gateway-option-icon {
   width: 40px;
   height: 40px;
   display: flex;
@@ -382,6 +382,14 @@
   color: #003087;
 }
 
+.gateway-option-icon.mpesa {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.gateway-option-icon.pesapal {
+  background: rgba(10, 123, 196, 0.1);
+}
+
 .gateway-option-info {
   flex: 1;
   min-width: 0;
@@ -399,7 +407,7 @@
   margin-top: 1px;
 }
 
-.billing-section .gateway-option-check {
+.gateway-option-check {
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -411,19 +419,19 @@
   transition: border-color 0.15s, background 0.15s;
 }
 
-.billing-section .gateway-option.selected .gateway-option-check {
+.gateway-option.selected .gateway-option-check {
   border-color: var(--color-accent);
   background: var(--color-accent);
 }
 
-.billing-section .gateway-option-check i {
+.gateway-option-check i {
   font-size: 10px;
   color: #fff;
   opacity: 0;
   transition: opacity 0.15s;
 }
 
-.billing-section .gateway-option.selected .gateway-option-check i {
+.gateway-option.selected .gateway-option-check i {
   opacity: 1;
 }
 
@@ -437,6 +445,46 @@
 .gateway-summary strong {
   color: var(--color-text);
   font-weight: 700;
+}
+
+/* M-Pesa phone input field */
+.gateway-phone-field {
+  margin: 12px 0;
+}
+
+.gateway-phone-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.gateway-confirm-btn {
+  margin-top: 16px;
+}
+
+/* M-Pesa waiting modal */
+.mpesa-wait {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.mpesa-wait-spinner {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 16px;
+}
+
+.mpesa-wait-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.mpesa-wait-desc {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 .no-gateways-msg {
@@ -490,7 +538,7 @@
   background: #3A3A3C;
 }
 
-[data-theme=dark] .billing-section .gateway-option {
+[data-theme=dark] .gateway-option {
   background: #2C2C2E;
 }
 
@@ -501,4 +549,12 @@
 [data-theme=dark] .gateway-option-icon.paypal {
   background: rgba(0, 48, 135, 0.2);
   color: #4B9CFF;
+}
+
+[data-theme=dark] .gateway-option-icon.mpesa {
+  background: rgba(76, 175, 80, 0.15);
+}
+
+[data-theme=dark] .gateway-option-icon.pesapal {
+  background: rgba(10, 123, 196, 0.15);
 }

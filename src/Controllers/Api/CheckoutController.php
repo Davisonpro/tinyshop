@@ -13,8 +13,11 @@ use TinyShop\Models\Order;
 use TinyShop\Models\OrderItem;
 use TinyShop\Models\Product;
 use TinyShop\Models\User;
+use TinyShop\Services\Auth;
+use TinyShop\Services\CustomerAuth;
+use TinyShop\Services\Gateways\GatewayFactory;
+use TinyShop\Services\Gateways\PaymentRequest;
 use TinyShop\Services\Mailer;
-use TinyShop\Services\Payment;
 use TinyShop\Services\Validation;
 
 final class CheckoutController
@@ -27,10 +30,11 @@ final class CheckoutController
         private readonly Order $orderModel,
         private readonly OrderItem $orderItemModel,
         private readonly Coupon $couponModel,
-        private readonly Payment $payment,
+        private readonly GatewayFactory $gatewayFactory,
         private readonly Mailer $mailer,
         private readonly Validation $validation,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly CustomerAuth $customerAuth
     ) {}
 
     /**
@@ -47,7 +51,7 @@ final class CheckoutController
             return $this->json($response, ['error' => true, 'message' => 'Invalid cart data'], 422);
         }
 
-        $shop = $this->userModel->findById($shopId);
+        $shop = User::find($shopId);
         if (!$shop) {
             return $this->json($response, ['error' => true, 'message' => 'Shop not found'], 404);
         }
@@ -133,7 +137,7 @@ final class CheckoutController
         if (empty($customerEmail) || !filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
             return $this->json($response, ['error' => true, 'message' => 'A valid email is required'], 422);
         }
-        if (!in_array($gateway, ['stripe', 'paypal', 'cod', 'mpesa'], true)) {
+        if (!in_array($gateway, ['stripe', 'paypal', 'cod', 'mpesa', 'pesapal'], true)) {
             return $this->json($response, ['error' => true, 'message' => 'Please select a payment method'], 422);
         }
 
@@ -156,7 +160,7 @@ final class CheckoutController
             }
         }
 
-        $shop = $this->userModel->findById($shopId);
+        $shop = User::find($shopId);
         if (!$shop) {
             return $this->json($response, ['error' => true, 'message' => 'Shop not found'], 404);
         }
@@ -175,6 +179,10 @@ final class CheckoutController
             || empty($shop['mpesa_consumer_key']) || empty($shop['mpesa_consumer_secret'])
             || empty($shop['mpesa_passkey']))) {
             return $this->json($response, ['error' => true, 'message' => 'M-Pesa is not configured for this shop'], 422);
+        }
+        if ($gateway === 'pesapal' && (empty($shop['pesapal_enabled']) || empty($shop['pesapal_consumer_key'])
+            || empty($shop['pesapal_consumer_secret']))) {
+            return $this->json($response, ['error' => true, 'message' => 'Pesapal is not configured for this shop'], 422);
         }
 
         // Validate and build order items
@@ -224,7 +232,7 @@ final class CheckoutController
         if ($couponCode !== '') {
             $coupon = $this->couponModel->findByUserAndCode($shopId, $couponCode);
             if ($coupon) {
-                $result = $this->couponModel->validate($coupon, $subtotal);
+                $result = $this->couponModel->validateCoupon($coupon, $subtotal);
                 if ($result['valid']) {
                     $discountAmount = $result['discount'];
                     $couponId = (int) $coupon['id'];
@@ -234,9 +242,17 @@ final class CheckoutController
 
         $finalAmount = round(max(0, $subtotal - $discountAmount), 2);
 
+        // Attach customer account if logged in
+        Auth::ensureSession();
+        $customerId = null;
+        if ($this->customerAuth->check($shopId)) {
+            $customerId = $this->customerAuth->customerId();
+        }
+
         // Create the order
         $orderId = $this->orderModel->create([
             'user_id' => $shopId,
+            'customer_id' => $customerId,
             'product_id' => $orderItems[0]['product_id'],
             'order_number' => $orderNumber,
             'customer_name' => $customerName,
@@ -264,7 +280,7 @@ final class CheckoutController
                 'coupon_code' => $couponCode ?: null,
             ]);
             $this->sendOrderEmails(
-                array_merge(['id' => $orderId], $this->orderModel->findById($orderId)),
+                array_merge(['id' => $orderId], Order::find($orderId)),
                 $shop
             );
 
@@ -290,26 +306,24 @@ final class CheckoutController
             if ($port && $port !== 80 && $port !== 443) {
                 $host .= ':' . $port;
             }
-            $callbackUrl = $host . '/webhook/mpesa';
-            $mpesaSandbox = ($shop['mpesa_mode'] ?? 'test') === 'test';
 
             try {
-                $stkResult = $this->payment->initiateStkPush(
-                    $shop['mpesa_consumer_key'],
-                    $shop['mpesa_consumer_secret'],
-                    $shop['mpesa_shortcode'],
-                    $shop['mpesa_passkey'],
-                    $mpesaPhone,
-                    $finalAmount,
-                    $callbackUrl,
-                    $orderNumber,
-                    'Payment',
-                    $mpesaSandbox
-                );
+                $gw = $this->gatewayFactory->create('mpesa', $this->buildGatewayConfig('mpesa', $shop));
+                $result = $gw->createPayment(new PaymentRequest(
+                    amount: $finalAmount,
+                    currency: $currency,
+                    reference: $orderNumber,
+                    successUrl: '',
+                    webhookUrl: $host . '/webhook/mpesa',
+                    customerPhone: $mpesaPhone,
+                    description: 'Payment',
+                ));
 
-                $this->orderModel->update($orderId, [
-                    'payment_intent_id' => $stkResult['CheckoutRequestID'] ?? '',
-                ]);
+                if ($result->transactionId !== '') {
+                    $this->orderModel->update($orderId, [
+                        'payment_intent_id' => $result->transactionId,
+                    ]);
+                }
             } catch (\Throwable $e) {
                 $this->logger->error('checkout.mpesa_stk_error', [
                     'order_id' => $orderId,
@@ -344,30 +358,38 @@ final class CheckoutController
         $successUrl = $host . '/checkout/return/' . $gateway . '?order=' . $orderNumber;
         $cancelUrl = $host . '/checkout';
 
+        // Stripe appends session_id; Pesapal needs webhook URL
+        $gwSuccessUrl = $gateway === 'stripe'
+            ? $successUrl . '&session_id={CHECKOUT_SESSION_ID}'
+            : $successUrl;
+        $webhookUrl = in_array($gateway, ['pesapal'], true)
+            ? $host . '/webhook/' . $gateway
+            : '';
+
         try {
-            if ($gateway === 'stripe') {
-                $redirectUrl = $this->payment->createStripeSession(
-                    $shop['stripe_secret_key'],
-                    $orderItems,
-                    $currency,
-                    $successUrl . '&session_id={CHECKOUT_SESSION_ID}',
-                    $cancelUrl,
-                    $customerEmail,
-                    $orderNumber
-                );
-            } else {
-                $paypalSandbox = ($shop['paypal_mode'] ?? 'test') === 'test';
-                $redirectUrl = $this->payment->createPayPalOrder(
-                    $shop['paypal_client_id'],
-                    $shop['paypal_secret'],
-                    $finalAmount,
-                    $currency,
-                    $successUrl,
-                    $cancelUrl,
-                    $paypalSandbox,
-                    $shop['store_name'] ?? ''
-                );
+            $gw = $this->gatewayFactory->create($gateway, $this->buildGatewayConfig($gateway, $shop));
+            $result = $gw->createPayment(new PaymentRequest(
+                amount: $finalAmount,
+                currency: $currency,
+                reference: $orderNumber,
+                successUrl: $gwSuccessUrl,
+                cancelUrl: $cancelUrl,
+                webhookUrl: $webhookUrl,
+                customerEmail: $customerEmail,
+                customerName: $customerName,
+                customerPhone: $customerPhone,
+                description: 'Order ' . $orderNumber . ' — ' . ($shop['store_name'] ?? ''),
+                brandName: $shop['store_name'] ?? '',
+                lineItems: $gateway === 'stripe' ? $orderItems : [],
+            ));
+
+            if ($result->transactionId !== '') {
+                $this->orderModel->update($orderId, [
+                    'payment_intent_id' => $result->transactionId,
+                ]);
             }
+
+            $redirectUrl = $result->redirectUrl;
         } catch (\Throwable $e) {
             $this->logger->error('checkout.payment_error', [
                 'order_id' => $orderId,
@@ -377,7 +399,7 @@ final class CheckoutController
             return $this->json($response, ['error' => true, 'message' => 'Payment setup failed. Please try again.'], 500);
         }
 
-        if (!$redirectUrl) {
+        if ($redirectUrl === '') {
             return $this->json($response, ['error' => true, 'message' => 'Could not connect to payment provider. Please try again.'], 500);
         }
 
@@ -415,35 +437,29 @@ final class CheckoutController
             return $this->json($response, ['error' => true, 'message' => 'Order not found'], 404);
         }
 
-        $shop = $this->userModel->findById((int) $order['user_id']);
+        $shop = User::find((int) $order['user_id']);
         if (!$shop) {
             return $this->json($response, ['error' => true, 'message' => 'Shop not found'], 404);
         }
 
-        $wasPending = $order['status'] === 'pending';
-
         try {
-            if ($gateway === 'stripe') {
-                $sessionId = $params['session_id'] ?? '';
-                if ($sessionId) {
-                    $result = $this->payment->verifyStripeSession($sessionId, $shop['stripe_secret_key']);
-                    if ($result && ($result['paid'] ?? false)) {
-                        $this->orderModel->update((int) $order['id'], [
-                            'status' => 'paid',
-                            'payment_intent_id' => $result['payment_intent'] ?? $sessionId,
-                        ]);
-                    }
-                }
-            } elseif ($gateway === 'paypal') {
-                $paypalOrderId = $params['token'] ?? '';
-                if ($paypalOrderId) {
-                    $paypalSandbox = ($shop['paypal_mode'] ?? 'test') === 'test';
-                    $result = $this->payment->capturePayPalOrder($paypalOrderId, $shop['paypal_client_id'], $shop['paypal_secret'], $paypalSandbox);
-                    if ($result && ($result['paid'] ?? false)) {
-                        $this->orderModel->update((int) $order['id'], [
-                            'status' => 'paid',
-                            'payment_intent_id' => $result['id'] ?? $paypalOrderId,
-                        ]);
+            $verifyParams = $params;
+            // Pesapal: use the stored tracking ID for verification
+            if ($gateway === 'pesapal') {
+                $verifyParams['tracking_id'] = $order['payment_intent_id'] ?? '';
+            }
+
+            $gw = $this->gatewayFactory->create($gateway, $this->buildGatewayConfig($gateway, $shop));
+            $verification = $gw->verifyPayment($verifyParams);
+
+            if ($verification->paid) {
+                $intentId = $verification->transactionId ?: ($order['payment_intent_id'] ?? '');
+                if ($this->orderModel->markPaid((int) $order['id'], $intentId)) {
+                    $this->decrementStockForOrder((int) $order['id']);
+                    $this->incrementCouponUsage($order);
+                    $freshOrder = Order::find((int) $order['id']);
+                    if ($freshOrder) {
+                        $this->sendOrderEmails($freshOrder, $shop);
                     }
                 }
             }
@@ -453,16 +469,6 @@ final class CheckoutController
                 'gateway' => $gateway,
                 'error' => $e->getMessage(),
             ]);
-        }
-
-        // On successful payment: decrement stock, increment coupon usage, send emails
-        if ($wasPending) {
-            $freshOrder = $this->orderModel->findById((int) $order['id']);
-            if ($freshOrder && $freshOrder['status'] === 'paid') {
-                $this->decrementStockForOrder((int) $freshOrder['id']);
-                $this->incrementCouponUsage($freshOrder);
-                $this->sendOrderEmails($freshOrder, $shop);
-            }
         }
 
         // Redirect to confirmation page
@@ -514,6 +520,33 @@ final class CheckoutController
         foreach ($items as $item) {
             $this->productModel->decrementStock((int) $item['product_id'], (int) $item['quantity']);
         }
+    }
+
+    private function buildGatewayConfig(string $gateway, array $shop): array
+    {
+        return match ($gateway) {
+            'stripe' => [
+                'secret_key' => $shop['stripe_secret_key'] ?? '',
+            ],
+            'paypal' => [
+                'client_id' => $shop['paypal_client_id'] ?? '',
+                'secret' => $shop['paypal_secret'] ?? '',
+                'sandbox' => ($shop['paypal_mode'] ?? 'test') === 'test',
+            ],
+            'mpesa' => [
+                'consumer_key' => $shop['mpesa_consumer_key'] ?? '',
+                'consumer_secret' => $shop['mpesa_consumer_secret'] ?? '',
+                'shortcode' => $shop['mpesa_shortcode'] ?? '',
+                'passkey' => $shop['mpesa_passkey'] ?? '',
+                'sandbox' => ($shop['mpesa_mode'] ?? 'test') === 'test',
+            ],
+            'pesapal' => [
+                'consumer_key' => $shop['pesapal_consumer_key'] ?? '',
+                'consumer_secret' => $shop['pesapal_consumer_secret'] ?? '',
+                'sandbox' => ($shop['pesapal_mode'] ?? 'test') === 'test',
+            ],
+            default => [],
+        };
     }
 
     private function sendOrderEmails(array $order, array $shop): void

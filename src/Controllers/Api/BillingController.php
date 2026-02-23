@@ -15,7 +15,8 @@ use TinyShop\Models\User;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Config;
 use TinyShop\Services\DB;
-use TinyShop\Services\Payment;
+use TinyShop\Services\Gateways\GatewayFactory;
+use TinyShop\Services\Gateways\PaymentRequest;
 
 final class BillingController
 {
@@ -29,7 +30,7 @@ final class BillingController
         private readonly Subscription $subscriptionModel,
         private readonly User $userModel,
         private readonly Setting $settingModel,
-        private readonly Payment $payment,
+        private readonly GatewayFactory $gatewayFactory,
         private readonly Config $config,
         private readonly LoggerInterface $logger,
         DB $database
@@ -50,7 +51,7 @@ final class BillingController
             return $this->json($response, ['error' => true, 'message' => 'Invalid billing cycle'], 422);
         }
 
-        $plan = $this->planModel->findById($planId);
+        $plan = Plan::find($planId);
         if (!$plan || !$plan['is_active']) {
             return $this->json($response, ['error' => true, 'message' => 'Plan not found'], 404);
         }
@@ -68,92 +69,43 @@ final class BillingController
         $cancelUrl = $baseUrl . '/dashboard/billing';
 
         $userId = $this->auth->userId();
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         $customerEmail = $user['email'] ?? '';
 
-        if ($gateway === 'stripe') {
-            $secretKey = $settings['platform_stripe_secret_key'] ?? '';
-            if ($secretKey === '') {
-                return $this->json($response, ['error' => true, 'message' => 'Stripe is not configured. Contact support.'], 422);
-            }
+        $config = $this->buildBillingGatewayConfig($gateway, $settings);
+        $currency = $plan['currency'] ?? 'KES';
+        $ref = 'SUB-' . $userId . '-' . $planId . '-' . $cycle . '-' . time();
+        $description = $plan['name'] . ' Plan (' . ucfirst($cycle) . ')';
 
-            $mode = $settings['platform_stripe_mode'] ?? 'test';
-            if ($mode !== 'live' && str_starts_with($secretKey, 'sk_live_')) {
-                $secretKey = ''; // Mismatch safeguard
-            }
+        // Validate gateway is enabled
+        $enabledKey = 'platform_' . $gateway . '_enabled';
+        if (empty($settings[$enabledKey])) {
+            return $this->json($response, ['error' => true, 'message' => ucfirst($gateway) . ' payments are not enabled. Contact support.'], 422);
+        }
 
-            $currency = $plan['currency'] ?? 'KES';
-
-            $redirectUrl = $this->payment->createStripeSession(
-                $secretKey,
-                [[
-                    'product_name' => $plan['name'] . ' Plan (' . ucfirst($cycle) . ')',
-                    'product_image' => null,
-                    'unit_price' => $price,
-                    'quantity' => 1,
-                ]],
-                $currency,
-                $successUrl,
-                $cancelUrl,
-                $customerEmail,
-                'SUB-' . $userId . '-' . $planId . '-' . $cycle
-            );
-
-            return $this->json($response, ['success' => true, 'redirect_url' => $redirectUrl]);
-
-        } elseif ($gateway === 'paypal') {
-            $clientId = $settings['platform_paypal_client_id'] ?? '';
-            $secret = $settings['platform_paypal_secret'] ?? '';
-
-            if ($clientId === '' || $secret === '') {
-                return $this->json($response, ['error' => true, 'message' => 'PayPal is not configured. Contact support.'], 422);
-            }
-
-            $sandbox = ($settings['platform_paypal_mode'] ?? 'test') !== 'live';
-            $currency = $plan['currency'] ?? 'KES';
-
-            $ppSuccessUrl = $baseUrl . '/billing/return/paypal';
-
-            $redirectUrl = $this->payment->createPayPalOrder(
-                $clientId,
-                $secret,
-                $price,
-                $currency,
-                $ppSuccessUrl,
-                $cancelUrl,
-                $sandbox,
-                $this->settingModel->get('app_name', '')
-            );
-
-            if (!$redirectUrl) {
-                return $this->json($response, ['error' => true, 'message' => 'Could not create PayPal payment'], 500);
-            }
-
-            // Store plan info in session for return
-            $_SESSION['billing_paypal'] = [
-                'plan_id' => $planId,
-                'cycle' => $cycle,
-                'amount' => $price,
-            ];
-
-            return $this->json($response, ['success' => true, 'redirect_url' => $redirectUrl]);
-
-        } elseif ($gateway === 'mpesa') {
-            $shortcode = $settings['platform_mpesa_shortcode'] ?? '';
-            $consumerKey = $settings['platform_mpesa_consumer_key'] ?? '';
-            $consumerSecret = $settings['platform_mpesa_consumer_secret'] ?? '';
-            $passkey = $settings['platform_mpesa_passkey'] ?? '';
-
-            if ($shortcode === '' || $consumerKey === '' || $consumerSecret === '' || $passkey === '') {
+        // Validate credentials
+        if ($gateway === 'stripe' && ($config['secret_key'] ?? '') === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Stripe is not configured. Contact support.'], 422);
+        }
+        if ($gateway === 'paypal' && (($config['client_id'] ?? '') === '' || ($config['secret'] ?? '') === '')) {
+            return $this->json($response, ['error' => true, 'message' => 'PayPal is not configured. Contact support.'], 422);
+        }
+        if ($gateway === 'mpesa') {
+            if (($config['consumer_key'] ?? '') === '' || ($config['shortcode'] ?? '') === '') {
                 return $this->json($response, ['error' => true, 'message' => 'M-Pesa is not configured. Contact support.'], 422);
             }
+        }
+        if ($gateway === 'pesapal' && (($config['consumer_key'] ?? '') === '' || ($config['consumer_secret'] ?? '') === '')) {
+            return $this->json($response, ['error' => true, 'message' => 'Pesapal is not configured. Contact support.'], 422);
+        }
 
+        // M-Pesa phone validation
+        $mpesaPhone = '';
+        if ($gateway === 'mpesa') {
             $mpesaPhone = trim($data['mpesa_phone'] ?? '');
             if (empty($mpesaPhone)) {
                 return $this->json($response, ['error' => true, 'message' => 'Phone number is required for M-Pesa'], 422);
             }
-
-            // Normalize phone
             $mpesaPhone = preg_replace('/[\s\-]/', '', $mpesaPhone);
             if (str_starts_with($mpesaPhone, '0')) {
                 $mpesaPhone = '254' . substr($mpesaPhone, 1);
@@ -164,35 +116,72 @@ final class BillingController
             if (!preg_match('/^254[0-9]{9}$/', $mpesaPhone)) {
                 return $this->json($response, ['error' => true, 'message' => 'Enter a valid Kenyan phone number'], 422);
             }
+        }
 
-            $sandbox = ($settings['platform_mpesa_mode'] ?? 'test') !== 'live';
-            $ref = 'SUB-' . $userId . '-' . $planId . '-' . $cycle;
-            $callbackUrl = $baseUrl . '/webhook/mpesa/billing';
-
-            try {
-                $stkResult = $this->payment->initiateStkPush(
-                    $consumerKey,
-                    $consumerSecret,
-                    $shortcode,
-                    $passkey,
-                    $mpesaPhone,
-                    $price,
-                    $callbackUrl,
-                    $ref,
-                    'Subscription',
-                    $sandbox
-                );
-            } catch (\Throwable $e) {
-                $this->logger->error('billing.mpesa_stk_error', ['error' => $e->getMessage()]);
-                return $this->json($response, ['error' => true, 'message' => $e->getMessage()], 500);
+        // Stripe mode mismatch safeguard
+        if ($gateway === 'stripe') {
+            $mode = $settings['platform_stripe_mode'] ?? 'test';
+            if ($mode !== 'live' && str_starts_with($config['secret_key'] ?? '', 'sk_live_')) {
+                $config['secret_key'] = '';
             }
+        }
 
-            // Store pending billing in DB for webhook matching
-            $checkoutRequestId = $stkResult['CheckoutRequestID'] ?? '';
+        // Build gateway-specific URLs
+        $gwSuccessUrl = match ($gateway) {
+            'stripe' => $successUrl,
+            'paypal' => $baseUrl . '/billing/return/paypal',
+            'pesapal' => $baseUrl . '/billing/return/pesapal',
+            default => $successUrl,
+        };
+        $webhookUrl = match ($gateway) {
+            'mpesa' => $baseUrl . '/webhook/mpesa/billing',
+            'pesapal' => $baseUrl . '/webhook/pesapal/billing',
+            default => '',
+        };
+
+        try {
+            $gw = $this->gatewayFactory->create($gateway, $config);
+            $result = $gw->createPayment(new PaymentRequest(
+                amount: $price,
+                currency: $currency,
+                reference: $ref,
+                successUrl: $gwSuccessUrl,
+                cancelUrl: $cancelUrl,
+                webhookUrl: $webhookUrl,
+                customerEmail: $customerEmail,
+                customerName: $user['name'] ?? '',
+                customerPhone: $mpesaPhone,
+                description: $description,
+                brandName: $this->settingModel->get('app_name', ''),
+                lineItems: $gateway === 'stripe' ? [[
+                    'product_name' => $description,
+                    'product_image' => null,
+                    'unit_price' => $price,
+                    'quantity' => 1,
+                ]] : [],
+            ));
+        } catch (\Throwable $e) {
+            $this->logger->error('billing.' . $gateway . '_error', ['error' => $e->getMessage()]);
+            return $this->json($response, ['error' => true, 'message' => $e->getMessage()], 500);
+        }
+
+        // Gateway-specific post-processing
+        if ($gateway === 'paypal') {
+            if ($result->redirectUrl === '') {
+                return $this->json($response, ['error' => true, 'message' => 'Could not create PayPal payment'], 500);
+            }
+            $_SESSION['billing_paypal'] = [
+                'plan_id' => $planId,
+                'cycle' => $cycle,
+                'amount' => $price,
+            ];
+        }
+
+        if ($gateway === 'mpesa') {
             $stmt = $this->db->prepare(
                 'INSERT INTO billing_mpesa_pending (user_id, plan_id, billing_cycle, checkout_request_id, amount) VALUES (?, ?, ?, ?, ?)'
             );
-            $stmt->execute([$userId, $planId, $cycle, $checkoutRequestId, $price]);
+            $stmt->execute([$userId, $planId, $cycle, $result->transactionId, $price]);
 
             return $this->json($response, [
                 'success' => true,
@@ -201,7 +190,14 @@ final class BillingController
             ]);
         }
 
-        return $this->json($response, ['error' => true, 'message' => 'Unsupported payment gateway'], 422);
+        if ($gateway === 'pesapal') {
+            $stmt = $this->db->prepare(
+                'INSERT INTO billing_pesapal_pending (user_id, plan_id, billing_cycle, order_tracking_id, merchant_reference, amount) VALUES (?, ?, ?, ?, ?, ?)'
+            );
+            $stmt->execute([$userId, $planId, $cycle, $result->transactionId, $ref, $price]);
+        }
+
+        return $this->json($response, ['success' => true, 'redirect_url' => $result->redirectUrl]);
     }
 
     /**
@@ -216,6 +212,8 @@ final class BillingController
             return $this->handleStripeReturn($request, $response, $params);
         } elseif ($gateway === 'paypal') {
             return $this->handlePayPalReturn($request, $response, $params);
+        } elseif ($gateway === 'pesapal') {
+            return $this->handlePesapalReturn($request, $response, $params);
         }
 
         return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
@@ -229,41 +227,32 @@ final class BillingController
         }
 
         $settings = $this->settingModel->all();
-        $secretKey = $settings['platform_stripe_secret_key'] ?? '';
-        if ($secretKey === '') {
-            return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
-        }
+        $config = $this->buildBillingGatewayConfig('stripe', $settings);
 
         try {
-            $result = $this->payment->verifyStripeSession($sessionId, $secretKey);
+            $gw = $this->gatewayFactory->create('stripe', $config);
+            $verification = $gw->verifyPayment($params);
         } catch (\Throwable $e) {
             $this->logger->error('billing.stripe_verify_error', ['error' => $e->getMessage()]);
             return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
         }
 
-        if (empty($result['paid'])) {
+        if (!$verification->paid) {
             return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
         }
 
-        // Parse the order reference: SUB-{userId}-{planId}-{cycle}
-        $ref = $result['order_number'] ?? '';
-        $parts = explode('-', $ref);
-        if (count($parts) < 4 || $parts[0] !== 'SUB') {
+        $parsed = $this->parseSubscriptionRef($verification->reference);
+        if (!$parsed) {
             return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
         }
 
-        $userId = (int) $parts[1];
-        $planId = (int) $parts[2];
-        $cycle = $parts[3];
-
-        // Verify the userId matches the authenticated user to prevent subscription hijacking
         $currentUserId = $this->auth->userId();
-        if (!$currentUserId || $userId !== $currentUserId) {
-            $this->logger->warning('billing.stripe_user_mismatch', ['ref_user' => $userId, 'auth_user' => $currentUserId]);
+        if (!$currentUserId || $parsed['user_id'] !== $currentUserId) {
+            $this->logger->warning('billing.stripe_user_mismatch', ['ref_user' => $parsed['user_id'], 'auth_user' => $currentUserId]);
             return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
         }
 
-        $this->activateSubscription($userId, $planId, $cycle, 'stripe', $result['payment_intent'] ?? $sessionId, $result['amount'] ?? 0);
+        $this->activateSubscription($parsed['user_id'], $parsed['plan_id'], $parsed['cycle'], 'stripe', $verification->transactionId ?: $sessionId, $verification->amount);
 
         $_SESSION['toast'] = 'Your plan has been upgraded!';
         return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
@@ -282,18 +271,17 @@ final class BillingController
         }
 
         $settings = $this->settingModel->all();
-        $clientId = $settings['platform_paypal_client_id'] ?? '';
-        $secret = $settings['platform_paypal_secret'] ?? '';
-        $sandbox = ($settings['platform_paypal_mode'] ?? 'test') !== 'live';
+        $config = $this->buildBillingGatewayConfig('paypal', $settings);
 
         try {
-            $result = $this->payment->capturePayPalOrder($paypalOrderId, $clientId, $secret, $sandbox);
+            $gw = $this->gatewayFactory->create('paypal', $config);
+            $verification = $gw->verifyPayment($params);
         } catch (\Throwable $e) {
             $this->logger->error('billing.paypal_capture_error', ['error' => $e->getMessage()]);
             return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
         }
 
-        if (empty($result['paid'])) {
+        if (!$verification->paid) {
             return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
         }
 
@@ -307,14 +295,102 @@ final class BillingController
             (int) $billingInfo['plan_id'],
             $billingInfo['cycle'],
             'paypal',
-            $result['id'] ?? $paypalOrderId,
-            (float) ($result['amount'] ?? $billingInfo['amount'])
+            $verification->transactionId ?: $paypalOrderId,
+            $verification->amount ?: (float) $billingInfo['amount']
         );
 
         unset($_SESSION['billing_paypal']);
 
         $_SESSION['toast'] = 'Your plan has been upgraded!';
         return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
+    }
+
+    private function handlePesapalReturn(Request $request, Response $response, array $params): Response
+    {
+        $orderTrackingId = $params['OrderTrackingId'] ?? '';
+        if ($orderTrackingId === '') {
+            return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
+        }
+
+        $settings = $this->settingModel->all();
+        $config = $this->buildBillingGatewayConfig('pesapal', $settings);
+
+        try {
+            $gw = $this->gatewayFactory->create('pesapal', $config);
+            $verification = $gw->verifyPayment($params);
+        } catch (\Throwable $e) {
+            $this->logger->error('billing.pesapal_verify_error', ['error' => $e->getMessage()]);
+            return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
+        }
+
+        if (!$verification->paid) {
+            $_SESSION['toast'] = 'Payment is being processed. You\'ll be notified once confirmed.';
+            return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
+        }
+
+        $merchantRef = $params['OrderMerchantReference'] ?? '';
+        $ref = $merchantRef ?: $verification->reference;
+        $parsed = $this->parseSubscriptionRef($ref);
+        if (!$parsed) {
+            return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
+        }
+
+        $currentUserId = $this->auth->userId();
+        if (!$currentUserId || $parsed['user_id'] !== $currentUserId) {
+            $this->logger->warning('billing.pesapal_user_mismatch', ['ref_user' => $parsed['user_id'], 'auth_user' => $currentUserId]);
+            return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
+        }
+
+        $stmt = $this->db->prepare('UPDATE billing_pesapal_pending SET status = ? WHERE order_tracking_id = ?');
+        $stmt->execute(['paid', $orderTrackingId]);
+
+        $this->activateSubscription($parsed['user_id'], $parsed['plan_id'], $parsed['cycle'], 'pesapal', $verification->transactionId ?: $orderTrackingId, $verification->amount);
+
+        $_SESSION['toast'] = 'Your plan has been upgraded!';
+        return $response->withHeader('Location', '/dashboard/billing')->withStatus(302);
+    }
+
+    private function buildBillingGatewayConfig(string $gateway, array $settings): array
+    {
+        return match ($gateway) {
+            'stripe' => [
+                'secret_key' => $settings['platform_stripe_secret_key'] ?? '',
+            ],
+            'paypal' => [
+                'client_id' => $settings['platform_paypal_client_id'] ?? '',
+                'secret' => $settings['platform_paypal_secret'] ?? '',
+                'sandbox' => ($settings['platform_paypal_mode'] ?? 'test') !== 'live',
+            ],
+            'mpesa' => [
+                'consumer_key' => $settings['platform_mpesa_consumer_key'] ?? '',
+                'consumer_secret' => $settings['platform_mpesa_consumer_secret'] ?? '',
+                'shortcode' => $settings['platform_mpesa_shortcode'] ?? '',
+                'passkey' => $settings['platform_mpesa_passkey'] ?? '',
+                'sandbox' => ($settings['platform_mpesa_mode'] ?? 'test') !== 'live',
+            ],
+            'pesapal' => [
+                'consumer_key' => $settings['platform_pesapal_consumer_key'] ?? '',
+                'consumer_secret' => $settings['platform_pesapal_consumer_secret'] ?? '',
+                'sandbox' => ($settings['platform_pesapal_mode'] ?? 'test') !== 'live',
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * Parse SUB-{userId}-{planId}-{cycle} reference string.
+     */
+    private function parseSubscriptionRef(string $ref): ?array
+    {
+        $parts = explode('-', $ref);
+        if (count($parts) < 4 || $parts[0] !== 'SUB') {
+            return null;
+        }
+        return [
+            'user_id' => (int) $parts[1],
+            'plan_id' => (int) $parts[2],
+            'cycle' => $parts[3],
+        ];
     }
 
     private function activateSubscription(int $userId, int $planId, string $cycle, string $gateway, string $reference, float $amount): void
@@ -387,6 +463,20 @@ final class BillingController
         // Check for recently paid M-Pesa billing
         $stmt = $this->db->prepare(
             'SELECT * FROM billing_mpesa_pending
+             WHERE user_id = ? AND status = ?
+             AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+             ORDER BY created_at DESC LIMIT 1'
+        );
+        $stmt->execute([$userId, 'paid']);
+        $row = $stmt->fetch();
+
+        if ($row) {
+            return $this->json($response, ['status' => 'paid', 'redirect' => '/dashboard/billing']);
+        }
+
+        // Also check Pesapal pending payments
+        $stmt = $this->db->prepare(
+            'SELECT * FROM billing_pesapal_pending
              WHERE user_id = ? AND status = ?
              AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)
              ORDER BY created_at DESC LIMIT 1'

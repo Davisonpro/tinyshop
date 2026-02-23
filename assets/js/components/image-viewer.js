@@ -6,6 +6,9 @@ TinyShop.imageViewer = {
     _images: [],
     _current: 0,
     _keyBound: false,
+    _scale: 1,
+    _panX: 0,
+    _panY: 0,
 
     open: function(images, startIndex) {
         var self = this;
@@ -25,6 +28,7 @@ TinyShop.imageViewer = {
     close: function() {
         var self = this;
         if (!self._el) return;
+        if (self._resetZoom) self._resetZoom();
         self._el.classList.remove('active');
     },
 
@@ -74,17 +78,118 @@ TinyShop.imageViewer = {
             });
         }
 
-        // Swipe
-        var startX = 0, startY = 0, tracking = false;
+        // --- Touch gestures: swipe, pinch-to-zoom, pan, double-tap ---
         var img = div.querySelector('.image-viewer-img');
+        var startX = 0, startY = 0, tracking = false;
+        var pinchStartDist = 0, pinchStartScale = 1;
+        var panStartX = 0, panStartY = 0, panBaseX = 0, panBaseY = 0, isPanning = false;
+        var lastTap = 0;
+
+        function getDistance(t1, t2) {
+            var dx = t1.clientX - t2.clientX;
+            var dy = t1.clientY - t2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function applyTransform() {
+            img.style.transform = 'translate(' + self._panX + 'px, ' + self._panY + 'px) scale(' + self._scale + ')';
+        }
+
+        self._resetZoom = function() {
+            self._scale = 1;
+            self._panX = 0;
+            self._panY = 0;
+            img.style.transform = '';
+            img.style.transition = '';
+        };
+
         img.addEventListener('touchstart', function(e) {
-            if (e.touches.length === 1) {
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
-                tracking = true;
+            img.style.transition = 'none';
+
+            if (e.touches.length === 2) {
+                // Pinch start
+                tracking = false;
+                isPanning = false;
+                pinchStartDist = getDistance(e.touches[0], e.touches[1]);
+                pinchStartScale = self._scale;
+                return;
             }
-        }, { passive: true });
+
+            if (e.touches.length === 1) {
+                // Double-tap detection
+                var now = Date.now();
+                if (now - lastTap < 300) {
+                    e.preventDefault();
+                    if (self._scale > 1.05) {
+                        img.style.transition = 'transform 0.25s ease';
+                        self._scale = 1;
+                        self._panX = 0;
+                        self._panY = 0;
+                    } else {
+                        img.style.transition = 'transform 0.25s ease';
+                        self._scale = 2;
+                        self._panX = 0;
+                        self._panY = 0;
+                    }
+                    applyTransform();
+                    lastTap = 0;
+                    tracking = false;
+                    return;
+                }
+                lastTap = now;
+
+                if (self._scale > 1.05) {
+                    // Pan mode when zoomed
+                    isPanning = true;
+                    tracking = false;
+                    panStartX = e.touches[0].clientX;
+                    panStartY = e.touches[0].clientY;
+                    panBaseX = self._panX;
+                    panBaseY = self._panY;
+                } else {
+                    // Swipe mode at 1×
+                    isPanning = false;
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    tracking = true;
+                }
+            }
+        }, { passive: false });
+
+        img.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 2) {
+                // Pinch zoom
+                e.preventDefault();
+                var dist = getDistance(e.touches[0], e.touches[1]);
+                var newScale = pinchStartScale * (dist / pinchStartDist);
+                self._scale = Math.min(Math.max(newScale, 1), 3);
+                if (self._scale <= 1.02) {
+                    self._panX = 0;
+                    self._panY = 0;
+                }
+                applyTransform();
+                return;
+            }
+
+            if (isPanning && e.touches.length === 1) {
+                e.preventDefault();
+                self._panX = panBaseX + (e.touches[0].clientX - panStartX);
+                self._panY = panBaseY + (e.touches[0].clientY - panStartY);
+                applyTransform();
+            }
+        }, { passive: false });
+
         img.addEventListener('touchend', function(e) {
+            if (e.touches.length === 0 && isPanning) {
+                isPanning = false;
+                // Snap back if scale is ~1
+                if (self._scale <= 1.02) {
+                    img.style.transition = 'transform 0.2s ease';
+                    self._resetZoom();
+                }
+                return;
+            }
+
             if (!tracking) return;
             tracking = false;
             var dx = e.changedTouches[0].clientX - startX;
@@ -121,6 +226,7 @@ TinyShop.imageViewer = {
     _go: function(idx) {
         var self = this;
         if (self._images.length <= 1) return;
+        if (self._resetZoom) self._resetZoom();
         self._current = ((idx % self._images.length) + self._images.length) % self._images.length;
         self._show();
     }

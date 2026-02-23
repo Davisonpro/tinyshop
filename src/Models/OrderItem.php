@@ -4,46 +4,51 @@ declare(strict_types=1);
 
 namespace TinyShop\Models;
 
-use TinyShop\Services\DB;
-use PDO;
+use TinyShop\Enums\FieldType;
 
-final class OrderItem
+class OrderItem extends Model
 {
-    private readonly PDO $db;
-
-    public function __construct(DB $database)
-    {
-        $this->db = $database->pdo();
-    }
+    protected static array $definition = [
+        'table'   => 'order_items',
+        'primary' => 'id',
+        'fields'  => [
+            'order_id'      => ['type' => FieldType::Int, 'required' => true],
+            'product_id'    => ['type' => FieldType::Int, 'required' => true],
+            'product_name'  => ['type' => FieldType::String, 'required' => true, 'maxLength' => 255],
+            'product_image' => ['type' => FieldType::String, 'maxLength' => 500],
+            'variation'     => ['type' => FieldType::String, 'maxLength' => 255],
+            'quantity'      => ['type' => FieldType::Int, 'required' => true],
+            'unit_price'    => ['type' => FieldType::Decimal, 'required' => true],
+            'total'         => ['type' => FieldType::Decimal, 'required' => true],
+            'created_at'    => ['type' => FieldType::DateTime],
+        ],
+    ];
 
     public function createBatch(int $orderId, array $items): void
     {
-        $stmt = $this->db->prepare(
-            'INSERT INTO order_items (order_id, product_id, product_name, product_image, variation, quantity, unit_price, total)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-
+        $rows = [];
         foreach ($items as $item) {
-            $stmt->execute([
-                $orderId,
-                $item['product_id'],
-                $item['product_name'],
-                $item['product_image'] ?? null,
-                $item['variation'] ?? null,
-                $item['quantity'],
-                $item['unit_price'],
-                $item['total'],
-            ]);
+            $rows[] = [
+                'order_id'      => $orderId,
+                'product_id'    => $item['product_id'],
+                'product_name'  => $item['product_name'],
+                'product_image' => $item['product_image'] ?? null,
+                'variation'     => $item['variation'] ?? null,
+                'quantity'      => $item['quantity'],
+                'unit_price'    => $item['unit_price'],
+                'total'         => $item['total'],
+            ];
         }
+
+        static::batchInsert($rows);
     }
 
     public function findByOrder(int $orderId): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC'
+        return static::rawQuery(
+            'SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC',
+            [$orderId]
         );
-        $stmt->execute([$orderId]);
-        return $stmt->fetchAll();
     }
 
     public function findByOrderIds(array $orderIds): array
@@ -53,10 +58,9 @@ final class OrderItem
         }
 
         $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
-        $stmt = $this->db->prepare(
-            "SELECT * FROM order_items WHERE order_id IN ({$placeholders}) ORDER BY order_id, id ASC"
+        return static::rawQuery(
+            "SELECT * FROM order_items WHERE order_id IN ({$placeholders}) ORDER BY order_id, id ASC",
+            $orderIds
         );
-        $stmt->execute($orderIds);
-        return $stmt->fetchAll();
     }
 }

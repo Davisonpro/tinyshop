@@ -39,12 +39,12 @@ $(function() {
     // Share sheet (all delegated)
     $(document).on('click', '[data-share-trigger]', function(e) {
         e.preventDefault();
-        var url = window.location.href;
+        var baseUrl = window.location.href.split('?')[0];
         var title = document.title;
 
         // Use native share on supported devices
         if (navigator.share) {
-            navigator.share({ title: title, url: url }).then(function() {
+            navigator.share({ title: title, url: baseUrl + '?utm_source=native' }).then(function() {
                 TinyShop.toast('Thanks for sharing!');
             }).catch(function() { /* user cancelled — no action */ });
             return;
@@ -53,13 +53,13 @@ $(function() {
         var $b = $('#shareSheetBackdrop');
 
         $b.find('[data-share-action="whatsapp"]').attr('href',
-            'https://wa.me/?text=' + encodeURIComponent(title + ' ' + url));
+            'https://wa.me/?text=' + encodeURIComponent(title + ' ' + baseUrl + '?utm_source=whatsapp'));
         $b.find('[data-share-action="facebook"]').attr('href',
-            'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url));
+            'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(baseUrl + '?utm_source=facebook'));
         $b.find('[data-share-action="twitter"]').attr('href',
-            'https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(url));
+            'https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(baseUrl + '?utm_source=x'));
         $b.find('[data-share-action="email"]').attr('href',
-            'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(url));
+            'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(baseUrl + '?utm_source=email'));
         $b.addClass('active');
         document.body.style.overflow = 'hidden';
     });

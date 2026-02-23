@@ -17,6 +17,9 @@ CREATE TABLE `users` (
     `oauth_id` VARCHAR(255) DEFAULT NULL,
     `role` ENUM('admin','seller') NOT NULL DEFAULT 'seller',
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `vacation_mode` TINYINT(1) NOT NULL DEFAULT 0,
+    `vacation_message` VARCHAR(500) DEFAULT NULL,
+    `notify_email` TINYINT(1) NOT NULL DEFAULT 1,
     `is_showcased` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
     `email_verified_at` DATETIME DEFAULT NULL,
     `last_login_at` DATETIME DEFAULT NULL,
@@ -38,6 +41,7 @@ CREATE TABLE `users` (
     `plan_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     `plan_expires_at` DATETIME NULL DEFAULT NULL,
     `shop_theme` VARCHAR(20) NOT NULL DEFAULT 'classic',
+    `show_logo` TINYINT(1) NOT NULL DEFAULT 1,
     `show_store_name` TINYINT(1) NOT NULL DEFAULT 1,
     `show_tagline` TINYINT(1) NOT NULL DEFAULT 1,
     `show_search` TINYINT(1) NOT NULL DEFAULT 1,
@@ -50,11 +54,11 @@ CREATE TABLE `users` (
     `stripe_public_key` VARCHAR(255) NULL,
     `stripe_secret_key` VARCHAR(255) NULL,
     `stripe_mode` ENUM('test','live') NOT NULL DEFAULT 'test',
-    `stripe_enabled` TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
+    `stripe_enabled` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
     `paypal_client_id` VARCHAR(255) NULL,
     `paypal_secret` VARCHAR(255) NULL,
     `paypal_mode` ENUM('test','live') NOT NULL DEFAULT 'test',
-    `paypal_enabled` TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
+    `paypal_enabled` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
     `cod_enabled` TINYINT(1) NOT NULL DEFAULT 0,
     `mpesa_shortcode` VARCHAR(20) NULL,
     `mpesa_consumer_key` VARCHAR(255) NULL,
@@ -105,6 +109,7 @@ CREATE TABLE `products` (
     `name` VARCHAR(200) NOT NULL,
     `slug` VARCHAR(255) DEFAULT NULL,
     `description` TEXT DEFAULT NULL,
+    `full_description` LONGTEXT DEFAULT NULL,
     `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `compare_price` DECIMAL(10,2) DEFAULT NULL,
     `image_url` VARCHAR(500) DEFAULT NULL,
@@ -116,12 +121,14 @@ CREATE TABLE `products` (
     `variations` JSON DEFAULT NULL,
     `meta_title` VARCHAR(200) DEFAULT NULL,
     `meta_description` VARCHAR(500) DEFAULT NULL,
+    `source_url` VARCHAR(500) DEFAULT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `idx_user_sort` (`user_id`, `sort_order`),
     KEY `idx_category` (`category_id`),
     KEY `idx_user_active` (`user_id`, `is_active`),
+    KEY `idx_source_url` (`source_url`(191)),
     UNIQUE KEY `idx_user_slug` (`user_id`, `slug`),
     CONSTRAINT `fk_products_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_products_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL
@@ -204,12 +211,35 @@ CREATE TABLE `shop_views` (
     `user_id` BIGINT UNSIGNED NOT NULL,
     `product_id` BIGINT UNSIGNED DEFAULT NULL,
     `visitor_hash` VARCHAR(64) NOT NULL,
+    `referer_domain` VARCHAR(100) DEFAULT NULL,
+    `utm_source` VARCHAR(50) DEFAULT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     INDEX `idx_user_date` (`user_id`, `created_at`),
     INDEX `idx_user_product` (`user_id`, `product_id`),
     INDEX `idx_dedup` (`user_id`, `visitor_hash`, `product_id`, `created_at`),
+    INDEX `idx_user_referer_date` (`user_id`, `referer_domain`, `created_at`),
+    INDEX `idx_user_utm_date` (`user_id`, `utm_source`, `created_at`),
     CONSTRAINT `fk_shop_views_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Page Views (marketing / public pages)
+-- ══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE `page_views` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `page_path` VARCHAR(255) NOT NULL,
+    `visitor_hash` VARCHAR(64) NOT NULL,
+    `referer_domain` VARCHAR(100) DEFAULT NULL,
+    `utm_source` VARCHAR(50) DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_page_date` (`page_path`, `created_at`),
+    INDEX `idx_date` (`created_at`),
+    INDEX `idx_dedup` (`visitor_hash`, `page_path`, `created_at`),
+    INDEX `idx_referer_date` (`referer_domain`, `created_at`),
+    INDEX `idx_utm_date` (`utm_source`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ══════════════════════════════════════════════════════════════════════════════

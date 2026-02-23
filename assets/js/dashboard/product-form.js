@@ -450,7 +450,8 @@ TinyShop.initProductForm = function() {
                 name: $('#productName').val(),
                 price: $('#productPrice').val().replace(/,/g, ''),
                 compare_price: $('#productComparePrice').val().replace(/,/g, ''),
-                description: $('#productDesc').val(),
+                full_description: $('#productDesc').val(),
+                description: $('#productShortDesc').val(),
                 category_id: $('#productCategory').val(),
                 images: getImageUrls(),
                 variations: getVariations(),
@@ -470,9 +471,13 @@ TinyShop.initProductForm = function() {
             if (draft.name) $('#productName').val(draft.name);
             if (draft.price) { $('#productPrice').val(draft.price).trigger('input'); }
             if (draft.compare_price) { $('#productComparePrice').val(draft.compare_price).trigger('input'); }
+            if (draft.full_description) {
+                $('#productDesc').val(draft.full_description);
+                if (window._setEditorContent) window._setEditorContent(draft.full_description);
+            }
             if (draft.description) {
-                $('#productDesc').val(draft.description);
-                if (window._setEditorContent) window._setEditorContent(draft.description);
+                $('#productShortDesc').val(draft.description);
+                if (window._setShortDescContent) window._setShortDescContent(draft.description);
             }
             if (draft.category_id) {
                 $('#productCategory').val(draft.category_id);
@@ -515,10 +520,9 @@ TinyShop.initProductForm = function() {
         markDirty();
     });
 
-    var richContent = document.querySelector('.rich-editor-content');
-    if (richContent) {
-        richContent.addEventListener('input', function() { saveDraft(); markDirty(); });
-    }
+    document.querySelectorAll('.rich-editor-content').forEach(function(el) {
+        el.addEventListener('input', function() { saveDraft(); markDirty(); });
+    });
 
     var _origAddImage = addImageToGallery;
     addImageToGallery = function(url) { _origAddImage(url); markDirty(); };
@@ -566,7 +570,8 @@ TinyShop.initProductForm = function() {
             name: $('#productName').val(),
             price: parseFloat(priceRaw),
             compare_price: compareRaw !== '' ? parseFloat(compareRaw) : null,
-            description: $('#productDesc').val(),
+            description: $('#productShortDesc').val().trim(),
+            full_description: $('#productDesc').val(),
             category_id: $('#productCategory').val() || null,
             images: getImageUrls(),
             is_sold: $('#productSold').is(':checked') ? 1 : 0,

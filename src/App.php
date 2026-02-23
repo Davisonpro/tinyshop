@@ -10,8 +10,10 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Factory\AppFactory;
+use TinyShop\Models\Model;
 use TinyShop\Services\AddonLoader;
 use TinyShop\Services\Config;
+use TinyShop\Services\DB;
 use TinyShop\Services\Hooks;
 use TinyShop\Services\Logger;
 use TinyShop\Services\View;
@@ -36,7 +38,13 @@ final class App
         $addonLoader = new AddonLoader(dirname(__DIR__) . '/addons');
         $addonLoader->loadAll();
 
+        // Boot the active-record base model with PDO
+        Model::boot($container->get(DB::class)->pdo());
+
         Hooks::doAction('tinyshop.boot', $app, $container);
+
+        // Expire overdue subscriptions (lightweight — single query, no-ops if nothing to expire)
+        $container->get(\TinyShop\Models\Subscription::class)->expireOverdue();
 
         // Register middleware
         (require dirname(__DIR__) . '/config/middleware.php')($app);
@@ -76,7 +84,7 @@ final class App
 
                 // HTML requests get the 404 template
                 $view = $container->get(View::class);
-                return $view->render($response, 'pages/404.tpl', [
+                return $view->render($response, 'pages/public/404.tpl', [
                     'page_title' => 'Page Not Found',
                 ]);
             }

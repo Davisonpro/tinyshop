@@ -24,7 +24,7 @@ final class PlanGuard
      */
     public function getUserPlan(int $userId): array
     {
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         if (!$user) {
             return $this->getDefaultPlan();
         }
@@ -36,9 +36,9 @@ final class PlanGuard
         if ($planId !== null && $expiresAt !== null) {
             $expired = strtotime($expiresAt) < time();
             if (!$expired) {
-                $plan = $this->planModel->findById((int) $planId);
+                $plan = Plan::find((int) $planId);
                 if ($plan) {
-                    return $plan;
+                    return $plan->toArray();
                 }
             }
         }
@@ -66,16 +66,11 @@ final class PlanGuard
         $allowedThemes = $plan['allowed_themes'] ?? null;
 
         // NULL = all themes allowed
-        if ($allowedThemes === null) {
+        if (!is_array($allowedThemes)) {
             return true;
         }
 
-        $themes = json_decode($allowedThemes, true);
-        if (!is_array($themes)) {
-            return true;
-        }
-
-        return in_array($theme, $themes, true);
+        return in_array($theme, $allowedThemes, true);
     }
 
     public function canUseCustomDomain(int $userId): bool
@@ -96,12 +91,11 @@ final class PlanGuard
     public function getUsageSummary(int $userId): array
     {
         $plan = $this->getUserPlan($userId);
-        $user = $this->userModel->findById($userId);
+        $user = User::find($userId);
         $productCount = $this->productModel->countByUser($userId);
 
         $maxProducts = $plan['max_products'] ?? null;
-        $allowedThemes = $plan['allowed_themes'] ?? null;
-        $themes = $allowedThemes !== null ? json_decode($allowedThemes, true) : null;
+        $themes = $plan['allowed_themes'] ?? null;
 
         $expiresAt = $user['plan_expires_at'] ?? null;
         $daysLeft = null;
@@ -146,17 +140,17 @@ final class PlanGuard
         if ($this->defaultPlan === null) {
             $this->defaultPlan = $this->planModel->findDefault();
             if ($this->defaultPlan === null) {
-                // Fallback: no plans in DB at all — full access
+                // Fallback: no plans in DB — restrictive free tier
                 $this->defaultPlan = [
                     'id' => 0,
-                    'name' => 'Starter',
-                    'slug' => 'starter',
+                    'name' => 'Free',
+                    'slug' => 'free',
                     'price_monthly' => 0,
                     'price_yearly' => 0,
-                    'max_products' => null,
+                    'max_products' => 10,
                     'allowed_themes' => null,
-                    'custom_domain_allowed' => 1,
-                    'coupons_allowed' => 1,
+                    'custom_domain_allowed' => 0,
+                    'coupons_allowed' => 0,
                 ];
             }
         }

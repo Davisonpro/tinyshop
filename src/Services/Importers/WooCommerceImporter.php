@@ -16,6 +16,7 @@ final class WooCommerceImporter implements ImporterInterface
     }
 
     private ?string $lastError = null;
+    private string $sourceDomain = '';
 
     public function supports(string $url): bool
     {
@@ -65,27 +66,38 @@ final class WooCommerceImporter implements ImporterInterface
 
         $xpath = new DOMXPath($doc);
 
+        // Detect source domain so sanitizeNodeHtml can strip internal links
+        $this->sourceDomain = $this->extractSourceDomain($xpath);
+
         // Parse JSON-LD structured data (reliable source for categories, currency, etc.)
         $ld = $this->extractJsonLd($xpath);
 
-        $title       = $this->extractTitle($xpath, $ld);
-        $description = $this->extractDescription($xpath, $ld);
+        $title            = $this->extractTitle($xpath, $ld);
+        $shortDescription = $this->extractShortDescription($xpath, $ld);
+        $fullDescription  = $this->extractFullDescription($xpath, $ld);
         [$price, $comparePrice] = $this->extractPrices($xpath, $ld);
         $images      = $this->extractImages($xpath, $ld);
         $categories  = $this->extractCategories($xpath, $ld);
         $variations  = $this->extractVariations($xpath);
         $currency    = $this->extractCurrency($xpath, $ld);
+        $isSold      = $this->extractStockStatus($xpath);
+        $metaTitle   = $this->extractMetaTitle($xpath);
+        $metaDesc    = $this->extractMetaDescription($xpath);
 
         return new ImportResult(
-            title:          $title,
-            description:    $description,
-            price:          $price,
-            comparePrice:   $comparePrice,
-            images:         $images,
-            categories:     $categories,
-            variations:     $variations,
-            currency:       $currency,
-            sourcePlatform: 'woocommerce',
+            title:            $title,
+            description:      $fullDescription,
+            shortDescription: $shortDescription,
+            price:            $price,
+            comparePrice:     $comparePrice,
+            images:           $images,
+            categories:       $categories,
+            variations:       $variations,
+            currency:         $currency,
+            sourcePlatform:   'woocommerce',
+            isSold:           $isSold,
+            metaTitle:        $metaTitle,
+            metaDescription:  $metaDesc,
         );
     }
 
@@ -138,25 +150,104 @@ final class WooCommerceImporter implements ImporterInterface
         throw new RuntimeException('Could not find product title');
     }
 
-    private function extractDescription(DOMXPath $xpath, array $ld): string
+    private function extractShortDescription(DOMXPath $xpath, array $ld): string
     {
         $nodes = $xpath->query('//*[contains(@class,"woocommerce-product-details__short-description")]');
         if ($nodes === false || $nodes->length === 0) {
-            // Fallback: JSON-LD description (plain text, wrapped in <p>)
+            // Fallback: JSON-LD description as sanitized HTML
             $ldDesc = $ld['description'] ?? '';
-            return $ldDesc !== '' ? '<p>' . htmlspecialchars(strip_tags($ldDesc)) . '</p>' : '';
+            if ($ldDesc === '') {
+                return '';
+            }
+            $clean = strip_tags($ldDesc, '<p><br><b><strong><i><em><ul><ol><li><a>');
+            $clean = preg_replace('/\s+(style|class|id)\s*=\s*"[^"]*"/i', '', $clean);
+            $clean = preg_replace('/\s+(style|class|id)\s*=\s*\'[^\']*\'/i', '', $clean);
+            return trim($clean);
         }
 
-        $node = $nodes->item(0);
+        return $this->sanitizeNodeHtml($nodes->item(0));
+    }
+
+    private function extractFullDescription(DOMXPath $xpath, array $ld): string
+    {
+        // Try multiple WooCommerce description panel selectors
+        $panelQueries = [
+            '//*[contains(@class,"woocommerce-Tabs-panel--description")]',
+            '//*[@id="tabs-list-description"]',
+            '//*[@id="tab-description"]',
+        ];
+
+        foreach ($panelQueries as $query) {
+            $nodes = $xpath->query($query);
+            if ($nodes === false || $nodes->length === 0) {
+                continue;
+            }
+            $tabNode = $nodes->item(0);
+
+            // Check for a .product-content child div (common wrapper on many WooCommerce sites)
+            $contentNodes = $xpath->query('.//*[contains(@class,"product-content")]', $tabNode);
+            $sourceNode = ($contentNodes !== false && $contentNodes->length > 0)
+                ? $contentNodes->item(0)
+                : $tabNode;
+
+            $clean = $this->sanitizeNodeHtml($sourceNode);
+            if ($clean !== '') {
+                return $clean;
+            }
+        }
+
+        // Fallback: JSON-LD description (plain text, wrapped in <p>)
+        $ldDesc = $ld['description'] ?? '';
+        return $ldDesc !== '' ? '<p>' . htmlspecialchars(strip_tags($ldDesc)) . '</p>' : '';
+    }
+
+    private function extractSourceDomain(DOMXPath $xpath): string
+    {
+        // Try canonical URL
+        $nodes = $xpath->query('//link[@rel="canonical"]/@href');
+        if ($nodes !== false && $nodes->length > 0) {
+            $host = parse_url(trim($nodes->item(0)->nodeValue), PHP_URL_HOST);
+            if ($host) {
+                return preg_replace('/^www\./i', '', $host);
+            }
+        }
+
+        // Try og:url
+        $nodes = $xpath->query('//meta[@property="og:url"]/@content');
+        if ($nodes !== false && $nodes->length > 0) {
+            $host = parse_url(trim($nodes->item(0)->nodeValue), PHP_URL_HOST);
+            if ($host) {
+                return preg_replace('/^www\./i', '', $host);
+            }
+        }
+
+        return '';
+    }
+
+    private function sanitizeNodeHtml(\DOMNode $node): string
+    {
         $inner = '';
         foreach ($node->childNodes as $child) {
             $inner .= $node->ownerDocument->saveHTML($child);
         }
 
-        // Keep safe HTML tags for the rich editor, strip everything else
-        $clean = strip_tags($inner, '<p><br><b><strong><i><em><ul><ol><li><h2><h3><a>');
+        // Demote h1 → h2 (preserve content, just reduce heading level)
+        $clean = preg_replace('/<h1(\s|>)/i', '<h2$1', $inner);
+        $clean = preg_replace('/<\/h1>/i', '</h2>', $clean);
 
-        // Strip inline style/class/id attributes from remaining tags
+        // Remove dangerous tags (keep all other structural/formatting HTML)
+        $clean = preg_replace('/<(script|iframe|style|form|input|textarea|select|button|object|embed|link|meta|noscript)\b[^>]*>.*?<\/\1>/is', '', $clean);
+        $clean = preg_replace('/<(script|iframe|style|form|input|textarea|select|button|object|embed|link|meta|noscript)\b[^>]*\/?>/i', '', $clean);
+
+        // Strip <a> tags linking to the source site (keep text content)
+        if ($this->sourceDomain !== '') {
+            $domain = preg_quote($this->sourceDomain, '/');
+            $clean = preg_replace('/<a\b[^>]*href\s*=\s*["\']https?:\/\/(?:www\.)?' . $domain . '[^"\']*["\'][^>]*>(.*?)<\/a>/is', '$1', $clean);
+        }
+        // Strip <a> tags with relative paths (also internal)
+        $clean = preg_replace('/<a\b[^>]*href\s*=\s*["\']\/[^"\']*["\'][^>]*>(.*?)<\/a>/is', '$1', $clean);
+
+        // Strip inline style/class/id attributes
         $clean = preg_replace('/\s+(style|class|id)\s*=\s*"[^"]*"/i', '', $clean);
         $clean = preg_replace('/\s+(style|class|id)\s*=\s*\'[^\']*\'/i', '', $clean);
 
@@ -165,6 +256,57 @@ final class WooCommerceImporter implements ImporterInterface
         $clean = preg_replace('/<(ul|ol)>\s*<\/(ul|ol)>/', '', $clean);
 
         return trim($clean);
+    }
+
+    private function extractStockStatus(DOMXPath $xpath): bool
+    {
+        // WooCommerce adds "outofstock" class to the product wrapper
+        $nodes = $xpath->query('//*[contains(@class,"outofstock")]');
+        if ($nodes !== false && $nodes->length > 0) {
+            return true;
+        }
+
+        // Check stock text (e.g. "Out of stock" in .stock.out-of-stock)
+        $nodes = $xpath->query('//*[contains(@class,"out-of-stock")]');
+        if ($nodes !== false && $nodes->length > 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function extractMetaTitle(DOMXPath $xpath): string
+    {
+        // og:title is typically the cleanest product title for SEO
+        $meta = $xpath->query('//meta[@property="og:title"]/@content');
+        if ($meta !== false && $meta->length > 0) {
+            return trim($meta->item(0)->nodeValue);
+        }
+
+        // Fallback: <title> tag
+        $nodes = $xpath->query('//title');
+        if ($nodes !== false && $nodes->length > 0) {
+            return trim($nodes->item(0)->textContent);
+        }
+
+        return '';
+    }
+
+    private function extractMetaDescription(DOMXPath $xpath): string
+    {
+        // og:description
+        $meta = $xpath->query('//meta[@property="og:description"]/@content');
+        if ($meta !== false && $meta->length > 0) {
+            return trim($meta->item(0)->nodeValue);
+        }
+
+        // Standard meta description
+        $meta = $xpath->query('//meta[@name="description"]/@content');
+        if ($meta !== false && $meta->length > 0) {
+            return trim($meta->item(0)->nodeValue);
+        }
+
+        return '';
     }
 
     /** @return array{float, float|null} [price, comparePrice] */

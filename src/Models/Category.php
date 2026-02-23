@@ -4,43 +4,40 @@ declare(strict_types=1);
 
 namespace TinyShop\Models;
 
-use TinyShop\Services\DB;
-use PDO;
+use TinyShop\Enums\FieldType;
 
-final class Category
+class Category extends Model
 {
-    private readonly PDO $db;
-
-    public function __construct(DB $database)
-    {
-        $this->db = $database->pdo();
-    }
+    protected static array $definition = [
+        'table'   => 'categories',
+        'primary' => 'id',
+        'fields'  => [
+            'user_id'    => ['type' => FieldType::Int, 'required' => true],
+            'parent_id'  => ['type' => FieldType::Int],
+            'name'       => ['type' => FieldType::String, 'required' => true, 'maxLength' => 255],
+            'slug'       => ['type' => FieldType::String, 'required' => true, 'maxLength' => 255],
+            'image_url'  => ['type' => FieldType::String, 'maxLength' => 500],
+            'sort_order' => ['type' => FieldType::Int, 'default' => 0],
+            'created_at' => ['type' => FieldType::DateTime],
+            'updated_at' => ['type' => FieldType::DateTime],
+        ],
+    ];
 
     public function findByUser(int $userId): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT * FROM categories WHERE user_id = ? ORDER BY sort_order ASC, name ASC'
+        return static::rawQuery(
+            'SELECT * FROM categories WHERE user_id = ? ORDER BY sort_order ASC, name ASC',
+            [$userId]
         );
-        $stmt->execute([$userId]);
-        return $stmt->fetchAll();
-    }
-
-    public function findById(int $id): ?array
-    {
-        $stmt = $this->db->prepare('SELECT * FROM categories WHERE id = ?');
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
-        return $row ?: null;
     }
 
     public function findByUserAndSlug(int $userId, string $slug): ?array
     {
-        $stmt = $this->db->prepare(
-            'SELECT * FROM categories WHERE user_id = ? AND slug = ?'
+        $rows = static::rawQuery(
+            'SELECT * FROM categories WHERE user_id = ? AND slug = ?',
+            [$userId, $slug]
         );
-        $stmt->execute([$userId, $slug]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        return $rows[0] ?? null;
     }
 
     /**
@@ -60,14 +57,12 @@ final class Category
             $params[] = $parentId;
         }
 
-        $stmt = $this->db->prepare($sql . ' LIMIT 1');
-        $stmt->execute($params);
-        $row = $stmt->fetch();
-        if ($row) {
-            return $row;
+        $rows = static::rawQuery($sql . ' LIMIT 1', $params);
+        if (!empty($rows)) {
+            return $rows[0];
         }
 
-        // Slug match under this parent (handles "Smart Phones" matching "smart-phones")
+        // Slug match under this parent
         $slug = self::generateSlug($name);
         $sql2 = 'SELECT * FROM categories WHERE user_id = ? AND slug = ?';
         $params2 = [$userId, $slug];
@@ -79,20 +74,17 @@ final class Category
             $params2[] = $parentId;
         }
 
-        $stmt2 = $this->db->prepare($sql2 . ' LIMIT 1');
-        $stmt2->execute($params2);
-        $row2 = $stmt2->fetch();
-        if ($row2) {
-            return $row2;
+        $rows2 = static::rawQuery($sql2 . ' LIMIT 1', $params2);
+        if (!empty($rows2)) {
+            return $rows2[0];
         }
 
         // Last resort: name match anywhere for this user (ignore parent)
-        $stmt3 = $this->db->prepare(
-            'SELECT * FROM categories WHERE user_id = ? AND LOWER(name) = LOWER(?) LIMIT 1'
+        $rows3 = static::rawQuery(
+            'SELECT * FROM categories WHERE user_id = ? AND LOWER(name) = LOWER(?) LIMIT 1',
+            [$userId, trim($name)]
         );
-        $stmt3->execute([$userId, trim($name)]);
-        $row3 = $stmt3->fetch();
-        return $row3 ?: null;
+        return $rows3[0] ?? null;
     }
 
     public function findByUserAsTree(int $userId): array
@@ -117,57 +109,41 @@ final class Category
         $slug = $data['slug'] ?? self::generateSlug($data['name']);
         $slug = $this->ensureUniqueSlug((int) $data['user_id'], $slug);
 
-        $stmt = $this->db->prepare(
-            'INSERT INTO categories (user_id, parent_id, name, slug, image_url, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
-            $data['user_id'],
-            $data['parent_id'] ?? null,
-            $data['name'],
-            $slug,
-            $data['image_url'] ?? null,
-            $data['sort_order'] ?? 0,
+        $cat = new static();
+        $cat->fill([
+            'user_id'    => $data['user_id'],
+            'parent_id'  => $data['parent_id'] ?? null,
+            'name'       => $data['name'],
+            'slug'       => $slug,
+            'image_url'  => $data['image_url'] ?? null,
+            'sort_order' => $data['sort_order'] ?? 0,
         ]);
-        return (int) $this->db->lastInsertId();
+        $cat->save();
+        return (int) $cat->getId();
     }
 
     public function update(int $id, array $data): bool
     {
         // Auto-generate slug when name changes
-        if (isset($data['name']) && !isset($data['slug'])) {
-            $existing = $this->findById($id);
-            if ($existing) {
-                $data['slug'] = self::generateSlug($data['name']);
-                $data['slug'] = $this->ensureUniqueSlug((int) $existing['user_id'], $data['slug'], $id);
-            }
-        }
-
-        $fields = [];
-        $values = [];
-
-        $allowed = ['name', 'slug', 'image_url', 'sort_order', 'parent_id'];
-
-        foreach ($allowed as $field) {
-            if (array_key_exists($field, $data)) {
-                $fields[] = "`{$field}` = ?";
-                $values[] = $data[$field];
-            }
-        }
-
-        if (empty($fields)) {
+        $cat = static::find($id);
+        if (!$cat) {
             return false;
         }
 
-        $values[] = $id;
-        $sql = 'UPDATE categories SET ' . implode(', ', $fields) . ' WHERE id = ?';
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($values);
-    }
+        // Auto-generate slug when name changes
+        if (isset($data['name']) && !isset($data['slug'])) {
+            $data['slug'] = self::generateSlug($data['name']);
+            $data['slug'] = $this->ensureUniqueSlug((int) $cat->user_id, $data['slug'], $id);
+        }
 
-    public function delete(int $id): bool
-    {
-        $stmt = $this->db->prepare('DELETE FROM categories WHERE id = ?');
-        return $stmt->execute([$id]);
+        $allowed = ['name', 'slug', 'image_url', 'sort_order', 'parent_id'];
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $cat->{$field} = $data[$field];
+            }
+        }
+
+        return $cat->save();
     }
 
     public static function generateSlug(string $name): string
@@ -192,10 +168,9 @@ final class Category
                 $params[] = $excludeId;
             }
 
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
+            $found = static::rawScalar($sql, $params);
 
-            if (!$stmt->fetch()) {
+            if ($found === false) {
                 return $slug;
             }
 

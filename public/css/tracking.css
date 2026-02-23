@@ -252,3 +252,9 @@
   color: var(--color-text-muted);
   margin-top: 2px;
 }
+
+@media (max-width: 1023px) {
+  .tracking-page {
+    padding-bottom: 80px;
+  }
+}

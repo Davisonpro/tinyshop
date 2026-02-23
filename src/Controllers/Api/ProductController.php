@@ -92,6 +92,9 @@ final class ProductController
             return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
 
+        $fullDescription = trim($data['full_description'] ?? '');
+        $fullDescription = $this->validation->sanitizeHtml($fullDescription);
+
         if (!empty($data['meta_title'])) {
             $data['meta_title'] = strip_tags(trim($data['meta_title']));
             if ($err = $this->validation->maxLength($data['meta_title'], 'meta_title')) {
@@ -124,8 +127,9 @@ final class ProductController
             'category_id'      => $categoryId,
             'name'             => $name,
             'slug'             => $slug,
-            'description'      => $description,
-            'price'            => (float) $price,
+            'description'       => $description,
+            'full_description'  => $fullDescription,
+            'price'             => (float) $price,
             'compare_price'    => $comparePrice,
             'image_url'        => $data['image_url'] ?? null,
             'sort_order'       => (int) ($data['sort_order'] ?? 0),
@@ -180,6 +184,11 @@ final class ProductController
                 return $this->json($response, ['error' => true, 'message' => $err], 422);
             }
             $updateData['description'] = $desc;
+        }
+        if (isset($data['full_description'])) {
+            $fullDesc = trim($data['full_description']);
+            $fullDesc = $this->validation->sanitizeHtml($fullDesc);
+            $updateData['full_description'] = $fullDesc;
         }
         if (isset($data['price'])) {
             if (!is_numeric($data['price']) || (float) $data['price'] < 0) {
@@ -291,6 +300,75 @@ final class ProductController
         return $this->json($response, ['success' => true]);
     }
 
+    public function bulkArchive(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $ids = $data['ids'] ?? [];
+
+        if (!is_array($ids) || empty($ids)) {
+            return $this->json($response, ['error' => true, 'message' => 'No products selected'], 422);
+        }
+
+        $ids = array_map('intval', array_slice($ids, 0, 100));
+        $userId = $this->auth->userId();
+        $count = 0;
+
+        foreach ($ids as $id) {
+            $product = $this->productModel->findById($id);
+            if ($product && (int) $product['user_id'] === $userId) {
+                $this->productModel->update($id, ['is_active' => 0]);
+                $count++;
+            }
+        }
+
+        return $this->json($response, ['success' => true, 'archived' => $count]);
+    }
+
+    public function bulkDelete(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $ids = $data['ids'] ?? [];
+
+        if (!is_array($ids) || empty($ids)) {
+            return $this->json($response, ['error' => true, 'message' => 'No products selected'], 422);
+        }
+
+        $ids = array_map('intval', array_slice($ids, 0, 100));
+        $userId = $this->auth->userId();
+        $count = 0;
+
+        $this->db->beginTransaction();
+        try {
+            foreach ($ids as $id) {
+                $product = $this->productModel->findById($id);
+                if (!$product || (int) $product['user_id'] !== $userId) {
+                    continue;
+                }
+
+                $images = $this->productImageModel->findByProduct($id);
+                $imageUrls = array_column($images, 'image_url');
+                if (!empty($product['image_url'])) {
+                    $imageUrls[] = $product['image_url'];
+                }
+
+                $this->productImageModel->deleteByProduct($id);
+                $this->productModel->delete($id);
+
+                foreach ($imageUrls as $url) {
+                    $this->upload->deleteFile($url);
+                }
+
+                $count++;
+            }
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+
+        return $this->json($response, ['success' => true, 'deleted' => $count]);
+    }
+
     public function duplicate(Request $request, Response $response, array $args): Response
     {
         // Plan limit check
@@ -317,8 +395,9 @@ final class ProductController
             'category_id'    => $product['category_id'],
             'name'           => $newName,
             'slug'           => $slug,
-            'description'    => $product['description'],
-            'price'          => (float) $product['price'],
+            'description'       => $product['description'],
+            'full_description'  => $product['full_description'],
+            'price'             => (float) $product['price'],
             'compare_price'  => $product['compare_price'] ? (float) $product['compare_price'] : null,
             'image_url'      => null,
             'sort_order'     => 0,

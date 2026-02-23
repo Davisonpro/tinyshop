@@ -14,7 +14,6 @@
     "styles": ["assets/css/theme.css"],
     "scripts": ["assets/js/theme.js"],
     "supports": {
-        "hero_slider": true,
         "trust_badges": true,
         "product_sliders": true,
         "collection_banners": true,

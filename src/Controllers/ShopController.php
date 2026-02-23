@@ -10,12 +10,15 @@ use TinyShop\Models\User;
 use TinyShop\Models\Product;
 use TinyShop\Models\ProductImage;
 use TinyShop\Models\Category;
-use TinyShop\Models\HeroSlide;
 use TinyShop\Models\Order;
 use TinyShop\Models\OrderItem;
 use TinyShop\Models\ShopView;
+use TinyShop\Models\ThemeOption;
 use TinyShop\Controllers\Traits\JsonResponder;
+use TinyShop\Models\Customer;
 use TinyShop\Services\Auth;
+use TinyShop\Services\CustomerAuth;
+use TinyShop\Services\PlanGuard;
 use TinyShop\Services\View;
 use TinyShop\Services\Theme;
 use TinyShop\Services\Hooks;
@@ -36,16 +39,16 @@ final class ShopController
     private const VISITOR_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
     private const PALETTES = [
-        'default'    => ['primary' => '#222222', 'bar' => '#222222', 'bar_text' => '#ffffff', 'accent' => '#222222'],
-        'ocean'      => ['primary' => '#0F2B46', 'bar' => '#0F2B46', 'bar_text' => '#ffffff', 'accent' => '#E07A5F'],
-        'forest'     => ['primary' => '#1B4332', 'bar' => '#1B4332', 'bar_text' => '#ffffff', 'accent' => '#D4A373'],
-        'sunset'     => ['primary' => '#5C1A0A', 'bar' => '#5C1A0A', 'bar_text' => '#ffffff', 'accent' => '#457B9D'],
-        'lavender'   => ['primary' => '#2D2457', 'bar' => '#2D2457', 'bar_text' => '#ffffff', 'accent' => '#F2CC8F'],
-        'cherry'     => ['primary' => '#7B1E34', 'bar' => '#7B1E34', 'bar_text' => '#ffffff', 'accent' => '#C9534A'],
-        'sage'       => ['primary' => '#5A7247', 'bar' => '#5A7247', 'bar_text' => '#ffffff', 'accent' => '#8B6F4E'],
-        'midnight'   => ['primary' => '#151B2B', 'bar' => '#151B2B', 'bar_text' => '#ffffff', 'accent' => '#4A7CFF'],
-        'mocha'      => ['primary' => '#3E2723', 'bar' => '#3E2723', 'bar_text' => '#ffffff', 'accent' => '#A1887F'],
-        'blush'      => ['primary' => '#4A3040', 'bar' => '#4A3040', 'bar_text' => '#ffffff', 'accent' => '#D4889E'],
+        'default'  => ['anchor' => '#222222', 'depth' => '#555555', 'conversion' => '#888888', 'substrate' => '#E0E0E0', 'canvas' => '#FFFFFF'],
+        'ocean'    => ['anchor' => '#0F2B46', 'depth' => '#1B4D7A', 'conversion' => '#E07A5F', 'substrate' => '#E8A393', 'canvas' => '#FDF0EC'],
+        'forest'   => ['anchor' => '#1B4332', 'depth' => '#2D6A4F', 'conversion' => '#D4A373', 'substrate' => '#E2C4A0', 'canvas' => '#F5EEDF'],
+        'sunset'   => ['anchor' => '#5C1A0A', 'depth' => '#8B3A2A', 'conversion' => '#457B9D', 'substrate' => '#7BABC5', 'canvas' => '#E0EDF5'],
+        'lavender' => ['anchor' => '#2D2457', 'depth' => '#5B4D8A', 'conversion' => '#F2CC8F', 'substrate' => '#F6DDB4', 'canvas' => '#FDF5E8'],
+        'cherry'   => ['anchor' => '#7B1E34', 'depth' => '#A63D50', 'conversion' => '#C9534A', 'substrate' => '#E0918B', 'canvas' => '#FBE9E7'],
+        'sage'     => ['anchor' => '#5A7247', 'depth' => '#7D9B6A', 'conversion' => '#8B6F4E', 'substrate' => '#C4AD8F', 'canvas' => '#F3EDE4'],
+        'midnight' => ['anchor' => '#151B2B', 'depth' => '#2A3450', 'conversion' => '#4A7CFF', 'substrate' => '#8DABFF', 'canvas' => '#E8EEFF'],
+        'mocha'    => ['anchor' => '#3E2723', 'depth' => '#5D4037', 'conversion' => '#A1887F', 'substrate' => '#C8B7AF', 'canvas' => '#F5F0ED'],
+        'blush'    => ['anchor' => '#4A3040', 'depth' => '#6E4D60', 'conversion' => '#D4889E', 'substrate' => '#E8B4C4', 'canvas' => '#FDF0F4'],
     ];
 
     public function __construct(
@@ -55,11 +58,14 @@ final class ShopController
         private readonly Product $productModel,
         private readonly ProductImage $productImageModel,
         private readonly Category $categoryModel,
-        private readonly HeroSlide $heroSlideModel,
         private readonly Order $orderModel,
         private readonly OrderItem $orderItemModel,
         private readonly ShopView $shopViewModel,
-        private readonly Auth $auth
+        private readonly ThemeOption $themeOptionModel,
+        private readonly PlanGuard $planGuard,
+        private readonly Auth $auth,
+        private readonly CustomerAuth $customerAuth,
+        private readonly Customer $customerModel
     ) {}
 
     // ── Page Handlers ─────────────────────────────────────────
@@ -106,7 +112,8 @@ final class ShopController
         $moreProducts = Hooks::applyFilter('product.related', $moreProducts, $product, $shop);
 
         $pageTitle = ($product['meta_title'] ?: $product['name']) . ' — ' . ($shop['store_name'] ?? '');
-        $metaDesc  = $product['meta_description'] ?: ($product['description'] ? mb_substr(strip_tags($product['description']), 0, 160) : '');
+        $metaDesc  = $product['meta_description']
+            ?: ($product['description'] ? mb_substr(strip_tags($product['description']), 0, 160) : '');
 
         $this->activateTheme($shop);
         $ctx = $this->buildShopContext($shop);
@@ -114,6 +121,7 @@ final class ShopController
         $viewData = [
             'page_title'       => $pageTitle,
             'meta_description' => $metaDesc,
+            'current_page'     => 'product',
             'shop'             => $shop,
             'product'          => $product,
             'images'           => $images,
@@ -130,7 +138,7 @@ final class ShopController
         $viewData = Hooks::applyFilter('product.view_data', $viewData, $shop, $product);
         Hooks::doAction('product.before_render', $shop, $product);
 
-        return $this->view->render($response, 'pages/shop_product.tpl', $viewData);
+        return $this->view->render($response, 'pages/shop/product.tpl', $viewData);
     }
 
     public function showCollections(Request $request, Response $response, array $args): Response
@@ -161,6 +169,7 @@ final class ShopController
         $viewData = [
             'page_title'       => 'Collections — ' . $shopName,
             'meta_description' => 'Browse all collections from ' . $shopName,
+            'current_page'     => 'collections',
             'shop'             => $shop,
             'categories'       => $categories,
             ...$ctx,
@@ -169,7 +178,7 @@ final class ShopController
         $viewData = Hooks::applyFilter('collections.view_data', $viewData, $shop);
         Hooks::doAction('collections.before_render', $shop);
 
-        return $this->view->render($response, 'pages/collections.tpl', $viewData);
+        return $this->view->render($response, 'pages/shop/collections.tpl', $viewData);
     }
 
     public function showCollection(Request $request, Response $response, array $args): Response
@@ -189,6 +198,7 @@ final class ShopController
 
         $catId = (int) $category['id'];
         $categoryIds = $this->resolveCategoryWithChildren($shopId, $catId);
+        $sort = $request->getQueryParams()['sort'] ?? 'default';
 
         $allCategories = $this->categoryModel->findByUser($shopId);
         $subcategories = array_values(array_filter(
@@ -196,7 +206,7 @@ final class ShopController
             static fn(array $c): bool => (int) ($c['parent_id'] ?? 0) === $catId
         ));
 
-        $products = $this->productModel->findActiveByUserPaginated($shopId, self::PRODUCTS_PER_PAGE, 0, null, $categoryIds);
+        $products = $this->productModel->findActiveByUserPaginated($shopId, self::PRODUCTS_PER_PAGE, 0, null, $categoryIds, $sort);
         $totalProducts = $this->productModel->countActiveByUser($shopId, null, $categoryIds);
         $products = $this->prepareProducts($products, $shop);
 
@@ -207,19 +217,21 @@ final class ShopController
         $viewData = [
             'page_title'       => $category['name'] . ' — ' . $shopName,
             'meta_description' => 'Browse ' . $category['name'] . ' from ' . $shopName,
+            'current_page'     => 'collection',
             'shop'             => $shop,
             'category'         => $category,
             'subcategories'    => $subcategories,
             'products'         => $products,
             'total_products'   => $totalProducts,
             'products_limit'   => self::PRODUCTS_PER_PAGE,
+            'sort'             => $sort,
             ...$ctx,
         ];
 
         $viewData = Hooks::applyFilter('collection.view_data', $viewData, $shop, $category);
         Hooks::doAction('collection.before_render', $shop, $category);
 
-        return $this->view->render($response, 'pages/collection.tpl', $viewData);
+        return $this->view->render($response, 'pages/shop/collection.tpl', $viewData);
     }
 
     public function showSearchPage(Request $request, Response $response, array $args): Response
@@ -235,6 +247,7 @@ final class ShopController
 
         $products = [];
         $totalProducts = 0;
+        $categories = [];
 
         if ($query !== '') {
             $products = $this->productModel->findActiveByUserPaginated(
@@ -242,6 +255,16 @@ final class ShopController
             );
             $totalProducts = $this->productModel->countActiveByUser($shopId, $query);
             $products = $this->prepareProducts($products, $shop);
+        } else {
+            $categories = $this->categoryModel->findByUserAsTree($shopId);
+            foreach ($categories as &$cat) {
+                $ids = [(int) $cat['id']];
+                foreach ($cat['children'] ?? [] as $child) {
+                    $ids[] = (int) $child['id'];
+                }
+                $cat['product_count'] = $this->productModel->countActiveByUser($shopId, null, implode(',', $ids));
+            }
+            unset($cat);
         }
 
         $this->activateTheme($shop);
@@ -251,15 +274,17 @@ final class ShopController
         $viewData = [
             'page_title'       => ($query !== '' ? 'Search: ' . $query : 'Search') . ' — ' . $shopName,
             'meta_description' => 'Search results for "' . $query . '" from ' . $shopName,
+            'current_page'     => 'search',
             'shop'             => $shop,
             'search_query'     => $query,
             'products'         => $products,
             'total_products'   => $totalProducts,
             'products_limit'   => self::PRODUCTS_PER_PAGE,
+            'categories'       => $categories,
             ...$ctx,
         ];
 
-        return $this->view->render($response, 'pages/search_results.tpl', $viewData);
+        return $this->view->render($response, 'pages/shop/search_results.tpl', $viewData);
     }
 
     // ── API Handlers ──────────────────────────────────────────
@@ -338,9 +363,10 @@ final class ShopController
         $this->activateTheme($shop);
         $ctx = $this->buildShopContext($shop);
 
-        return $this->view->render($response, 'pages/order_tracking.tpl', [
-            'page_title' => 'Track Your Order',
-            'shop'       => $shop,
+        return $this->view->render($response, 'pages/shop/order_tracking.tpl', [
+            'page_title'   => 'Track Your Order',
+            'current_page' => 'orders',
+            'shop'         => $shop,
             ...$ctx,
         ]);
     }
@@ -389,6 +415,61 @@ final class ShopController
         $orderData = Hooks::applyFilter('order.tracking_data', $orderData, $shop);
 
         return $this->json($response, ['success' => true, 'order' => $orderData]);
+    }
+
+    public function account(Request $request, Response $response, array $args): Response
+    {
+        $shop = $this->resolveShop($args);
+        if (!$shop) {
+            return $this->render404($response, 'Shop Not Found');
+        }
+
+        $shopId = (int) $shop['id'];
+        $this->activateTheme($shop);
+        $ctx = $this->buildShopContext($shop);
+
+        // If the shop owner is already logged in, redirect straight to dashboard
+        if ($this->auth->check() && $this->auth->userId() === $shopId) {
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
+        }
+
+        $isLoggedIn = $this->customerAuth->check($shopId);
+        $customer = null;
+        $orders = [];
+
+        if ($isLoggedIn) {
+            $customerId = $this->customerAuth->customerId();
+            $customer = Customer::find($customerId);
+            $orders = $this->orderModel->findByCustomer($customerId, 20);
+
+            $orderIds = array_column($orders, 'id');
+            if (!empty($orderIds)) {
+                $allItems = $this->orderItemModel->findByOrderIds($orderIds);
+                $itemsByOrder = [];
+                foreach ($allItems as $item) {
+                    $itemsByOrder[(int) $item['order_id']][] = $item;
+                }
+                foreach ($orders as &$order) {
+                    $order['items'] = $itemsByOrder[(int) $order['id']] ?? [];
+                }
+                unset($order);
+            }
+        }
+
+        $shopName = $shop['store_name'] ?? '';
+
+        $queryParams = $request->getQueryParams();
+        $resetToken = $queryParams['reset_token'] ?? '';
+
+        return $this->view->render($response, 'pages/shop/account.tpl', [
+            'page_title'         => 'My Account — ' . $shopName,
+            'current_page'       => 'account',
+            'shop'               => $shop,
+            'customer'           => $customer,
+            'orders'             => $orders,
+            'reset_token'        => $resetToken,
+            ...$ctx,
+        ]);
     }
 
     public function manifest(Request $request, Response $response, array $args): Response
@@ -475,10 +556,6 @@ final class ShopController
         $this->activateTheme($shop);
         $ctx = $this->buildShopContext($shop);
 
-        $heroSlides = $this->heroSlideModel->findByUser($shopId);
-        $heroSlides = array_values(array_filter($heroSlides, static fn(array $s): bool => (bool) $s['is_active']));
-        $heroSlides = Hooks::applyFilter('shop.hero_slides', $heroSlides, $shop);
-
         $saleProducts = array_values(array_filter($products, static fn(array $p): bool =>
             !empty($p['compare_price']) && $p['compare_price'] > $p['price'] && !$p['is_sold']
         ));
@@ -489,6 +566,7 @@ final class ShopController
         $viewData = [
             'page_title'         => $pageTitle,
             'meta_description'   => $metaDesc,
+            'current_page'       => 'home',
             'shop'               => $shop,
             'products'           => $products,
             'categories'         => $categories,
@@ -500,7 +578,6 @@ final class ShopController
             'total_products'     => $totalProducts,
             'products_limit'     => self::PRODUCTS_PER_PAGE,
             'active_category'    => $activeCategory,
-            'hero_slides'        => $heroSlides,
             'sale_products'      => $saleProducts,
             'featured_products'  => $featuredProducts,
             ...$ctx,
@@ -510,7 +587,7 @@ final class ShopController
         $viewData = Hooks::applyFilter('shop.view_data', $viewData, $shop);
         Hooks::doAction('shop.before_render', $shop);
 
-        return $this->view->render($response, 'pages/shop.tpl', $viewData);
+        return $this->view->render($response, 'pages/shop/home.tpl', $viewData);
     }
 
     private function resolveShop(array $args): ?array
@@ -523,7 +600,7 @@ final class ShopController
     {
         return $this->view->render(
             $response->withStatus(404),
-            'pages/shop_404.tpl',
+            'pages/shop/404.tpl',
             ['page_title' => $title]
         );
     }
@@ -538,13 +615,19 @@ final class ShopController
         $palettes = Hooks::applyFilter('shop.palettes', self::PALETTES, $shop);
         $paletteCss = $palettes[$paletteKey] ?? $palettes['default'];
 
+        $shopId = (int) $shop['id'];
+        Auth::ensureSession();
+        $customerLoggedIn = $this->customerAuth->check($shopId);
+
         return [
-            'currency'          => $currency,
-            'currency_symbol'   => $currencySymbol,
-            'has_payments'      => $hasPayments,
-            'shop_theme'        => $shop['shop_theme'] ?? 'classic',
-            'palette_css'       => $paletteCss,
-            'product_image_fit' => $shop['product_image_fit'] ?? 'cover',
+            'currency'           => $currency,
+            'currency_symbol'    => $currencySymbol,
+            'has_payments'       => $hasPayments,
+            'shop_theme'         => $shop['shop_theme'] ?? 'classic',
+            'palette_css'        => $paletteCss,
+            'product_image_fit'  => $shop['product_image_fit'] ?? 'cover',
+            'customer_logged_in' => $customerLoggedIn,
+            'customer_name'      => $customerLoggedIn ? $this->customerAuth->customerName() : null,
         ];
     }
 
@@ -563,7 +646,7 @@ final class ShopController
     {
         $html = '';
         foreach ($products as $product) {
-            $cardHtml = $this->view->renderFragment('partials/product_card.tpl', [
+            $cardHtml = $this->view->renderFragment('partials/shop/product_card.tpl', [
                 'product'         => $product,
                 'currency_symbol' => $currencySymbol,
             ]);
@@ -593,6 +676,18 @@ final class ShopController
             $this->theme->getScriptUrls(),
             $this->theme->getFontLink()
         );
+
+        // Resolve theme options (merge saved values with theme defaults)
+        $shopId = (int) $shop['id'];
+        $themeOptions = $this->theme->resolveOptions($shopId, $this->themeOptionModel);
+
+        // Free plan users always show "Powered by TinyShop"
+        $plan = $this->planGuard->getUserPlan($shopId);
+        if (((float) ($plan['price_monthly'] ?? 0)) === 0.0) {
+            $themeOptions['show_powered_by'] = true;
+        }
+
+        $this->view->assign('theme_options', $themeOptions);
     }
 
     private function resolveCurrencySymbol(string $currency): string
@@ -648,10 +743,29 @@ final class ShopController
         $ip = $serverParams['REMOTE_ADDR'] ?? '0.0.0.0';
         $ua = $serverParams['HTTP_USER_AGENT'] ?? '';
 
+        // Extract and clean referrer domain (exclude self-referrals)
+        $refererDomain = ShopView::extractRefererDomain($serverParams['HTTP_REFERER'] ?? '');
+        $requestHost = strtolower($serverParams['HTTP_HOST'] ?? '');
+        if ($requestHost !== '' && str_starts_with($requestHost, 'www.')) {
+            $requestHost = substr($requestHost, 4);
+        }
+        if ($refererDomain !== null && $refererDomain === $requestHost) {
+            $refererDomain = null;
+        }
+
+        // Extract UTM source from query params
+        $queryParams = $request->getQueryParams();
+        $utmSource = null;
+        if (!empty($queryParams['utm_source'])) {
+            $raw = strtolower(trim($queryParams['utm_source']));
+            $raw = preg_replace('/[^a-z0-9_\-]/', '', $raw);
+            $utmSource = $raw !== '' ? mb_substr($raw, 0, 50) : null;
+        }
+
         $cookies = $request->getCookieParams();
         [$visitorToken, $isNewToken] = ShopView::resolveVisitorToken($cookies[ShopView::COOKIE_NAME] ?? '');
         $visitorUserId = $this->auth->userId();
-        $this->shopViewModel->log($shopId, $productId, $visitorToken, $ip, $ua, $visitorUserId);
+        $this->shopViewModel->log($shopId, $productId, $visitorToken, $ip, $ua, $visitorUserId, $refererDomain, $utmSource);
 
         if ($isNewToken) {
             $response = $response->withHeader(

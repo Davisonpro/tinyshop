@@ -4,101 +4,97 @@ declare(strict_types=1);
 
 namespace TinyShop\Models;
 
-use TinyShop\Services\DB;
-use PDO;
+use TinyShop\Enums\FieldType;
 
-final class Plan
+class Plan extends Model
 {
-    private readonly PDO $db;
-
-    public function __construct(DB $database)
-    {
-        $this->db = $database->pdo();
-    }
+    protected static array $definition = [
+        'table'   => 'plans',
+        'primary' => 'id',
+        'fields'  => [
+            'name'                  => ['type' => FieldType::String, 'required' => true, 'maxLength' => 100],
+            'slug'                  => ['type' => FieldType::String, 'required' => true, 'maxLength' => 100],
+            'description'           => ['type' => FieldType::Text],
+            'price_monthly'         => ['type' => FieldType::Decimal, 'default' => 0],
+            'price_yearly'          => ['type' => FieldType::Decimal, 'default' => 0],
+            'currency'              => ['type' => FieldType::String, 'maxLength' => 10, 'default' => 'KES'],
+            'max_products'          => ['type' => FieldType::Int],
+            'allowed_themes'        => ['type' => FieldType::Json],
+            'custom_domain_allowed' => ['type' => FieldType::Bool, 'default' => 0],
+            'coupons_allowed'       => ['type' => FieldType::Bool, 'default' => 0],
+            'features'              => ['type' => FieldType::Json],
+            'cta_text'              => ['type' => FieldType::String, 'maxLength' => 100],
+            'badge_text'            => ['type' => FieldType::String, 'maxLength' => 50],
+            'is_featured'           => ['type' => FieldType::Bool, 'default' => 0],
+            'is_default'            => ['type' => FieldType::Bool, 'default' => 0],
+            'is_active'             => ['type' => FieldType::Bool, 'default' => 1],
+            'sort_order'            => ['type' => FieldType::Int, 'default' => 0],
+            'created_at'            => ['type' => FieldType::DateTime],
+            'updated_at'            => ['type' => FieldType::DateTime],
+        ],
+    ];
 
     public function findAll(): array
     {
-        $stmt = $this->db->query(
+        return static::rawQuery(
             'SELECT * FROM plans WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
         );
-        return $stmt->fetchAll();
     }
 
     public function findAllAdmin(): array
     {
-        $stmt = $this->db->query('SELECT * FROM plans ORDER BY sort_order ASC, id ASC');
-        return $stmt->fetchAll();
-    }
-
-    public function findById(int $id): ?array
-    {
-        $stmt = $this->db->prepare('SELECT * FROM plans WHERE id = ?');
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
-        return $row ?: null;
-    }
-
-    public function findBySlug(string $slug): ?array
-    {
-        $stmt = $this->db->prepare('SELECT * FROM plans WHERE slug = ?');
-        $stmt->execute([$slug]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        return static::rawQuery('SELECT * FROM plans ORDER BY sort_order ASC, id ASC');
     }
 
     public function findDefault(): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM plans WHERE is_default = 1 LIMIT 1');
-        $stmt->execute();
-        $row = $stmt->fetch();
-        return $row ?: null;
+        $plan = static::findBy('is_default', 1);
+        return $plan?->toArray();
     }
 
     public function create(array $data): int
     {
         // If this plan is being set as default, unset any existing default
         if (!empty($data['is_default'])) {
-            $this->db->exec('UPDATE plans SET is_default = 0');
+            static::rawExecute('UPDATE plans SET is_default = 0');
         }
 
-        $stmt = $this->db->prepare(
-            'INSERT INTO plans (name, slug, description, price_monthly, price_yearly, currency,
-                max_products, allowed_themes, custom_domain_allowed, coupons_allowed,
-                features, cta_text, badge_text, is_featured,
-                is_default, is_active, sort_order)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
-            $data['name'],
-            $data['slug'],
-            $data['description'] ?? null,
-            $data['price_monthly'] ?? 0,
-            $data['price_yearly'] ?? 0,
-            $data['currency'] ?? 'KES',
-            $data['max_products'] ?? null,
-            $data['allowed_themes'] ?? null,
-            $data['custom_domain_allowed'] ?? 0,
-            $data['coupons_allowed'] ?? 0,
-            $data['features'] ?? null,
-            $data['cta_text'] ?? null,
-            $data['badge_text'] ?? null,
-            $data['is_featured'] ?? 0,
-            $data['is_default'] ?? 0,
-            $data['is_active'] ?? 1,
-            $data['sort_order'] ?? 0,
+        $plan = new static();
+        $plan->fill([
+            'name'                  => $data['name'],
+            'slug'                  => $data['slug'],
+            'description'           => $data['description'] ?? null,
+            'price_monthly'         => $data['price_monthly'] ?? 0,
+            'price_yearly'          => $data['price_yearly'] ?? 0,
+            'currency'              => $data['currency'] ?? 'KES',
+            'max_products'          => $data['max_products'] ?? null,
+            'allowed_themes'        => $data['allowed_themes'] ?? null,
+            'custom_domain_allowed' => $data['custom_domain_allowed'] ?? 0,
+            'coupons_allowed'       => $data['coupons_allowed'] ?? 0,
+            'features'              => $data['features'] ?? null,
+            'cta_text'              => $data['cta_text'] ?? null,
+            'badge_text'            => $data['badge_text'] ?? null,
+            'is_featured'           => $data['is_featured'] ?? 0,
+            'is_default'            => $data['is_default'] ?? 0,
+            'is_active'             => $data['is_active'] ?? 1,
+            'sort_order'            => $data['sort_order'] ?? 0,
         ]);
-        return (int) $this->db->lastInsertId();
+        $plan->save();
+        return (int) $plan->getId();
     }
 
     public function update(int $id, array $data): bool
     {
         // If this plan is being set as default, unset any existing default
         if (!empty($data['is_default'])) {
-            $this->db->prepare('UPDATE plans SET is_default = 0 WHERE id != ?')->execute([$id]);
+            static::rawExecute('UPDATE plans SET is_default = 0 WHERE id != ?', [$id]);
         }
 
-        $fields = [];
-        $values = [];
+        $plan = static::find($id);
+        if (!$plan) {
+            return false;
+        }
+
         $allowed = [
             'name', 'slug', 'description', 'price_monthly', 'price_yearly', 'currency',
             'max_products', 'allowed_themes', 'custom_domain_allowed', 'coupons_allowed',
@@ -108,50 +104,34 @@ final class Plan
 
         foreach ($allowed as $field) {
             if (array_key_exists($field, $data)) {
-                $fields[] = "`{$field}` = ?";
-                $values[] = $data[$field];
+                $plan->{$field} = $data[$field];
             }
         }
 
-        if (empty($fields)) {
-            return false;
-        }
-
-        $values[] = $id;
-        $sql = 'UPDATE plans SET ' . implode(', ', $fields) . ' WHERE id = ?';
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($values);
+        return $plan->save();
     }
 
-    public function delete(int $id): bool
+    public function delete(?int $id = null): bool
     {
-        // Only allow deletion if no active subscribers
-        if ($this->countSubscribers($id) > 0) {
+        $deleteId = $id ?? $this->getId();
+        if ($deleteId === null) {
             return false;
         }
 
-        $stmt = $this->db->prepare('DELETE FROM plans WHERE id = ?');
-        return $stmt->execute([$id]);
+        // Only allow deletion if no active subscribers
+        if ($this->countSubscribers((int) $deleteId) > 0) {
+            return false;
+        }
+
+        return parent::delete((int) $deleteId);
     }
 
     public function countSubscribers(int $planId): int
     {
-        $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM users WHERE plan_id = ? AND plan_expires_at > NOW()'
+        return (int) static::rawScalar(
+            'SELECT COUNT(*) FROM users WHERE plan_id = ? AND plan_expires_at > NOW()',
+            [$planId]
         );
-        $stmt->execute([$planId]);
-        return (int) $stmt->fetchColumn();
     }
 
-    public function slugExists(string $slug, ?int $excludeId = null): bool
-    {
-        if ($excludeId) {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM plans WHERE slug = ? AND id != ?');
-            $stmt->execute([$slug, $excludeId]);
-        } else {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM plans WHERE slug = ?');
-            $stmt->execute([$slug]);
-        }
-        return (int) $stmt->fetchColumn() > 0;
-    }
 }

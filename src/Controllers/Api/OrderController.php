@@ -55,7 +55,23 @@ final class OrderController
         }
         unset($order);
 
+        $stats['abandoned_count'] = $this->orderModel->countStalePending($userId);
+
         return $this->json($response, ['orders' => $orders, 'stats' => $stats]);
+    }
+
+    public function customers(Request $request, Response $response): Response
+    {
+        $userId = $this->auth->userId();
+        $params = $request->getQueryParams();
+        $search = trim($params['q'] ?? '');
+        $limit = min(50, max(1, (int) ($params['limit'] ?? 50)));
+        $offset = max(0, (int) ($params['offset'] ?? 0));
+
+        $customers = $this->orderModel->getUniqueCustomers($userId, $limit, $offset, $search);
+        $total = $this->orderModel->countUniqueCustomers($userId, $search);
+
+        return $this->json($response, ['customers' => $customers, 'total' => $total]);
     }
 
     public function create(Request $request, Response $response): Response
@@ -151,7 +167,7 @@ final class OrderController
             }
         }
 
-        $order = $this->orderModel->findById($orderId);
+        $order = Order::find($orderId);
         $order['items'] = $this->orderItemModel->findByOrder($orderId);
 
         $this->auditLog->log('order.create', $userId, 'order', $orderId, [
@@ -168,7 +184,7 @@ final class OrderController
         $userId = $this->auth->userId();
         $orderId = (int) $args['id'];
 
-        $order = $this->orderModel->findById($orderId);
+        $order = Order::find($orderId);
         if (!$order || (int) $order['user_id'] !== $userId) {
             return $this->json($response, ['error' => true, 'message' => 'Order not found'], 404);
         }
@@ -193,7 +209,7 @@ final class OrderController
             }
         }
 
-        $order = $this->orderModel->findById($orderId);
+        $order = Order::find($orderId);
 
         $this->auditLog->log('order.status_change', $userId, 'order', $orderId, [
             'old_status' => $oldStatus,
@@ -208,7 +224,7 @@ final class OrderController
         $userId = $this->auth->userId();
         $orderId = (int) $args['id'];
 
-        $order = $this->orderModel->findById($orderId);
+        $order = Order::find($orderId);
         if (!$order || (int) $order['user_id'] !== $userId) {
             return $this->json($response, ['error' => true, 'message' => 'Order not found'], 404);
         }

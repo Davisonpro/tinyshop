@@ -4,7 +4,7 @@
 
 {block name="head"}
     {$allow_dark = true}
-    {include file="partials/head.tpl"}
+    {include file="partials/shared/head.tpl"}
     <link rel="stylesheet" href="/public/css/dashboard{$min}.css?v={$asset_v}">
     <link rel="stylesheet" href="/public/css/admin{$min}.css?v={$asset_v}">
 {/block}
@@ -26,7 +26,7 @@
             <i class="fa-solid fa-lock dash-sidebar-icon" style="font-size:20px"></i>
             <span class="dash-sidebar-name">Admin</span>
         </div>
-        {include file="partials/admin_nav.tpl"}
+        {include file="partials/admin/nav.tpl"}
     </aside>
 </div>
 

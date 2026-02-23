@@ -4,21 +4,42 @@ declare(strict_types=1);
 
 namespace TinyShop\Models;
 
-use TinyShop\Services\DB;
 use PDO;
+use TinyShop\Enums\FieldType;
 
-final class Product
+class Product extends Model
 {
-    private readonly PDO $db;
-
-    public function __construct(DB $database)
-    {
-        $this->db = $database->pdo();
-    }
+    protected static array $definition = [
+        'table'   => 'products',
+        'primary' => 'id',
+        'fields'  => [
+            'user_id'          => ['type' => FieldType::Int, 'required' => true],
+            'category_id'      => ['type' => FieldType::Int],
+            'name'             => ['type' => FieldType::String, 'required' => true, 'maxLength' => 255],
+            'slug'             => ['type' => FieldType::String, 'maxLength' => 255],
+            'description'      => ['type' => FieldType::Text],
+            'full_description' => ['type' => FieldType::LongText],
+            'price'            => ['type' => FieldType::Decimal, 'required' => true],
+            'compare_price'    => ['type' => FieldType::Decimal],
+            'image_url'        => ['type' => FieldType::String, 'maxLength' => 500],
+            'sort_order'       => ['type' => FieldType::Int, 'default' => 0],
+            'is_active'        => ['type' => FieldType::Bool, 'default' => 1],
+            'is_sold'          => ['type' => FieldType::Bool, 'default' => 0],
+            'stock_quantity'   => ['type' => FieldType::Int],
+            'is_featured'      => ['type' => FieldType::Bool, 'default' => 0],
+            'variations'       => ['type' => FieldType::Json],
+            'meta_title'       => ['type' => FieldType::String, 'maxLength' => 255],
+            'meta_description' => ['type' => FieldType::String, 'maxLength' => 500],
+            'source_url'       => ['type' => FieldType::String, 'maxLength' => 500],
+            'created_at'       => ['type' => FieldType::DateTime],
+            'updated_at'       => ['type' => FieldType::DateTime],
+        ],
+    ];
 
     public function findByUser(int $userId, int $limit = 100, int $offset = 0): array
     {
-        $stmt = $this->db->prepare(
+        $db = static::db();
+        $stmt = $db->prepare(
             'SELECT p.*, c.name AS category_name, c.slug AS category_slug
              FROM products p
              LEFT JOIN categories c ON c.id = p.category_id
@@ -30,7 +51,7 @@ final class Product
         $stmt->bindValue(2, $limit, PDO::PARAM_INT);
         $stmt->bindValue(3, $offset, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findActiveByUser(int $userId, ?int $categoryId = null): array
@@ -47,35 +68,43 @@ final class Product
         }
 
         $sql .= ' ORDER BY p.is_featured DESC, p.sort_order ASC, p.created_at DESC';
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
+        return static::rawQuery($sql, $params);
     }
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->db->prepare(
+        $rows = static::rawQuery(
             'SELECT p.*, c.name AS category_name, c.slug AS category_slug
              FROM products p
              LEFT JOIN categories c ON c.id = p.category_id
-             WHERE p.id = ?'
+             WHERE p.id = ?',
+            [$id]
         );
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        return $rows[0] ?? null;
     }
 
     public function findBySlug(int $userId, string $slug): ?array
     {
-        $stmt = $this->db->prepare(
+        $rows = static::rawQuery(
             'SELECT p.*, c.name AS category_name, c.slug AS category_slug
              FROM products p
              LEFT JOIN categories c ON c.id = p.category_id
-             WHERE p.user_id = ? AND p.slug = ?'
+             WHERE p.user_id = ? AND p.slug = ?',
+            [$userId, $slug]
         );
-        $stmt->execute([$userId, $slug]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        return $rows[0] ?? null;
+    }
+
+    public function findBySourceUrl(int $userId, string $sourceUrl): ?array
+    {
+        $rows = static::rawQuery(
+            'SELECT p.*, c.name AS category_name, c.slug AS category_slug
+             FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE p.user_id = ? AND p.source_url = ?',
+            [$userId, $sourceUrl]
+        );
+        return $rows[0] ?? null;
     }
 
     public function ensureUniqueSlug(int $userId, string $slug, ?int $excludeId = null): string
@@ -89,9 +118,8 @@ final class Product
                 $sql .= ' AND id != ?';
                 $params[] = $excludeId;
             }
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
-            if ((int) $stmt->fetchColumn() === 0) {
+            $count = (int) static::rawScalar($sql, $params);
+            if ($count === 0) {
                 return $slug;
             }
             $slug = $base . '-' . $i;
@@ -101,51 +129,51 @@ final class Product
 
     public function create(array $data): int
     {
-        $stmt = $this->db->prepare(
-            'INSERT INTO products (user_id, category_id, name, slug, description, price, compare_price, image_url, sort_order, is_sold, stock_quantity, is_featured, variations, meta_title, meta_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
-            $data['user_id'],
-            $data['category_id'] ?? null,
-            $data['name'],
-            $data['slug'] ?? null,
-            $data['description'] ?? null,
-            $data['price'],
-            $data['compare_price'] ?? null,
-            $data['image_url'] ?? null,
-            $data['sort_order'] ?? 0,
-            $data['is_sold'] ?? 0,
-            $data['stock_quantity'] ?? null,
-            $data['is_featured'] ?? 0,
-            $data['variations'] ?? null,
-            $data['meta_title'] ?? null,
-            $data['meta_description'] ?? null,
+        $product = new static();
+        $product->fill([
+            'user_id'          => $data['user_id'],
+            'category_id'      => $data['category_id'] ?? null,
+            'name'             => $data['name'],
+            'slug'             => $data['slug'] ?? null,
+            'description'      => $data['description'] ?? null,
+            'full_description' => $data['full_description'] ?? null,
+            'price'            => $data['price'],
+            'compare_price'    => $data['compare_price'] ?? null,
+            'image_url'        => $data['image_url'] ?? null,
+            'sort_order'       => $data['sort_order'] ?? 0,
+            'is_sold'          => $data['is_sold'] ?? 0,
+            'stock_quantity'   => $data['stock_quantity'] ?? null,
+            'is_featured'      => $data['is_featured'] ?? 0,
+            'variations'       => $data['variations'] ?? null,
+            'meta_title'       => $data['meta_title'] ?? null,
+            'meta_description' => $data['meta_description'] ?? null,
+            'source_url'       => $data['source_url'] ?? null,
         ]);
-        return (int) $this->db->lastInsertId();
+        $product->save();
+        return (int) $product->getId();
     }
 
     public function update(int $id, array $data): bool
     {
-        $fields = [];
-        $values = [];
-
-        $allowed = ['name', 'slug', 'description', 'price', 'compare_price', 'image_url', 'category_id', 'sort_order', 'is_active', 'is_sold', 'stock_quantity', 'is_featured', 'variations', 'meta_title', 'meta_description'];
-
-        foreach ($allowed as $field) {
-            if (array_key_exists($field, $data)) {
-                $fields[] = "`{$field}` = ?";
-                $values[] = $data[$field];
-            }
-        }
-
-        if (empty($fields)) {
+        $product = static::find($id);
+        if (!$product) {
             return false;
         }
 
-        $values[] = $id;
-        $sql = 'UPDATE products SET ' . implode(', ', $fields) . ' WHERE id = ?';
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($values);
+        $allowed = [
+            'name', 'slug', 'description', 'full_description', 'price', 'compare_price',
+            'image_url', 'category_id', 'sort_order', 'is_active', 'is_sold',
+            'stock_quantity', 'is_featured', 'variations', 'meta_title', 'meta_description',
+            'source_url',
+        ];
+
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $product->{$field} = $data[$field];
+            }
+        }
+
+        return $product->save();
     }
 
     /**
@@ -154,36 +182,28 @@ final class Product
      */
     public function decrementStock(int $productId, int $qty): bool
     {
-        $stmt = $this->db->prepare(
-            'UPDATE products SET stock_quantity = stock_quantity - ?, is_sold = CASE WHEN stock_quantity - ? = 0 THEN 1 ELSE is_sold END WHERE id = ? AND stock_quantity IS NOT NULL AND stock_quantity >= ?'
-        );
-        $stmt->execute([$qty, $qty, $productId, $qty]);
-        return $stmt->rowCount() > 0;
-    }
-
-    public function delete(int $id): bool
-    {
-        $stmt = $this->db->prepare('DELETE FROM products WHERE id = ?');
-        return $stmt->execute([$id]);
+        return static::rawExecute(
+            'UPDATE products SET stock_quantity = stock_quantity - ?, is_sold = CASE WHEN stock_quantity - ? = 0 THEN 1 ELSE is_sold END WHERE id = ? AND stock_quantity IS NOT NULL AND stock_quantity >= ?',
+            [$qty, $qty, $productId, $qty]
+        ) > 0;
     }
 
     public function countByUser(int $userId): int
     {
-        $stmt = $this->db->prepare('SELECT COUNT(*) FROM products WHERE user_id = ?');
-        $stmt->execute([$userId]);
-        return (int) $stmt->fetchColumn();
+        return (int) static::rawScalar(
+            'SELECT COUNT(*) FROM products WHERE user_id = ?',
+            [$userId]
+        );
     }
 
     public function countAll(): int
     {
-        $stmt = $this->db->query('SELECT COUNT(*) FROM products');
-        return (int) $stmt->fetchColumn();
+        return (int) static::rawScalar('SELECT COUNT(*) FROM products');
     }
 
     public function countActive(): int
     {
-        $stmt = $this->db->query('SELECT COUNT(*) FROM products WHERE is_active = 1');
-        return (int) $stmt->fetchColumn();
+        return (int) static::rawScalar('SELECT COUNT(*) FROM products WHERE is_active = 1');
     }
 
     public function findAllAdmin(int $limit = 50, int $offset = 0, string $search = ''): array
@@ -201,7 +221,8 @@ final class Product
 
         $sql .= ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
 
-        $stmt = $this->db->prepare($sql);
+        $db = static::db();
+        $stmt = $db->prepare($sql);
         $i = 1;
         foreach ($params as $p) {
             $stmt->bindValue($i++, $p);
@@ -209,7 +230,7 @@ final class Product
         $stmt->bindValue($i++, $limit, PDO::PARAM_INT);
         $stmt->bindValue($i, $offset, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function countAllAdmin(string $search = ''): int
@@ -223,9 +244,74 @@ final class Product
             $params = [$like, $like, $like];
         }
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return (int) $stmt->fetchColumn();
+        return (int) static::rawScalar($sql, $params);
+    }
+
+    /**
+     * Tokenize a search query into individual words (min 2 chars each, max 5 tokens).
+     */
+    private function tokenizeSearch(string $search): array
+    {
+        $tokens = array_filter(
+            preg_split('/\s+/', trim($search)),
+            fn(string $t): bool => mb_strlen($t) >= 2
+        );
+
+        if (empty($tokens)) {
+            $tokens = [trim($search)];
+        }
+
+        return array_slice(array_values($tokens), 0, 5);
+    }
+
+    /**
+     * Build multi-field, multi-word WHERE conditions.
+     */
+    private function buildSearchWhere(string $search, array &$binds): string
+    {
+        $tokens = $this->tokenizeSearch($search);
+        $clauses = [];
+
+        foreach ($tokens as $token) {
+            $like = '%' . $token . '%';
+            $clauses[] = '(p.name LIKE ? OR p.description LIKE ? OR c.name LIKE ?)';
+            $binds[] = [$like, PDO::PARAM_STR];
+            $binds[] = [$like, PDO::PARAM_STR];
+            $binds[] = [$like, PDO::PARAM_STR];
+        }
+
+        return ' AND (' . implode(' AND ', $clauses) . ')';
+    }
+
+    /**
+     * Build relevance scoring expression for search result ranking.
+     */
+    private function buildRelevanceScore(string $search, array &$binds): string
+    {
+        $trimmed = trim($search);
+        $tokens = $this->tokenizeSearch($search);
+        $parts = [];
+
+        $parts[] = 'CASE WHEN p.name = ? THEN 200 ELSE 0 END';
+        $binds[] = [$trimmed, PDO::PARAM_STR];
+
+        $parts[] = 'CASE WHEN p.name LIKE ? THEN 80 ELSE 0 END';
+        $binds[] = [$trimmed . '%', PDO::PARAM_STR];
+
+        foreach ($tokens as $token) {
+            $like = '%' . $token . '%';
+
+            $parts[] = 'CASE WHEN p.name LIKE ? THEN 30 ELSE 0 END';
+            $binds[] = [$like, PDO::PARAM_STR];
+
+            $parts[] = 'CASE WHEN c.name LIKE ? THEN 10 ELSE 0 END';
+            $binds[] = [$like, PDO::PARAM_STR];
+
+            $parts[] = 'CASE WHEN p.description LIKE ? THEN 3 ELSE 0 END';
+            $binds[] = [$like, PDO::PARAM_STR];
+        }
+
+        return '(' . implode(' + ', $parts) . ')';
     }
 
     public function findActiveByUserPaginated(
@@ -236,15 +322,22 @@ final class Product
         ?string $categoryIds = null,
         string $sort = 'default'
     ): array {
-        $sql = 'SELECT p.*, c.name AS category_name, c.slug AS category_slug
+        $hasSearch = $search !== null && $search !== '';
+        $binds = [];
+
+        $selectRelevance = '';
+        if ($hasSearch) {
+            $selectRelevance = ', ' . $this->buildRelevanceScore($search, $binds) . ' AS search_relevance';
+        }
+
+        $sql = "SELECT p.*, c.name AS category_name, c.slug AS category_slug{$selectRelevance}
                 FROM products p
                 LEFT JOIN categories c ON c.id = p.category_id
-                WHERE p.user_id = ? AND p.is_active = 1';
-        $binds = [[$userId, PDO::PARAM_INT]];
+                WHERE p.user_id = ? AND p.is_active = 1";
+        $binds[] = [$userId, PDO::PARAM_INT];
 
-        if ($search !== null && $search !== '') {
-            $sql .= ' AND p.name LIKE ?';
-            $binds[] = ['%' . $search . '%', PDO::PARAM_STR];
+        if ($hasSearch) {
+            $sql .= $this->buildSearchWhere($search, $binds);
         }
 
         if ($categoryIds !== null && $categoryIds !== '') {
@@ -258,24 +351,29 @@ final class Product
             }
         }
 
-        $sql .= match ($sort) {
-            'price_asc' => ' ORDER BY p.price ASC',
-            'price_desc' => ' ORDER BY p.price DESC',
-            'newest' => ' ORDER BY p.created_at DESC',
-            'name_asc' => ' ORDER BY p.name ASC',
-            default => ' ORDER BY p.is_featured DESC, p.sort_order ASC, p.created_at DESC',
-        };
+        if ($hasSearch && $sort === 'default') {
+            $sql .= ' ORDER BY search_relevance DESC, p.is_featured DESC, p.name ASC';
+        } else {
+            $sql .= match ($sort) {
+                'price_asc' => ' ORDER BY p.price ASC',
+                'price_desc' => ' ORDER BY p.price DESC',
+                'newest' => ' ORDER BY p.created_at DESC',
+                'name_asc' => ' ORDER BY p.name ASC',
+                default => ' ORDER BY p.is_featured DESC, p.sort_order ASC, p.created_at DESC',
+            };
+        }
 
         $sql .= ' LIMIT ? OFFSET ?';
         $binds[] = [$limit, PDO::PARAM_INT];
         $binds[] = [$offset, PDO::PARAM_INT];
 
-        $stmt = $this->db->prepare($sql);
+        $db = static::db();
+        $stmt = $db->prepare($sql);
         foreach ($binds as $i => $bind) {
             $stmt->bindValue($i + 1, $bind[0], $bind[1]);
         }
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function countActiveByUser(
@@ -283,12 +381,13 @@ final class Product
         ?string $search = null,
         ?string $categoryIds = null
     ): int {
-        $sql = 'SELECT COUNT(*) FROM products p WHERE p.user_id = ? AND p.is_active = 1';
+        $sql = 'SELECT COUNT(*) FROM products p
+                LEFT JOIN categories c ON c.id = p.category_id
+                WHERE p.user_id = ? AND p.is_active = 1';
         $binds = [[$userId, PDO::PARAM_INT]];
 
         if ($search !== null && $search !== '') {
-            $sql .= ' AND p.name LIKE ?';
-            $binds[] = ['%' . $search . '%', PDO::PARAM_STR];
+            $sql .= $this->buildSearchWhere($search, $binds);
         }
 
         if ($categoryIds !== null && $categoryIds !== '') {
@@ -302,7 +401,8 @@ final class Product
             }
         }
 
-        $stmt = $this->db->prepare($sql);
+        $db = static::db();
+        $stmt = $db->prepare($sql);
         foreach ($binds as $i => $bind) {
             $stmt->bindValue($i + 1, $bind[0], $bind[1]);
         }
@@ -312,25 +412,28 @@ final class Product
 
     public function findRelated(int $userId, int $excludeId, ?int $categoryId, int $limit = 6): array
     {
-        $sql = 'SELECT p.*, c.name AS category_name, c.slug AS category_slug
-                FROM products p
-                LEFT JOIN categories c ON c.id = p.category_id
-                WHERE p.user_id = ? AND p.is_active = 1 AND p.id != ?
-                ORDER BY (p.category_id IS NOT NULL AND p.category_id = ?) DESC,
-                         p.is_featured DESC, p.sort_order ASC, p.created_at DESC
-                LIMIT ?';
-        $stmt = $this->db->prepare($sql);
+        $db = static::db();
+        $stmt = $db->prepare(
+            'SELECT p.*, c.name AS category_name, c.slug AS category_slug
+             FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE p.user_id = ? AND p.is_active = 1 AND p.id != ?
+             ORDER BY (p.category_id IS NOT NULL AND p.category_id = ?) DESC,
+                      p.is_featured DESC, p.sort_order ASC, p.created_at DESC
+             LIMIT ?'
+        );
         $stmt->bindValue(1, $userId, PDO::PARAM_INT);
         $stmt->bindValue(2, $excludeId, PDO::PARAM_INT);
         $stmt->bindValue(3, $categoryId, $categoryId !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(4, $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function reorder(int $userId, array $orderedIds): bool
     {
-        $stmt = $this->db->prepare('UPDATE products SET sort_order = ? WHERE id = ? AND user_id = ?');
+        $db = static::db();
+        $stmt = $db->prepare('UPDATE products SET sort_order = ? WHERE id = ? AND user_id = ?');
         foreach ($orderedIds as $index => $id) {
             $stmt->execute([$index, $id, $userId]);
         }
@@ -339,13 +442,12 @@ final class Product
 
     public function findLowStock(int $userId, int $threshold = 5): array
     {
-        $stmt = $this->db->prepare(
+        return static::rawQuery(
             'SELECT id, name, stock_quantity, slug
              FROM products
              WHERE user_id = ? AND stock_quantity IS NOT NULL AND stock_quantity <= ? AND stock_quantity > 0 AND is_active = 1
-             ORDER BY stock_quantity ASC, name ASC'
+             ORDER BY stock_quantity ASC, name ASC',
+            [$userId, $threshold]
         );
-        $stmt->execute([$userId, $threshold]);
-        return $stmt->fetchAll();
     }
 }

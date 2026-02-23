@@ -41,3 +41,7 @@
 .tracking-item-info { flex: 1; min-width: 0; }
 .tracking-item-name { font-size: 0.875rem; font-weight: 600; @include truncate; }
 .tracking-item-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px; }
+
+@media (max-width: 1023px) {
+    .tracking-page { padding-bottom: 80px; }
+}

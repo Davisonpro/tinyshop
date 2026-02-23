@@ -42,8 +42,22 @@ final class ShopifyImporter implements ImporterInterface
 
         $product = $data['product'];
 
-        $title       = $product['title'] ?? '';
-        $description = strip_tags($product['body_html'] ?? '');
+        $title    = $product['title'] ?? '';
+        $bodyHtml = $product['body_html'] ?? '';
+
+        // Full description: preserve safe HTML tags
+        $description = strip_tags($bodyHtml, '<p><br><b><strong><i><em><ul><ol><li><h2><h3><a>');
+        $description = preg_replace('/\s+(style|class|id)\s*=\s*"[^"]*"/i', '', $description);
+        $description = preg_replace('/\s+(style|class|id)\s*=\s*\'[^\']*\'/i', '', $description);
+        $description = trim($description);
+
+        // Short description: first ~300 chars as plain text
+        $shortDescription = '';
+        if ($bodyHtml !== '') {
+            $plain = trim(preg_replace('/\s+/', ' ', strip_tags($bodyHtml)));
+            $shortDescription = mb_strlen($plain) > 300 ? mb_substr($plain, 0, 297) . '...' : $plain;
+        }
+
         $images      = array_map(fn($img) => $img['src'], $product['images'] ?? []);
         $categories  = array_filter([$product['product_type'] ?? '']);
 
@@ -84,15 +98,16 @@ final class ShopifyImporter implements ImporterInterface
         }
 
         return new ImportResult(
-            title:          $title,
-            description:    $description,
-            price:          $price,
-            comparePrice:   $comparePrice,
-            images:         $images,
-            categories:     $categories,
-            variations:     $variations,
-            currency:       'USD',
-            sourcePlatform: 'shopify',
+            title:            $title,
+            description:      $description,
+            shortDescription: $shortDescription,
+            price:            $price,
+            comparePrice:     $comparePrice,
+            images:           $images,
+            categories:       $categories,
+            variations:       $variations,
+            currency:         'USD',
+            sourcePlatform:   'shopify',
         );
     }
 

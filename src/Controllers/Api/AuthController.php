@@ -75,7 +75,7 @@ final class AuthController
             return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
 
-        if ($this->userModel->findByEmail($email)) {
+        if (User::findBy('email', $email)) {
             return $this->json($response, ['error' => true, 'message' => 'Email already registered'], 409);
         }
 
@@ -91,7 +91,7 @@ final class AuthController
         }
         $baseSubdomain = $subdomain;
         $counter = 1;
-        while ($this->userModel->subdomainExists($subdomain)) {
+        while (User::exists('subdomain', $subdomain)) {
             $subdomain = $baseSubdomain . '-' . $counter++;
         }
 
@@ -144,7 +144,7 @@ final class AuthController
             ], 429);
         }
 
-        $user = $this->userModel->findByEmail($email);
+        $user = User::findBy('email', $email);
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
             $this->recordFailedLogin($email);
@@ -217,7 +217,7 @@ final class AuthController
         )->execute();
 
         // Always return success to avoid email enumeration
-        $user = $this->userModel->findByEmail($email);
+        $user = User::findBy('email', $email);
         if ($user) {
             $plainToken = bin2hex(random_bytes(32));
             $hashedToken = hash('sha256', $plainToken);
@@ -273,7 +273,7 @@ final class AuthController
             return $this->json($response, ['error' => true, 'message' => 'This reset link has expired or is invalid'], 422);
         }
 
-        $user = $this->userModel->findByEmail($reset['email']);
+        $user = User::findBy('email', $reset['email']);
         if (!$user) {
             return $this->json($response, ['error' => true, 'message' => 'Account not found'], 404);
         }

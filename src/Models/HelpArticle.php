@@ -4,136 +4,114 @@ declare(strict_types=1);
 
 namespace TinyShop\Models;
 
-use TinyShop\Services\DB;
-use PDO;
+use TinyShop\Enums\FieldType;
 
-final class HelpArticle
+class HelpArticle extends Model
 {
-    private readonly PDO $db;
-
-    public function __construct(DB $database)
-    {
-        $this->db = $database->pdo();
-    }
+    protected static array $definition = [
+        'table'   => 'help_articles',
+        'primary' => 'id',
+        'fields'  => [
+            'category_id'  => ['type' => FieldType::Int, 'required' => true],
+            'title'        => ['type' => FieldType::String, 'required' => true, 'maxLength' => 255],
+            'slug'         => ['type' => FieldType::String, 'required' => true, 'maxLength' => 255],
+            'summary'      => ['type' => FieldType::Text],
+            'content'      => ['type' => FieldType::LongText],
+            'keywords'     => ['type' => FieldType::String, 'maxLength' => 500],
+            'sort_order'   => ['type' => FieldType::Int, 'default' => 0],
+            'is_published' => ['type' => FieldType::Bool, 'default' => 1],
+            'created_at'   => ['type' => FieldType::DateTime],
+            'updated_at'   => ['type' => FieldType::DateTime],
+        ],
+    ];
 
     public function findPublished(): array
     {
-        $stmt = $this->db->query(
+        return static::rawQuery(
             'SELECT a.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon
              FROM help_articles a
              JOIN help_categories c ON c.id = a.category_id
              WHERE a.is_published = 1
              ORDER BY c.sort_order ASC, a.sort_order ASC, a.id ASC'
         );
-        return $stmt->fetchAll();
     }
 
     public function findBySlug(string $slug): ?array
     {
-        $stmt = $this->db->prepare(
+        $rows = static::rawQuery(
             'SELECT a.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon
              FROM help_articles a
              JOIN help_categories c ON c.id = a.category_id
-             WHERE a.slug = ? AND a.is_published = 1'
+             WHERE a.slug = ? AND a.is_published = 1',
+            [$slug]
         );
-        $stmt->execute([$slug]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        return $rows[0] ?? null;
     }
 
     public function findByCategory(int $categoryId): array
     {
-        $stmt = $this->db->prepare(
+        return static::rawQuery(
             'SELECT * FROM help_articles
              WHERE category_id = ? AND is_published = 1
-             ORDER BY sort_order ASC, id ASC'
+             ORDER BY sort_order ASC, id ASC',
+            [$categoryId]
         );
-        $stmt->execute([$categoryId]);
-        return $stmt->fetchAll();
     }
 
     public function findAll(): array
     {
-        $stmt = $this->db->query(
+        return static::rawQuery(
             'SELECT a.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon
              FROM help_articles a
              JOIN help_categories c ON c.id = a.category_id
              ORDER BY c.sort_order ASC, a.sort_order ASC, a.id ASC'
         );
-        return $stmt->fetchAll();
     }
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->db->prepare(
+        $rows = static::rawQuery(
             'SELECT a.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon
              FROM help_articles a
              JOIN help_categories c ON c.id = a.category_id
-             WHERE a.id = ?'
+             WHERE a.id = ?',
+            [$id]
         );
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        return $rows[0] ?? null;
     }
 
     public function create(array $data): int
     {
-        $stmt = $this->db->prepare(
-            'INSERT INTO help_articles (category_id, title, slug, summary, content, keywords, sort_order, is_published)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
-            $data['category_id'],
-            $data['title'],
-            $data['slug'],
-            $data['summary'] ?? null,
-            $data['content'] ?? null,
-            $data['keywords'] ?? null,
-            $data['sort_order'] ?? 0,
-            $data['is_published'] ?? 1,
+        $article = new static();
+        $article->fill([
+            'category_id'  => $data['category_id'],
+            'title'        => $data['title'],
+            'slug'         => $data['slug'],
+            'summary'      => $data['summary'] ?? null,
+            'content'      => $data['content'] ?? null,
+            'keywords'     => $data['keywords'] ?? null,
+            'sort_order'   => $data['sort_order'] ?? 0,
+            'is_published' => $data['is_published'] ?? 1,
         ]);
-        return (int) $this->db->lastInsertId();
+        $article->save();
+        return (int) $article->getId();
     }
 
     public function update(int $id, array $data): bool
     {
-        $fields = [];
-        $values = [];
-        $allowed = ['category_id', 'title', 'slug', 'summary', 'content', 'keywords', 'sort_order', 'is_published'];
-
-        foreach ($allowed as $field) {
-            if (array_key_exists($field, $data)) {
-                $fields[] = "`{$field}` = ?";
-                $values[] = $data[$field];
-            }
-        }
-
-        if (empty($fields)) {
+        $article = static::find($id);
+        if (!$article) {
             return false;
         }
 
-        $values[] = $id;
-        $sql = 'UPDATE help_articles SET ' . implode(', ', $fields) . ' WHERE id = ?';
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($values);
-    }
-
-    public function delete(int $id): bool
-    {
-        $stmt = $this->db->prepare('DELETE FROM help_articles WHERE id = ?');
-        return $stmt->execute([$id]);
-    }
-
-    public function slugExists(string $slug, ?int $excludeId = null): bool
-    {
-        if ($excludeId) {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM help_articles WHERE slug = ? AND id != ?');
-            $stmt->execute([$slug, $excludeId]);
-        } else {
-            $stmt = $this->db->prepare('SELECT COUNT(*) FROM help_articles WHERE slug = ?');
-            $stmt->execute([$slug]);
+        $allowed = ['category_id', 'title', 'slug', 'summary', 'content', 'keywords', 'sort_order', 'is_published'];
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $article->{$field} = $data[$field];
+            }
         }
-        return (int) $stmt->fetchColumn() > 0;
+
+        return $article->save();
     }
 
     /**

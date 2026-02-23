@@ -86,7 +86,7 @@ final class CouponController
             'expires_at' => $expiresAt,
         ]);
 
-        $coupon = $this->couponModel->findById($id);
+        $coupon = Coupon::find($id);
         return $this->json($response, ['success' => true, 'coupon' => $coupon], 201);
     }
 
@@ -96,7 +96,7 @@ final class CouponController
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
-        $coupon = $this->couponModel->findById($id);
+        $coupon = Coupon::find($id);
 
         if (!$coupon || (int) $coupon['user_id'] !== $this->auth->userId()) {
             return $this->json($response, ['error' => true, 'message' => 'Coupon not found'], 404);
@@ -157,7 +157,7 @@ final class CouponController
             $this->couponModel->update($id, $updates);
         }
 
-        $coupon = $this->couponModel->findById($id);
+        $coupon = Coupon::find($id);
         return $this->json($response, ['success' => true, 'coupon' => $coupon]);
     }
 
@@ -167,7 +167,7 @@ final class CouponController
     public function delete(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
-        $coupon = $this->couponModel->findById($id);
+        $coupon = Coupon::find($id);
 
         if (!$coupon || (int) $coupon['user_id'] !== $this->auth->userId()) {
             return $this->json($response, ['error' => true, 'message' => 'Coupon not found'], 404);
@@ -191,7 +191,7 @@ final class CouponController
             return $this->json($response, ['error' => true, 'message' => 'Invalid request'], 422);
         }
 
-        $shop = $this->userModel->findById($shopId);
+        $shop = User::find($shopId);
         if (!$shop) {
             return $this->json($response, ['error' => true, 'message' => 'Shop not found'], 404);
         }
@@ -201,7 +201,7 @@ final class CouponController
             return $this->json($response, ['error' => true, 'message' => 'Coupon not found'], 404);
         }
 
-        $result = $this->couponModel->validate($coupon, $subtotal);
+        $result = $this->couponModel->validateCoupon($coupon, $subtotal);
 
         if (!$result['valid']) {
             return $this->json($response, ['error' => true, 'message' => $result['message']], 422);

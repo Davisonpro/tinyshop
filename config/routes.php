@@ -9,7 +9,12 @@ use TinyShop\Controllers\PageController;
 use TinyShop\Controllers\ShopController;
 use TinyShop\Controllers\SitemapController;
 use TinyShop\Controllers\DashboardController;
-use TinyShop\Controllers\AdminController;
+use TinyShop\Controllers\Admin\AdminController;
+use TinyShop\Controllers\Admin\AdminSellerController;
+use TinyShop\Controllers\Admin\AdminPlanController;
+use TinyShop\Controllers\Admin\AdminHelpController;
+use TinyShop\Controllers\Admin\AdminPageController as AdminPageCtrl;
+use TinyShop\Controllers\Admin\AdminImportController;
 use TinyShop\Controllers\Api\AuthController as ApiAuthController;
 use TinyShop\Controllers\Api\ProductController as ApiProductController;
 use TinyShop\Controllers\Api\ShopController as ApiShopController;
@@ -21,7 +26,8 @@ use TinyShop\Controllers\WebhookController;
 use TinyShop\Controllers\Api\CheckoutController as ApiCheckoutController;
 use TinyShop\Controllers\Api\CouponController as ApiCouponController;
 use TinyShop\Controllers\Api\BillingController as ApiBillingController;
-use TinyShop\Controllers\Api\HeroSlideController as ApiHeroSlideController;
+use TinyShop\Controllers\Api\ImportController as ApiImportController;
+use TinyShop\Controllers\Api\CustomerAuthController as ApiCustomerAuthController;
 use TinyShop\Middleware\AuthGuard;
 use TinyShop\Middleware\AdminGuard;
 use TinyShop\Middleware\GuestOnly;
@@ -77,10 +83,6 @@ return function (App $app): void {
 
     // Shop pages — accessed via subdomain/custom domain (rewritten by CustomDomain middleware)
     $app->get('/~shop/{subdomain}', [ShopController::class, 'show']);
-    // Legacy /category/{slug} → redirect to /collections/{slug}
-    $app->get('/~shop/{subdomain}/category/{slug}', function ($request, $response, $args) {
-        return $response->withHeader('Location', '/collections/' . $args['slug'])->withStatus(301);
-    });
     $app->get('/~shop/{subdomain}/manifest.json', [ShopController::class, 'manifest']);
     $app->get('/~shop/{subdomain}/sitemap.xml', [SitemapController::class, 'shopSitemap']);
     $app->get('/~shop/{subdomain}/collections', [ShopController::class, 'showCollections']);
@@ -90,6 +92,7 @@ return function (App $app): void {
     $app->get('/~shop/{subdomain}/orders/track', [ShopController::class, 'orderTracking']);
     $app->post('/~shop/{subdomain}/orders/lookup', [ShopController::class, 'orderLookup'])->add(CsrfGuard::class);
     $app->get('/~shop/{subdomain}/search', [ShopController::class, 'showSearchPage']);
+    $app->get('/~shop/{subdomain}/account', [ShopController::class, 'account']);
     $app->get('/~shop/{subdomain}/products', [ShopController::class, 'searchProducts']);
     $app->get('/~shop/{subdomain}/{slug}', [ShopController::class, 'showProduct']);
 
@@ -102,6 +105,8 @@ return function (App $app): void {
     $app->post('/webhook/paypal', [WebhookController::class, 'paypalWebhook']);
     $app->post('/webhook/mpesa', [WebhookController::class, 'mpesaWebhook']);
     $app->post('/webhook/mpesa/billing', [WebhookController::class, 'mpesaBillingWebhook']);
+    $app->get('/webhook/pesapal', [WebhookController::class, 'pesapalWebhook']);
+    $app->get('/webhook/pesapal/billing', [WebhookController::class, 'pesapalBillingWebhook']);
 
     // ── Seller dashboard (auth required) ──
 
@@ -115,27 +120,30 @@ return function (App $app): void {
         $group->get('/categories', [DashboardController::class, 'categories']);
         $group->get('/analytics', [DashboardController::class, 'analytics']);
         $group->get('/orders', [DashboardController::class, 'orders']);
+        $group->get('/customers', [DashboardController::class, 'customers']);
         $group->get('/coupons', [DashboardController::class, 'coupons']);
         $group->get('/billing', [DashboardController::class, 'billing']);
+        $group->get('/import', [DashboardController::class, 'import']);
     })->add(AuthGuard::class);
 
     // ── Admin panel (admin only) ──
 
     $app->group('/admin', function (RouteCollectorProxy $group) {
         $group->get('', [AdminController::class, 'dashboard']);
-        $group->get('/sellers', [AdminController::class, 'sellers']);
-        $group->get('/sellers/{id}', [AdminController::class, 'sellerDetail']);
+        $group->get('/sellers', [AdminSellerController::class, 'sellers']);
+        $group->get('/sellers/{id}', [AdminSellerController::class, 'sellerDetail']);
+        $group->get('/analytics', [AdminController::class, 'analytics']);
         $group->get('/orders', [AdminController::class, 'orders']);
         $group->get('/products', [AdminController::class, 'products']);
         $group->get('/settings', [AdminController::class, 'settings']);
-        $group->get('/plans', [AdminController::class, 'plans']);
-        $group->get('/help', [AdminController::class, 'help']);
-        $group->get('/help/articles/add', [AdminController::class, 'helpArticleForm']);
-        $group->get('/help/articles/{id}/edit', [AdminController::class, 'helpArticleForm']);
-        $group->get('/import', [AdminController::class, 'import']);
-        $group->get('/pages', [AdminController::class, 'pages']);
-        $group->get('/pages/add', [AdminController::class, 'pageForm']);
-        $group->get('/pages/{id}/edit', [AdminController::class, 'pageForm']);
+        $group->get('/plans', [AdminPlanController::class, 'plans']);
+        $group->get('/help', [AdminHelpController::class, 'help']);
+        $group->get('/help/articles/add', [AdminHelpController::class, 'helpArticleForm']);
+        $group->get('/help/articles/{id}/edit', [AdminHelpController::class, 'helpArticleForm']);
+        $group->get('/import', [AdminImportController::class, 'import']);
+        $group->get('/pages', [AdminPageCtrl::class, 'pages']);
+        $group->get('/pages/add', [AdminPageCtrl::class, 'pageForm']);
+        $group->get('/pages/{id}/edit', [AdminPageCtrl::class, 'pageForm']);
     })->add(AdminGuard::class);
 
     // Stop impersonation (needs AuthGuard, not AdminGuard — user is currently a seller)
@@ -162,6 +170,8 @@ return function (App $app): void {
             $protected->put('/products/{id}', [ApiProductController::class, 'update']);
             $protected->delete('/products/{id}', [ApiProductController::class, 'delete']);
             $protected->post('/products/{id}/duplicate', [ApiProductController::class, 'duplicate']);
+            $protected->post('/products/bulk-archive', [ApiProductController::class, 'bulkArchive']);
+            $protected->post('/products/bulk-delete', [ApiProductController::class, 'bulkDelete']);
 
             $protected->get('/shop', [ApiShopController::class, 'get']);
             $protected->put('/shop', [ApiShopController::class, 'update']);
@@ -181,24 +191,40 @@ return function (App $app): void {
             $protected->put('/orders/{id}/status', [ApiOrderController::class, 'updateStatus']);
             $protected->delete('/orders/{id}', [ApiOrderController::class, 'delete']);
 
+            $protected->get('/customers', [ApiOrderController::class, 'customers']);
+
             $protected->get('/coupons', [ApiCouponController::class, 'list']);
             $protected->post('/coupons', [ApiCouponController::class, 'create']);
             $protected->put('/coupons/{id}', [ApiCouponController::class, 'update']);
             $protected->delete('/coupons/{id}', [ApiCouponController::class, 'delete']);
 
-            $protected->get('/hero-slides', [ApiHeroSlideController::class, 'list']);
-            $protected->post('/hero-slides', [ApiHeroSlideController::class, 'create']);
-            $protected->put('/hero-slides/reorder', [ApiHeroSlideController::class, 'reorder']);
-            $protected->put('/hero-slides/{id}', [ApiHeroSlideController::class, 'update']);
-            $protected->delete('/hero-slides/{id}', [ApiHeroSlideController::class, 'delete']);
-
             $protected->post('/billing/subscribe', [ApiBillingController::class, 'subscribe']);
             $protected->post('/billing/cancel', [ApiBillingController::class, 'cancel']);
             $protected->get('/billing/status', [ApiBillingController::class, 'checkBillingStatus']);
+
+            $protected->get('/theme-options', [ApiShopController::class, 'getThemeOptions']);
+            $protected->put('/theme-options', [ApiShopController::class, 'saveThemeOptions']);
+
+            $protected->post('/import/fetch', [ApiImportController::class, 'fetch']);
+            $protected->post('/import/save', [ApiImportController::class, 'save']);
+            $protected->get('/import/categories', [ApiImportController::class, 'categories']);
+            $protected->post('/import/save-category', [ApiImportController::class, 'saveCategory']);
         })->add(AuthGuard::class)->add(new RateLimit(maxAttempts: 60, windowSeconds: 60));
 
         // Public shop API (product search, no auth required)
         $api->get('/shop/{subdomain}/products', [ShopController::class, 'searchProducts']);
+
+        // Customer account API (public, rate-limited)
+        $api->group('/customer', function (RouteCollectorProxy $cust) {
+            $cust->post('/register', [ApiCustomerAuthController::class, 'register']);
+            $cust->post('/login', [ApiCustomerAuthController::class, 'login']);
+            $cust->post('/logout', [ApiCustomerAuthController::class, 'logout']);
+            $cust->post('/forgot-password', [ApiCustomerAuthController::class, 'forgotPassword']);
+            $cust->post('/reset-password', [ApiCustomerAuthController::class, 'resetPassword']);
+            $cust->get('/orders', [ApiCustomerAuthController::class, 'orders']);
+            $cust->put('/profile', [ApiCustomerAuthController::class, 'updateProfile']);
+            $cust->put('/password', [ApiCustomerAuthController::class, 'changePassword']);
+        })->add(new RateLimit(maxAttempts: 15, windowSeconds: 60));
 
         // Public checkout API (rate-limited)
         $api->group('/checkout', function (RouteCollectorProxy $checkout) {
@@ -210,37 +236,37 @@ return function (App $app): void {
 
         // Admin API endpoints (admin only)
         $api->group('/admin', function (RouteCollectorProxy $admin) {
-            $admin->put('/sellers/{id}/toggle', [AdminController::class, 'toggleSeller']);
-            $admin->put('/sellers/{id}/plan', [AdminController::class, 'updateSellerPlan']);
-            $admin->post('/sellers/{id}/impersonate', [AdminController::class, 'impersonate']);
-            $admin->delete('/sellers/{id}', [AdminController::class, 'deleteSeller']);
+            $admin->put('/sellers/{id}/toggle', [AdminSellerController::class, 'toggleSeller']);
+            $admin->put('/sellers/{id}/plan', [AdminSellerController::class, 'updateSellerPlan']);
+            $admin->post('/sellers/{id}/impersonate', [AdminSellerController::class, 'impersonate']);
+            $admin->delete('/sellers/{id}', [AdminSellerController::class, 'deleteSeller']);
             $admin->put('/settings', [AdminController::class, 'updateSettings']);
             $admin->post('/test-email', [AdminController::class, 'testEmail']);
             $admin->post('/test-s3', [AdminController::class, 'testS3']);
             $admin->post('/ping-sitemap', [AdminController::class, 'pingSitemap']);
 
-            $admin->get('/plans', [AdminController::class, 'listPlans']);
-            $admin->post('/plans', [AdminController::class, 'createPlan']);
-            $admin->put('/plans/{id}', [AdminController::class, 'updatePlan']);
-            $admin->delete('/plans/{id}', [AdminController::class, 'deletePlan']);
+            $admin->get('/plans', [AdminPlanController::class, 'listPlans']);
+            $admin->post('/plans', [AdminPlanController::class, 'createPlan']);
+            $admin->put('/plans/{id}', [AdminPlanController::class, 'updatePlan']);
+            $admin->delete('/plans/{id}', [AdminPlanController::class, 'deletePlan']);
 
-            $admin->get('/help-categories', [AdminController::class, 'listHelpCategories']);
-            $admin->post('/help-categories', [AdminController::class, 'createHelpCategory']);
-            $admin->put('/help-categories/{id}', [AdminController::class, 'updateHelpCategory']);
-            $admin->delete('/help-categories/{id}', [AdminController::class, 'deleteHelpCategory']);
-            $admin->get('/help-articles', [AdminController::class, 'listHelpArticles']);
-            $admin->post('/help-articles', [AdminController::class, 'createHelpArticle']);
-            $admin->put('/help-articles/{id}', [AdminController::class, 'updateHelpArticle']);
-            $admin->delete('/help-articles/{id}', [AdminController::class, 'deleteHelpArticle']);
-            $admin->post('/import/fetch', [AdminController::class, 'fetchImport']);
-            $admin->post('/import/save', [AdminController::class, 'saveImport']);
-            $admin->get('/import/categories/{seller_id}', [AdminController::class, 'importCategories']);
-            $admin->post('/import/save-category', [AdminController::class, 'importSaveCategory']);
+            $admin->get('/help-categories', [AdminHelpController::class, 'listHelpCategories']);
+            $admin->post('/help-categories', [AdminHelpController::class, 'createHelpCategory']);
+            $admin->put('/help-categories/{id}', [AdminHelpController::class, 'updateHelpCategory']);
+            $admin->delete('/help-categories/{id}', [AdminHelpController::class, 'deleteHelpCategory']);
+            $admin->get('/help-articles', [AdminHelpController::class, 'listHelpArticles']);
+            $admin->post('/help-articles', [AdminHelpController::class, 'createHelpArticle']);
+            $admin->put('/help-articles/{id}', [AdminHelpController::class, 'updateHelpArticle']);
+            $admin->delete('/help-articles/{id}', [AdminHelpController::class, 'deleteHelpArticle']);
+            $admin->post('/import/fetch', [AdminImportController::class, 'fetchImport']);
+            $admin->post('/import/save', [AdminImportController::class, 'saveImport']);
+            $admin->get('/import/categories/{seller_id}', [AdminImportController::class, 'importCategories']);
+            $admin->post('/import/save-category', [AdminImportController::class, 'importSaveCategory']);
 
-            $admin->get('/pages', [AdminController::class, 'listPages']);
-            $admin->post('/pages', [AdminController::class, 'createPage']);
-            $admin->put('/pages/{id}', [AdminController::class, 'updatePage']);
-            $admin->delete('/pages/{id}', [AdminController::class, 'deletePage']);
+            $admin->get('/pages', [AdminPageCtrl::class, 'listPages']);
+            $admin->post('/pages', [AdminPageCtrl::class, 'createPage']);
+            $admin->put('/pages/{id}', [AdminPageCtrl::class, 'updatePage']);
+            $admin->delete('/pages/{id}', [AdminPageCtrl::class, 'deletePage']);
         })->add(AdminGuard::class);
 
     })->add(CsrfGuard::class)->add(JsonResponse::class);

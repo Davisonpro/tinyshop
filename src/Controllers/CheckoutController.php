@@ -6,9 +6,13 @@ namespace TinyShop\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use TinyShop\Models\Customer;
 use TinyShop\Models\Order;
 use TinyShop\Models\OrderItem;
+use TinyShop\Models\ThemeOption;
 use TinyShop\Models\User;
+use TinyShop\Services\CustomerAuth;
+use TinyShop\Services\PlanGuard;
 use TinyShop\Services\View;
 use TinyShop\Services\Theme;
 
@@ -38,7 +42,11 @@ final class CheckoutController
         private readonly Theme $theme,
         private readonly User $userModel,
         private readonly Order $orderModel,
-        private readonly OrderItem $orderItemModel
+        private readonly OrderItem $orderItemModel,
+        private readonly ThemeOption $themeOptionModel,
+        private readonly PlanGuard $planGuard,
+        private readonly CustomerAuth $customerAuth,
+        private readonly Customer $customerModel
     ) {}
 
     /**
@@ -52,7 +60,7 @@ final class CheckoutController
         if (!$shop) {
             return $this->view->render(
                 $response->withStatus(404),
-                'pages/shop_404.tpl',
+                'pages/shop/404.tpl',
                 ['page_title' => 'Shop Not Found']
             );
         }
@@ -63,8 +71,10 @@ final class CheckoutController
         $hasMpesa = !empty($shop['mpesa_enabled']) && !empty($shop['mpesa_shortcode'])
             && !empty($shop['mpesa_consumer_key']) && !empty($shop['mpesa_consumer_secret'])
             && !empty($shop['mpesa_passkey']);
+        $hasPesapal = !empty($shop['pesapal_enabled']) && !empty($shop['pesapal_consumer_key'])
+            && !empty($shop['pesapal_consumer_secret']);
 
-        if (!$hasStripe && !$hasPaypal && !$hasCod && !$hasMpesa) {
+        if (!$hasStripe && !$hasPaypal && !$hasCod && !$hasMpesa && !$hasPesapal) {
             return $response->withHeader('Location', '/')->withStatus(302);
         }
 
@@ -76,7 +86,15 @@ final class CheckoutController
         $paletteKey = $shop['color_palette'] ?? 'default';
         $paletteCss = self::PALETTES[$paletteKey] ?? self::PALETTES['default'];
 
-        return $this->view->render($response, 'pages/checkout.tpl', [
+        // Pre-fill from logged-in customer account
+        $shopId = (int) $shop['id'];
+        $customerLoggedIn = $this->customerAuth->check($shopId);
+        $checkoutCustomer = null;
+        if ($customerLoggedIn) {
+            $checkoutCustomer = Customer::find($this->customerAuth->customerId());
+        }
+
+        return $this->view->render($response, 'pages/shop/checkout.tpl', [
             'page_title' => 'Checkout — ' . ($shop['store_name'] ?? ''),
             'shop' => $shop,
             'currency' => $currency,
@@ -85,9 +103,12 @@ final class CheckoutController
             'has_paypal' => $hasPaypal,
             'has_cod' => $hasCod,
             'has_mpesa' => $hasMpesa,
+            'has_pesapal' => $hasPesapal,
             'has_payments' => true,
             'shop_theme' => $shop['shop_theme'] ?? 'classic',
             'palette_css' => $paletteCss,
+            'checkout_customer' => $checkoutCustomer,
+            'customer_logged_in' => $customerLoggedIn,
         ]);
     }
 
@@ -103,7 +124,7 @@ final class CheckoutController
         if (!$shop) {
             return $this->view->render(
                 $response->withStatus(404),
-                'pages/shop_404.tpl',
+                'pages/shop/404.tpl',
                 ['page_title' => 'Shop Not Found']
             );
         }
@@ -112,7 +133,7 @@ final class CheckoutController
         if (!$order || (int) $order['user_id'] !== (int) $shop['id']) {
             return $this->view->render(
                 $response->withStatus(404),
-                'pages/shop_404.tpl',
+                'pages/shop/404.tpl',
                 ['page_title' => 'Order Not Found']
             );
         }
@@ -123,7 +144,11 @@ final class CheckoutController
 
         $this->activateTheme($shop);
 
-        return $this->view->render($response, 'pages/order_confirmation.tpl', [
+        $shopId = (int) $shop['id'];
+        $hasPayments = !empty($shop['stripe_enabled']) || !empty($shop['paypal_enabled'])
+            || !empty($shop['cod_enabled']) || !empty($shop['mpesa_enabled']) || !empty($shop['pesapal_enabled']);
+
+        return $this->view->render($response, 'pages/shop/order_confirmation.tpl', [
             'page_title' => 'Order Confirmed — ' . $order['order_number'],
             'shop' => $shop,
             'order' => $order,
@@ -131,6 +156,8 @@ final class CheckoutController
             'currency' => $currency,
             'currency_symbol' => $currencySymbol,
             'shop_theme' => $shop['shop_theme'] ?? 'classic',
+            'has_payments' => $hasPayments,
+            'customer_logged_in' => $this->customerAuth->check($shopId),
         ]);
     }
 
@@ -143,5 +170,16 @@ final class CheckoutController
             $this->theme->getScriptUrls(),
             $this->theme->getFontLink()
         );
+
+        $shopId = (int) $shop['id'];
+        $themeOptions = $this->theme->resolveOptions($shopId, $this->themeOptionModel);
+
+        // Free plan users always show "Powered by TinyShop"
+        $plan = $this->planGuard->getUserPlan($shopId);
+        if (((float) ($plan['price_monthly'] ?? 0)) === 0.0) {
+            $themeOptions['show_powered_by'] = true;
+        }
+
+        $this->view->assign('theme_options', $themeOptions);
     }
 }

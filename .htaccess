@@ -12,9 +12,6 @@
     # Block access to theme internals (templates, PHP, manifest)
     RewriteRule ^themes/[^/]+/(templates|functions\.php|theme\.json) - [F,L]
 
-    # Backward compat: /uploads/file → public/uploads/file
-    RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
-
     # Serve existing files/directories directly (static assets)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d

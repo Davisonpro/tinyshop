@@ -192,6 +192,11 @@
   text-decoration: underline;
 }
 
+@media (max-width: 1023px) {
+  .confirm-page {
+    padding-bottom: 80px;
+  }
+}
 @media print {
   body {
     background: #fff !important;

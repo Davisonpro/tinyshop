@@ -5,7 +5,7 @@
 {block name="extra_css"}{/block}
 
 {block name="body"}
-{include file="partials/marketing_nav.tpl"}
+{include file="partials/public/nav.tpl"}
 <div class="auth-wrapper">
     <div class="auth-card">
         {block name="content"}{/block}
