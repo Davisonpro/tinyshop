@@ -41,6 +41,9 @@ CREATE TABLE `users` (
     `plan_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     `plan_expires_at` DATETIME NULL DEFAULT NULL,
     `shop_theme` VARCHAR(20) NOT NULL DEFAULT 'classic',
+    `color_palette` VARCHAR(20) NOT NULL DEFAULT 'default',
+    `logo_alignment` VARCHAR(10) NOT NULL DEFAULT 'left',
+    `product_image_fit` VARCHAR(10) NOT NULL DEFAULT 'cover',
     `show_logo` TINYINT(1) NOT NULL DEFAULT 1,
     `show_store_name` TINYINT(1) NOT NULL DEFAULT 1,
     `show_tagline` TINYINT(1) NOT NULL DEFAULT 1,
@@ -66,6 +69,10 @@ CREATE TABLE `users` (
     `mpesa_passkey` VARCHAR(255) NULL,
     `mpesa_mode` ENUM('test','live') NOT NULL DEFAULT 'test',
     `mpesa_enabled` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
+    `pesapal_consumer_key` VARCHAR(255) NULL,
+    `pesapal_consumer_secret` VARCHAR(255) NULL,
+    `pesapal_mode` ENUM('test','live') NOT NULL DEFAULT 'test',
+    `pesapal_enabled` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
@@ -156,6 +163,7 @@ CREATE TABLE `product_images` (
 CREATE TABLE `orders` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `user_id` BIGINT UNSIGNED NOT NULL,
+    `customer_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     `order_number` VARCHAR(20) NULL,
     `product_id` BIGINT UNSIGNED NULL,
     `customer_name` VARCHAR(100) DEFAULT NULL,
@@ -176,6 +184,7 @@ CREATE TABLE `orders` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `idx_order_user` (`user_id`),
+    KEY `idx_customer_id` (`customer_id`),
     KEY `idx_order_product` (`product_id`),
     KEY `idx_user_created` (`user_id`, `created_at`),
     UNIQUE KEY `idx_order_number` (`order_number`),
@@ -198,6 +207,7 @@ CREATE TABLE `order_items` (
     `quantity` INT UNSIGNED NOT NULL DEFAULT 1,
     `unit_price` DECIMAL(10,2) NOT NULL,
     `total` DECIMAL(10,2) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_order_items_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_order_items_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -376,6 +386,26 @@ CREATE TABLE `billing_mpesa_pending` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ══════════════════════════════════════════════════════════════════════════════
+-- Billing — Pesapal Pending
+-- ══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE `billing_pesapal_pending` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `plan_id` BIGINT UNSIGNED NOT NULL,
+    `billing_cycle` VARCHAR(10) NOT NULL DEFAULT 'monthly',
+    `order_tracking_id` VARCHAR(100) NOT NULL,
+    `merchant_reference` VARCHAR(100) NOT NULL,
+    `amount` DECIMAL(12,2) NOT NULL DEFAULT 0,
+    `status` ENUM('pending','paid','failed') NOT NULL DEFAULT 'pending',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_tracking_id` (`order_tracking_id`),
+    INDEX `idx_user_status` (`user_id`, `status`),
+    CONSTRAINT `fk_bpp_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_bpp_plan` FOREIGN KEY (`plan_id`) REFERENCES `plans` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ══════════════════════════════════════════════════════════════════════════════
 -- Pages (admin-managed dynamic pages)
 -- ══════════════════════════════════════════════════════════════════════════════
 
@@ -431,6 +461,63 @@ CREATE TABLE `help_articles` (
     KEY `idx_help_articles_category` (`category_id`),
     KEY `idx_help_articles_published` (`is_published`),
     CONSTRAINT `fk_help_articles_category` FOREIGN KEY (`category_id`) REFERENCES `help_categories` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Customers (per-shop buyer accounts)
+-- ══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE `customers` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `name` VARCHAR(100) NOT NULL DEFAULT '',
+    `email` VARCHAR(255) NOT NULL,
+    `phone` VARCHAR(20) DEFAULT NULL,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `last_login_at` DATETIME DEFAULT NULL,
+    `login_count` INT UNSIGNED NOT NULL DEFAULT 0,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_shop_email` (`user_id`, `email`),
+    KEY `idx_user_id` (`user_id`),
+    CONSTRAINT `fk_customers_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Deferred FK: orders.customer_id → customers (customers table must exist first)
+ALTER TABLE `orders` ADD CONSTRAINT `fk_orders_customer`
+    FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE SET NULL;
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Customer Password Resets
+-- ══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE `customer_password_resets` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `customer_id` BIGINT UNSIGNED NOT NULL,
+    `token` VARCHAR(64) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `used_at` DATETIME DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    INDEX `idx_cpr_customer` (`customer_id`),
+    INDEX `idx_cpr_token` (`token`),
+    CONSTRAINT `fk_cpr_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Theme Options (per-seller, per-theme customization)
+-- ══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE `theme_options` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `theme_slug` VARCHAR(50) NOT NULL,
+    `option_name` VARCHAR(191) NOT NULL,
+    `option_value` LONGTEXT DEFAULT NULL,
+    UNIQUE KEY `uq_theme_option` (`user_id`, `theme_slug`, `option_name`),
+    KEY `idx_user_theme` (`user_id`, `theme_slug`),
+    CONSTRAINT `fk_theme_options_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ══════════════════════════════════════════════════════════════════════════════
