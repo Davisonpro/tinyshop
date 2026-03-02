@@ -1,17 +1,23 @@
 /**
- * TinyShop — Cart System
- * Client-side cart using localStorage, keyed per shop.
- * Includes: variation selector, dynamic price, cart drawer, checkout.
+ * Client-side cart system using localStorage, keyed per shop.
+ *
+ * Handles variation selection, dynamic price recalculation,
+ * cart drawer rendering, quantity controls, and checkout
+ * navigation. Exposes a public API on TinyShop.Cart.
+ *
+ * @since 1.0.0
  */
 TinyShop.Cart = (function() {
     var _shopId = null;
     var _items = [];
     var _bound = false;
 
+    /** Build the localStorage key for this shop's cart. */
     function storageKey() {
         return 'tinyshop_cart_' + _shopId;
     }
 
+    /** Load cart items from localStorage. */
     function load() {
         try {
             var raw = localStorage.getItem(storageKey());
@@ -22,6 +28,7 @@ TinyShop.Cart = (function() {
         }
     }
 
+    /** Persist cart items to localStorage and refresh the UI. */
     function save() {
         try {
             localStorage.setItem(storageKey(), JSON.stringify(_items));
@@ -30,10 +37,12 @@ TinyShop.Cart = (function() {
         renderDrawer();
     }
 
+    /** Build a unique key for a cart line item. */
     function itemKey(productId, variation) {
         return productId + '-' + (variation || '');
     }
 
+    /** Update all .cart-badge elements with the current count. */
     function updateBadge() {
         var count = getCount();
         var $badge = $('.cart-badge');
@@ -44,22 +53,32 @@ TinyShop.Cart = (function() {
         }
     }
 
+    /** Total number of items (sum of quantities). */
     function getCount() {
         var c = 0;
         _items.forEach(function(item) { c += item.quantity; });
         return c;
     }
 
+    /** Total price of all items. */
     function getTotal() {
         var t = 0;
         _items.forEach(function(item) { t += item.price * item.quantity; });
         return t;
     }
 
+    /** Return a shallow copy of the items array. */
     function getItems() {
         return _items.slice();
     }
 
+    /**
+     * Add a product to the cart (or increment if already present).
+     *
+     * @param {Object} product          Product data.
+     * @param {number} [qty]            Quantity to add (default 1).
+     * @param {string} [variation]      Variation string (e.g. "Size: M, Color: Red").
+     */
     function addItem(product, qty, variation) {
         qty = qty || 1;
         var key = itemKey(product.id, variation);
@@ -87,6 +106,7 @@ TinyShop.Cart = (function() {
         save();
     }
 
+    /** Update quantity for a specific line item (removes if qty <= 0). */
     function updateQty(productId, variation, qty) {
         var key = itemKey(productId, variation);
         for (var i = 0; i < _items.length; i++) {
@@ -102,6 +122,7 @@ TinyShop.Cart = (function() {
         save();
     }
 
+    /** Remove a line item entirely. */
     function removeItem(productId, variation) {
         var key = itemKey(productId, variation);
         _items = _items.filter(function(item) {
@@ -110,6 +131,7 @@ TinyShop.Cart = (function() {
         save();
     }
 
+    /** Empty the entire cart. */
     function clear() {
         _items = [];
         save();
@@ -117,10 +139,12 @@ TinyShop.Cart = (function() {
 
     // ── Variation Selector ──
 
+    /** Count the total variation groups on the product page. */
     function getVariationGroupCount() {
         return document.querySelectorAll('.product-variation-group').length;
     }
 
+    /** Count how many variation groups have a selected option. */
     function getSelectedVariationCount() {
         var groups = document.querySelectorAll('.product-variation-group');
         var count = 0;
@@ -132,12 +156,14 @@ TinyShop.Cart = (function() {
         return count;
     }
 
+    /** Whether every variation group has a selection. */
     function allVariationsSelected() {
         var total = getVariationGroupCount();
         if (total === 0) return true;
         return getSelectedVariationCount() === total;
     }
 
+    /** Calculate the effective price based on selected variations. */
     function getEffectivePrice() {
         var basePrice = window._productBasePrice;
         if (!basePrice && basePrice !== 0) return 0;
@@ -157,6 +183,7 @@ TinyShop.Cart = (function() {
         return Math.max(0, effectivePrice);
     }
 
+    /** Build a human-readable variation string (e.g. "Size: M, Color: Red"). */
     function buildVariationString() {
         var parts = [];
         var groups = document.querySelectorAll('.product-variation-group');
@@ -166,10 +193,9 @@ TinyShop.Cart = (function() {
                 var label = groups[i].querySelector('.product-variation-label');
                 var groupName = '';
                 if (label) {
-                    // Get text content excluding the child span
                     var nodes = label.childNodes;
                     for (var n = 0; n < nodes.length; n++) {
-                        if (nodes[n].nodeType === 3) { // text node
+                        if (nodes[n].nodeType === 3) {
                             groupName = nodes[n].textContent.trim();
                             if (groupName) break;
                         }
@@ -186,11 +212,11 @@ TinyShop.Cart = (function() {
         return parts.join(', ');
     }
 
+    /** Update the price display on the product page. */
     function updatePriceDisplay(effectivePrice) {
         var currencySymbol = window._shopCurrencySymbol || '';
         var comparePrice = parseFloat(window._productComparePrice) || 0;
 
-        // Update main price on product page
         var currentEl = document.getElementById('productPriceCurrent');
         if (currentEl) {
             currentEl.textContent = currencySymbol + formatNum(effectivePrice);
@@ -201,7 +227,6 @@ TinyShop.Cart = (function() {
             }
         }
 
-        // Update compare price visibility
         var compareEl = document.getElementById('productComparePrice');
         if (compareEl) {
             if (comparePrice > 0 && comparePrice > effectivePrice) {
@@ -212,7 +237,6 @@ TinyShop.Cart = (function() {
             }
         }
 
-        // Update discount badge
         var badgeEl = document.getElementById('productDiscountBadge');
         if (badgeEl) {
             if (comparePrice > 0 && comparePrice > effectivePrice) {
@@ -223,12 +247,12 @@ TinyShop.Cart = (function() {
                 badgeEl.style.display = 'none';
             }
         }
-
     }
 
+    /** Toggle the "needs selection" visual hint on the CTA button. */
     function updateCtaState() {
         var btn = document.getElementById('addToCartBtn');
-        if (!btn) return;
+        if (!btn || btn.disabled) return;
 
         if (!window._hasVariations) {
             btn.classList.remove('cta-needs-selection');
@@ -242,6 +266,7 @@ TinyShop.Cart = (function() {
         }
     }
 
+    /** Handle a click on a variation option pill. */
     function handleVariationClick(e) {
         var opt = e.target.closest('.product-variation-option');
         if (!opt) return;
@@ -252,12 +277,10 @@ TinyShop.Cart = (function() {
         var options = group.querySelectorAll('.product-variation-option');
         var wasSelected = opt.classList.contains('selected');
 
-        // Deselect all in this group
         for (var i = 0; i < options.length; i++) {
             options[i].classList.remove('selected');
         }
 
-        // Toggle: if it wasn't selected, select it
         if (!wasSelected) {
             opt.classList.add('selected');
         }
@@ -267,13 +290,23 @@ TinyShop.Cart = (function() {
         var labelSpan = document.getElementById('varSelected' + groupIndex);
         if (labelSpan) {
             var selectedOpt = group.querySelector('.product-variation-option.selected');
-            labelSpan.textContent = selectedOpt ? selectedOpt.dataset.value : '';
+            if (selectedOpt) {
+                labelSpan.textContent = '— ' + selectedOpt.dataset.value;
+                labelSpan.classList.remove('variation-prompt');
+            } else {
+                labelSpan.textContent = '— Pick one';
+                labelSpan.classList.add('variation-prompt');
+            }
         }
 
-        // Remove needs-selection class
+        // Clear error state for this group
         group.classList.remove('needs-selection');
+        var errorEl = document.getElementById('varError' + groupIndex);
+        if (errorEl) {
+            errorEl.textContent = '';
+            errorEl.classList.remove('visible');
+        }
 
-        // Recalculate price
         var effectivePrice = getEffectivePrice();
         updatePriceDisplay(effectivePrice);
         updateCtaState();
@@ -281,6 +314,7 @@ TinyShop.Cart = (function() {
 
     // ── Cart Drawer Rendering ──
 
+    /** Re-render the cart drawer contents from _items. */
     function renderDrawer() {
         var $body = $('#cartDrawerBody');
         var $footer = $('#cartDrawerFooter');
@@ -354,10 +388,12 @@ TinyShop.Cart = (function() {
         $footer.show();
     }
 
+    /** Format a number with two decimal places and thousand separators. */
     function formatNum(n) {
         return parseFloat(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
+    /** Private escapeHtml for the cart IIFE (avoids external dependency). */
     function escapeHtml(str) {
         if (!str) return '';
         var div = document.createElement('div');
@@ -367,12 +403,18 @@ TinyShop.Cart = (function() {
 
     // ── Init ──
 
+    /**
+     * Initialise the cart for a given shop.
+     *
+     * @since 1.0.0
+     *
+     * @param {string|number} shopId The shop identifier used as the localStorage key suffix.
+     */
     function init(shopId) {
         _shopId = shopId;
         load();
         updateBadge();
 
-        // Per-page refresh: CTA state for product pages
         if (window._hasVariations) {
             updateCtaState();
         }
@@ -397,7 +439,6 @@ TinyShop.Cart = (function() {
         $(document).on('click', '.product-card-atc', function(e) {
             var $atc = $(this);
 
-            // "Choose Options" links — let the <a> navigate to product page
             if ($atc.hasClass('product-card-atc-options')) return;
 
             e.preventDefault();
@@ -414,13 +455,11 @@ TinyShop.Cart = (function() {
 
             addItem(product, 1);
 
-            // Feedback: show checkmark then revert
             $atc.addClass('product-card-atc-added').text('Added!');
             setTimeout(function() {
                 $atc.removeClass('product-card-atc-added').text('Add to Cart');
             }, 1200);
 
-            // Bounce the cart badge
             var $badge = $('.cart-badge');
             $badge.removeClass('bounce');
             $badge[0] && $badge[0].offsetWidth;
@@ -502,28 +541,50 @@ TinyShop.Cart = (function() {
             var $btn = $(this);
             if ($btn.prop('disabled')) return;
 
-            // If product has variations, ensure all are selected
             if (window._hasVariations && !allVariationsSelected()) {
                 var groups = document.querySelectorAll('.product-variation-group');
+                var firstUnselected = null;
+
                 for (var g = 0; g < groups.length; g++) {
+                    var groupIndex = groups[g].dataset.group;
+                    var errorEl = document.getElementById('varError' + groupIndex);
+
                     if (!groups[g].querySelector('.product-variation-option.selected')) {
                         groups[g].classList.add('needs-selection');
-                        (function(el) {
-                            setTimeout(function() { el.classList.remove('needs-selection'); }, 500);
-                        })(groups[g]);
+
+                        var label = groups[g].querySelector('.product-variation-label');
+                        var groupName = '';
+                        if (label) {
+                            var nodes = label.childNodes;
+                            for (var n = 0; n < nodes.length; n++) {
+                                if (nodes[n].nodeType === 3) {
+                                    groupName = nodes[n].textContent.trim();
+                                    if (groupName) break;
+                                }
+                            }
+                        }
+
+                        if (errorEl) {
+                            errorEl.textContent = 'Please select a ' + (groupName.toLowerCase() || 'option');
+                            errorEl.classList.add('visible');
+                        }
+
+                        if (!firstUnselected) firstUnselected = groups[g];
+                    } else {
+                        groups[g].classList.remove('needs-selection');
+                        if (errorEl) {
+                            errorEl.textContent = '';
+                            errorEl.classList.remove('visible');
+                        }
                     }
                 }
-                // Scroll to first unselected group
-                for (var s = 0; s < groups.length; s++) {
-                    if (!groups[s].querySelector('.product-variation-option.selected')) {
-                        groups[s].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        break;
-                    }
+
+                if (firstUnselected) {
+                    firstUnselected.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
                 return;
             }
 
-            // Build product data
             var effectivePrice = window._hasVariations ? getEffectivePrice() : parseFloat($btn.data('product-price'));
             var variation = window._hasVariations ? buildVariationString() : '';
 
@@ -539,17 +600,14 @@ TinyShop.Cart = (function() {
             var qty = parseInt($('#cartQty').val(), 10) || 1;
             addItem(product, qty, variation);
 
-            // Reset quantity to 1
             $('#cartQty').val(1);
 
-            // Feedback animation
             var origHtml = $btn.html();
             $btn.html('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="20 6 9 17 4 12"/></svg> Added!').prop('disabled', true);
             setTimeout(function() {
                 $btn.html(origHtml).prop('disabled', false);
             }, 1200);
 
-            // Bounce the cart badge
             var $badge = $('.cart-badge');
             $badge.removeClass('bounce');
             $badge[0] && $badge[0].offsetWidth;

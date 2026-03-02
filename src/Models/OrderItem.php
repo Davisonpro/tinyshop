@@ -6,7 +6,12 @@ namespace TinyShop\Models;
 
 use TinyShop\Enums\FieldType;
 
-class OrderItem extends Model
+/**
+ * Order line item model.
+ *
+ * @since 1.0.0
+ */
+final class OrderItem extends Model
 {
     protected static array $definition = [
         'table'   => 'order_items',
@@ -24,6 +29,14 @@ class OrderItem extends Model
         ],
     ];
 
+    /**
+     * Bulk-insert line items for an order.
+     *
+     * @since 1.0.0
+     *
+     * @param int   $orderId Order ID.
+     * @param array $items   Line item data.
+     */
     public function createBatch(int $orderId, array $items): void
     {
         $rows = [];
@@ -43,6 +56,14 @@ class OrderItem extends Model
         static::batchInsert($rows);
     }
 
+    /**
+     * Get all line items for an order.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $orderId Order ID.
+     * @return array[]
+     */
     public function findByOrder(int $orderId): array
     {
         return static::rawQuery(
@@ -51,6 +72,14 @@ class OrderItem extends Model
         );
     }
 
+    /**
+     * Batch-load line items for multiple orders.
+     *
+     * @since 1.0.0
+     *
+     * @param  int[] $orderIds Order IDs.
+     * @return array[]
+     */
     public function findByOrderIds(array $orderIds): array
     {
         if (empty($orderIds)) {

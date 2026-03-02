@@ -6,7 +6,12 @@ namespace TinyShop\Models;
 
 use TinyShop\Enums\FieldType;
 
-class Coupon extends Model
+/**
+ * Discount coupon model.
+ *
+ * @since 1.0.0
+ */
+final class Coupon extends Model
 {
     protected static array $definition = [
         'table'   => 'coupons',
@@ -26,6 +31,14 @@ class Coupon extends Model
         ],
     ];
 
+    /**
+     * Get all coupons for a seller, newest first.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @return array[]
+     */
     public function findByUser(int $userId): array
     {
         return static::rawQuery(
@@ -34,6 +47,15 @@ class Coupon extends Model
         );
     }
 
+    /**
+     * Find a coupon by code in a seller's shop.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId Seller ID.
+     * @param  string $code   Coupon code.
+     * @return array|null
+     */
     public function findByUserAndCode(int $userId, string $code): ?array
     {
         $rows = static::rawQuery(
@@ -43,6 +65,14 @@ class Coupon extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Create a new coupon.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Coupon data.
+     * @return int   New coupon ID.
+     */
     public function create(array $data): int
     {
         $coupon = new static();
@@ -60,6 +90,15 @@ class Coupon extends Model
         return (int) $coupon->getId();
     }
 
+    /**
+     * Update a coupon by ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   Coupon ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         $coupon = static::find($id);
@@ -81,19 +120,25 @@ class Coupon extends Model
         return $coupon->save();
     }
 
+    /** Increment used_count after a successful order. */
     public function incrementUsage(int $id): void
     {
         static::increment($id, 'used_count');
     }
 
+    /** Decrement used_count (e.g. on cancellation). */
     public function decrementUsage(int $id): void
     {
         static::decrement($id, 'used_count');
     }
 
     /**
-     * Validate a coupon and calculate discount.
+     * Validate a coupon and calculate the discount.
      *
+     * @since 1.0.0
+     *
+     * @param  array $coupon     Coupon row.
+     * @param  float $orderTotal Cart subtotal.
      * @return array{valid: bool, message: string, discount: float}
      */
     public function validateCoupon(array $coupon, float $orderTotal): array

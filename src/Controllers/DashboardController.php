@@ -21,6 +21,11 @@ use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Theme;
 use TinyShop\Services\View;
 
+/**
+ * Seller dashboard controller.
+ *
+ * @since 1.0.0
+ */
 final class DashboardController
 {
     public function __construct(
@@ -40,6 +45,15 @@ final class DashboardController
         private readonly ThemeOption $themeOptionModel
     ) {}
 
+    /**
+     * Render the dashboard home page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function home(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -74,6 +88,15 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the products listing page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function products(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -88,6 +111,15 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the shop settings page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function shop(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -106,6 +138,15 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the categories management page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function categories(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -118,6 +159,15 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the orders listing page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function orders(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -131,6 +181,15 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the customers listing page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function customers(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -144,6 +203,15 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the coupons management page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function coupons(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -159,6 +227,15 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the analytics page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function analytics(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -199,6 +276,15 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the billing page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function billing(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -245,6 +331,16 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the add/edit product form.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function productForm(Request $request, Response $response, array $args = []): Response
     {
         $userId = $this->auth->userId();
@@ -281,6 +377,15 @@ final class DashboardController
         ]);
     }
 
+    /**
+     * Render the design customizer.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function design(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -303,9 +408,19 @@ final class DashboardController
             'customizer_schema'         => $schema,
             'theme_option_values'       => $resolvedOptions,
             'usage'                     => $usage,
+            'available_themes'          => $this->themeService->listAvailable(),
         ]);
     }
 
+    /**
+     * Render the product import page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function import(Request $request, Response $response): Response
     {
         return $this->view->render($response, 'pages/dashboard/import.tpl', [

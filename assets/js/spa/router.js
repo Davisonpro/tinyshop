@@ -1,24 +1,33 @@
-/* ============================================================
-   Global SPA — JSON fragment navigation with page cache,
-   link prefetch, instant click, and view transitions
-   ============================================================ */
+/**
+ * Global SPA router.
+ *
+ * Intercepts internal link clicks and loads pages as JSON
+ * fragments (or falls back to full-HTML parsing). Provides
+ * client-side page caching (5 min TTL, max 20 entries),
+ * hover/viewport link prefetching, instant-click on
+ * mousedown, and view-transition support.
+ *
+ * @since 1.0.0
+ */
 TinyShop.spa = {
     _ready: false,
     _loading: false,
     _xhr: null,
     _loadedScripts: {},
 
-    /* --- Inflight fetch dedup map (url → Promise<data|null>) --- */
+    /** Inflight fetch dedup map (url -> Promise<data|null>). */
     _fetchMap: {},
 
-    /* --- Client-side page cache (5min TTL, max 20 entries) --- */
+    /** Client-side page cache (5 min TTL, max 20 entries). */
     _cache: {},
     _cacheTimeout: 300000,
 
+    /** Strip the hash from a URL for cache keying. */
     _cacheKey: function(url) {
         return url.split('#')[0];
     },
 
+    /** Retrieve a cached page if still valid. */
     _getCached: function(url) {
         var key = this._cacheKey(url);
         var entry = this._cache[key];
@@ -30,11 +39,11 @@ TinyShop.spa = {
         return entry.data;
     },
 
+    /** Store a page in the cache, evicting the oldest if full. */
     _setCache: function(url, data) {
         var key = this._cacheKey(url);
         this._cache[key] = { data: data, time: Date.now() };
 
-        // Evict oldest entry when cache exceeds 20
         var keys = Object.keys(this._cache);
         if (keys.length > 20) {
             var oldest = keys[0], oldestTime = this._cache[oldest].time;
@@ -48,7 +57,12 @@ TinyShop.spa = {
         }
     },
 
-    /* --- Link validation helper --- */
+    /**
+     * Check whether a URL is an internal, SPA-navigable link.
+     *
+     * @param {string} href The href attribute value.
+     * @return {boolean} True if the link should be handled by the SPA.
+     */
     _isInternalLink: function(href) {
         if (!href || href.charAt(0) === '#') return false;
         if (href.indexOf('://') !== -1 && href.indexOf(location.origin) !== 0) return false;
@@ -57,6 +71,7 @@ TinyShop.spa = {
         return true;
     },
 
+    /** Initialise the SPA: bind click/popstate handlers and start prefetching. */
     init: function() {
         var self = this;
 
@@ -69,7 +84,6 @@ TinyShop.spa = {
         history.replaceState({ spa: true, url: location.pathname + location.search }, '', location.pathname + location.search);
 
         // Instant click — start prefetching on mousedown/touchstart (saves 100-200ms)
-        // Reuses inflight hover prefetch via shared _fetchMap — no duplicate requests
         $(document).on('mousedown touchstart', 'a', function(e) {
             if (e.type === 'mousedown' && e.which !== 1) return;
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -80,7 +94,6 @@ TinyShop.spa = {
             if (href === location.pathname + location.search) return;
             if (href === '/logout') return;
 
-            // Start prefetching if not cached and no inflight fetch for this URL
             if (!self._getCached(href) && !self._loading && window.fetch && !self._fetchMap[href]) {
                 self._fetchMap[href] = fetch(href, {
                     headers: { 'X-SPA': '1' },
@@ -104,7 +117,7 @@ TinyShop.spa = {
             }
         });
 
-        // Intercept ALL internal link clicks
+        // Intercept all internal link clicks
         $(document).on('click', 'a', function(e) {
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
             if (this.target === '_blank') return;
@@ -115,7 +128,6 @@ TinyShop.spa = {
 
             e.preventDefault();
 
-            // Don't re-navigate to the same page
             if (href === location.pathname + location.search) return;
 
             // Remember product card for scroll-back (dashboard products)
@@ -134,13 +146,11 @@ TinyShop.spa = {
             }
         });
 
-        // Init link prefetching
         self._initPrefetch();
-
         self._ready = true;
     },
 
-    /* --- Link prefetching (hover + viewport) --- */
+    /** Set up hover and viewport-based link prefetching. */
     _initPrefetch: function() {
         var self = this;
         var prefetched = {};
@@ -148,6 +158,7 @@ TinyShop.spa = {
         var MAX_INFLIGHT = 3;
         var _budget = 8;
 
+        /** Whether a URL is eligible for prefetching. */
         function shouldPrefetch(href) {
             if (!self._isInternalLink(href)) return false;
             if (href === '/logout') return false;
@@ -157,6 +168,7 @@ TinyShop.spa = {
             return true;
         }
 
+        /** Start a low-priority prefetch for a URL. */
         function doPrefetch(href) {
             if (prefetched[href] || !window.fetch) return;
             if (_inflight >= MAX_INFLIGHT || _budget <= 0) return;
@@ -224,6 +236,8 @@ TinyShop.spa = {
             }, { rootMargin: '200px' });
 
             var _observeTimer = null;
+
+            /** Re-observe nav links after each page swap. */
             function observeLinks() {
                 prefetched = {};
                 _budget = 8;
@@ -247,7 +261,12 @@ TinyShop.spa = {
         }
     },
 
-    /* --- Parse response (JSON fragment or full HTML fallback) --- */
+    /**
+     * Parse a SPA response (JSON fragment or full HTML fallback).
+     *
+     * @param {string} text Raw response body.
+     * @return {Object|null} Parsed page data or null on failure.
+     */
     _parseResponse: function(text) {
         try {
             var data = JSON.parse(text);
@@ -302,6 +321,18 @@ TinyShop.spa = {
         }
     },
 
+    /**
+     * Navigate to a URL via the SPA router.
+     *
+     * Checks the cache first, then inflight fetches, then
+     * falls back to a fresh XHR. Handles redirects and the
+     * login modal for 401s.
+     *
+     * @since 1.0.0
+     *
+     * @param {string}  url        The destination URL.
+     * @param {boolean} [isPopState] True when triggered by browser back/forward.
+     */
     go: function(url, isPopState) {
         var self = this;
 
@@ -356,6 +387,7 @@ TinyShop.spa = {
         self._doFetch(url, isPopState);
     },
 
+    /** Fetch a page via XHR (fallback when not cached or prefetched). */
     _doFetch: function(url, isPopState) {
         var self = this;
 
@@ -364,7 +396,7 @@ TinyShop.spa = {
             method: 'GET',
             dataType: 'text',
             headers: { 'X-SPA': '1' },
-            success: function(text, status, xhr) {
+            success: function(text) {
                 self._xhr = null;
 
                 var data = self._parseResponse(text);
@@ -398,13 +430,14 @@ TinyShop.spa = {
         });
     },
 
-    /* --- Apply page data with view transition --- */
+    /** Apply parsed page data to the DOM, with view-transition support. */
     _applyPage: function(data, url, isPopState) {
         var self = this;
 
         function doSwap(onDomReady) {
             document.title = data.title || (document.querySelector('meta[name="apple-mobile-web-app-title"]') || {}).content || 'Shop';
 
+            // Screen-reader announcement
             var announcer = document.getElementById('spaAnnouncer');
             if (!announcer) {
                 announcer = document.createElement('div');
@@ -477,7 +510,7 @@ TinyShop.spa = {
         }
     },
 
-    /* --- Preload stylesheets into browser cache --- */
+    /** Preload stylesheets into the browser cache via low-priority fetch. */
     _preloadStyles: function(styleHrefs) {
         if (!styleHrefs || !styleHrefs.length || !window.fetch) return;
         var loaded = {};
@@ -485,32 +518,37 @@ TinyShop.spa = {
         for (var i = 0; i < links.length; i++) {
             loaded[links[i].getAttribute('href')] = true;
         }
-        for (var i = 0; i < styleHrefs.length; i++) {
-            if (!loaded[styleHrefs[i]]) {
-                fetch(styleHrefs[i], { credentials: 'same-origin', priority: 'low' }).catch(function() {});
+        for (var j = 0; j < styleHrefs.length; j++) {
+            if (!loaded[styleHrefs[j]]) {
+                fetch(styleHrefs[j], { credentials: 'same-origin', priority: 'low' }).catch(function() {});
             }
         }
     },
 
-    /* --- Sync stylesheets and inline styles --- */
+    /**
+     * Sync <link> stylesheets and inline <style> blocks.
+     *
+     * Adds missing stylesheets, waits for them to load, then
+     * removes stale SPA-injected styles from previous pages.
+     */
     _syncStylesFromList: function(styleHrefs, inlineStyles, onReady) {
         var neededSet = {};
         for (var i = 0; i < styleHrefs.length; i++) neededSet[styleHrefs[i]] = true;
 
         var existingHrefs = {};
         var allLinks = document.head.querySelectorAll('link[rel="stylesheet"], link[rel="preload"][as="style"]');
-        for (var i = 0; i < allLinks.length; i++) {
-            existingHrefs[allLinks[i].getAttribute('href')] = true;
+        for (var j = 0; j < allLinks.length; j++) {
+            existingHrefs[allLinks[j].getAttribute('href')] = true;
         }
 
         var oldSpaStyles = document.head.querySelectorAll('[data-spa-style]');
 
         var newLinks = [];
-        for (var i = 0; i < styleHrefs.length; i++) {
-            if (!existingHrefs[styleHrefs[i]]) {
+        for (var k = 0; k < styleHrefs.length; k++) {
+            if (!existingHrefs[styleHrefs[k]]) {
                 var link = document.createElement('link');
                 link.rel = 'stylesheet';
-                link.href = styleHrefs[i];
+                link.href = styleHrefs[k];
                 link.setAttribute('data-spa-style', '');
                 document.head.appendChild(link);
                 newLinks.push(link);
@@ -518,8 +556,8 @@ TinyShop.spa = {
         }
 
         function finish() {
-            for (var i = 0; i < oldSpaStyles.length; i++) {
-                var el = oldSpaStyles[i];
+            for (var m = 0; m < oldSpaStyles.length; m++) {
+                var el = oldSpaStyles[m];
                 if (el.tagName === 'STYLE') {
                     if (el.parentNode) el.parentNode.removeChild(el);
                 } else if (el.tagName === 'LINK') {
@@ -531,9 +569,9 @@ TinyShop.spa = {
             }
 
             if (inlineStyles && inlineStyles.length) {
-                for (var i = 0; i < inlineStyles.length; i++) {
+                for (var n = 0; n < inlineStyles.length; n++) {
                     var style = document.createElement('style');
-                    style.textContent = inlineStyles[i];
+                    style.textContent = inlineStyles[n];
                     style.setAttribute('data-spa-style', '');
                     document.head.appendChild(style);
                 }
@@ -558,11 +596,12 @@ TinyShop.spa = {
             }
         }
 
-        for (var i = 0; i < newLinks.length; i++) {
-            newLinks[i].onload = check;
-            newLinks[i].onerror = check;
+        for (var p = 0; p < newLinks.length; p++) {
+            newLinks[p].onload = check;
+            newLinks[p].onerror = check;
         }
 
+        // Safety timeout — don't block navigation if a stylesheet fails silently
         setTimeout(function() {
             if (!done) {
                 done = true;
@@ -571,6 +610,12 @@ TinyShop.spa = {
         }, 3000);
     },
 
+    /**
+     * Load external scripts sequentially, then execute inline scripts.
+     *
+     * @param {Object[]} scripts  Array of { src, text, type } objects.
+     * @param {Function}  [callback] Called after all scripts have executed.
+     */
     loadScripts: function(scripts, callback) {
         var self = this;
         var externals = [];
@@ -618,6 +663,7 @@ TinyShop.spa = {
         loadNext(0);
     },
 
+    /** Get or create the progress bar element. */
     _getBar: function() {
         var bar = document.getElementById('spaProgress');
         if (!bar) {
@@ -630,6 +676,7 @@ TinyShop.spa = {
         return bar;
     },
 
+    /** Show the progress bar at the top of the page. */
     showProgress: function() {
         var bar = this._getBar();
         bar.className = 'spa-progress-bar';
@@ -639,6 +686,7 @@ TinyShop.spa = {
         bar.style.width = '70%';
     },
 
+    /** Complete and hide the progress bar. */
     hideProgress: function() {
         var bar = this._getBar();
         bar.style.width = '100%';

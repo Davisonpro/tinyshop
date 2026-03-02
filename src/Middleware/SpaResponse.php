@@ -11,15 +11,13 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Stream;
 
 /**
- * Converts full HTML responses into compact JSON fragments for SPA navigation.
+ * SPA fragment response middleware.
  *
- * When the client sends X-SPA: 1, this middleware intercepts the HTML response,
- * extracts body content / title / styles / scripts, and returns a JSON envelope.
- * This cuts response size 30-50% and eliminates client-side DOMParser overhead.
+ * @since 1.0.0
  */
 final class SpaResponse implements MiddlewareInterface
 {
-    /** Core assets loaded on every page — no need to send in SPA responses. */
+    /** Core styles always loaded by the SPA shell. */
     private const CORE_STYLES = [
         '/public/css/app',
         '/public/css/marketing',
@@ -32,6 +30,11 @@ final class SpaResponse implements MiddlewareInterface
         '/public/js/app',
     ];
 
+    /**
+     * Convert HTML to a JSON fragment when X-SPA header is set.
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);

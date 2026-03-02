@@ -11,10 +11,20 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 use TinyShop\Services\Auth;
 
+/**
+ * Guest-only route protection.
+ *
+ * @since 1.0.0
+ */
 final class GuestOnly implements MiddlewareInterface
 {
     public function __construct(private readonly Auth $auth) {}
 
+    /**
+     * Redirect logged-in users to the dashboard.
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         // Ensure session exists so login/register pages get a CSRF token

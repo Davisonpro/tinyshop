@@ -11,6 +11,11 @@ use TinyShop\Models\Category;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Validation;
 
+/**
+ * Category API controller.
+ *
+ * @since 1.0.0
+ */
 final class CategoryController
 {
     use JsonResponder;
@@ -20,6 +25,15 @@ final class CategoryController
         private readonly Validation $validation
     ) {}
 
+    /**
+     * List the seller's categories.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function list(Request $request, Response $response): Response
     {
         $categories = $this->categoryModel->findByUser($this->auth->userId());
@@ -27,6 +41,15 @@ final class CategoryController
         return $this->json($response, ['categories' => $categories, 'tree' => $tree]);
     }
 
+    /**
+     * Create a category.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function create(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -66,6 +89,16 @@ final class CategoryController
         return $this->json($response, ['success' => true, 'category' => $category], 201);
     }
 
+    /**
+     * Update a category.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -113,6 +146,16 @@ final class CategoryController
         return $this->json($response, ['success' => true, 'category' => $category]);
     }
 
+    /**
+     * Delete a category.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function delete(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];

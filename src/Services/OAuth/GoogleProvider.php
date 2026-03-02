@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\OAuth;
 
+/**
+ * Google OAuth provider.
+ *
+ * @since 1.0.0
+ */
 final class GoogleProvider implements OAuthProviderInterface
 {
     use OAuthHttpTrait;
@@ -19,6 +24,7 @@ final class GoogleProvider implements OAuthProviderInterface
         return 'google';
     }
 
+    /** {@inheritDoc} */
     public function getAuthUrl(string $state): string
     {
         $params = http_build_query([
@@ -34,6 +40,7 @@ final class GoogleProvider implements OAuthProviderInterface
         return 'https://accounts.google.com/o/oauth2/v2/auth?' . $params;
     }
 
+    /** {@inheritDoc} */
     public function handleCallback(string $code): ?OAuthUser
     {
         $tokenData = $this->httpPost('https://oauth2.googleapis.com/token', [

@@ -4,13 +4,27 @@ declare(strict_types=1);
 
 namespace TinyShop\Services;
 
+/**
+ * WordPress-style hooks system.
+ *
+ * @since 1.0.0
+ */
 final class Hooks
 {
+    /** @var array<string, array<int, callable[]>> Action callbacks keyed by hook name, then priority */
     private static array $actions = [];
+
+    /** @var array<string, array<int, callable[]>> Filter callbacks keyed by hook name, then priority */
     private static array $filters = [];
 
     /**
-     * Register an action callback for a hook name.
+     * Register an action callback.
+     *
+     * @since 1.0.0
+     *
+     * @param string   $hook     Hook name.
+     * @param callable $callback Callback to run.
+     * @param int      $priority Lower runs first.
      */
     public static function addAction(string $hook, callable $callback, int $priority = 10): void
     {
@@ -18,7 +32,12 @@ final class Hooks
     }
 
     /**
-     * Execute all callbacks registered for an action hook.
+     * Fire an action hook.
+     *
+     * @since 1.0.0
+     *
+     * @param string $hook Hook name.
+     * @param mixed  ...$args Arguments passed to callbacks.
      */
     public static function doAction(string $hook, mixed ...$args): void
     {
@@ -35,7 +54,13 @@ final class Hooks
     }
 
     /**
-     * Register a filter callback for a hook name.
+     * Register a filter callback.
+     *
+     * @since 1.0.0
+     *
+     * @param string   $hook     Hook name.
+     * @param callable $callback Callback to run.
+     * @param int      $priority Lower runs first.
      */
     public static function addFilter(string $hook, callable $callback, int $priority = 10): void
     {
@@ -43,7 +68,14 @@ final class Hooks
     }
 
     /**
-     * Apply all filter callbacks and return the modified value.
+     * Apply filters to a value and return the result.
+     *
+     * @since 1.0.0
+     *
+     * @param string $hook    Hook name.
+     * @param mixed  $value   Value to filter.
+     * @param mixed  ...$args Extra arguments passed to callbacks.
+     * @return mixed Filtered value.
      */
     public static function applyFilter(string $hook, mixed $value, mixed ...$args): mixed
     {
@@ -61,25 +93,19 @@ final class Hooks
         return $value;
     }
 
-    /**
-     * Check if an action hook has registered callbacks.
-     */
+    /** Check if an action hook has callbacks. */
     public static function hasAction(string $hook): bool
     {
         return !empty(self::$actions[$hook]);
     }
 
-    /**
-     * Check if a filter hook has registered callbacks.
-     */
+    /** Check if a filter hook has callbacks. */
     public static function hasFilter(string $hook): bool
     {
         return !empty(self::$filters[$hook]);
     }
 
-    /**
-     * Remove all callbacks for a given hook.
-     */
+    /** Remove all callbacks for a hook. */
     public static function removeAll(string $hook): void
     {
         unset(self::$actions[$hook], self::$filters[$hook]);

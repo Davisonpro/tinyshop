@@ -196,7 +196,7 @@ TinyShop.Cart = /* @__PURE__ */ function() {
   }
   function updateCtaState() {
     var btn = document.getElementById("addToCartBtn");
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
     if (!window._hasVariations) {
       btn.classList.remove("cta-needs-selection");
       return;
@@ -224,9 +224,20 @@ TinyShop.Cart = /* @__PURE__ */ function() {
     var labelSpan = document.getElementById("varSelected" + groupIndex);
     if (labelSpan) {
       var selectedOpt = group.querySelector(".product-variation-option.selected");
-      labelSpan.textContent = selectedOpt ? selectedOpt.dataset.value : "";
+      if (selectedOpt) {
+        labelSpan.textContent = "\u2014 " + selectedOpt.dataset.value;
+        labelSpan.classList.remove("variation-prompt");
+      } else {
+        labelSpan.textContent = "\u2014 Pick one";
+        labelSpan.classList.add("variation-prompt");
+      }
     }
     group.classList.remove("needs-selection");
+    var errorEl = document.getElementById("varError" + groupIndex);
+    if (errorEl) {
+      errorEl.textContent = "";
+      errorEl.classList.remove("visible");
+    }
     var effectivePrice = getEffectivePrice();
     updatePriceDisplay(effectivePrice);
     updateCtaState();
@@ -388,21 +399,38 @@ TinyShop.Cart = /* @__PURE__ */ function() {
       if ($btn.prop("disabled")) return;
       if (window._hasVariations && !allVariationsSelected()) {
         var groups = document.querySelectorAll(".product-variation-group");
+        var firstUnselected = null;
         for (var g = 0; g < groups.length; g++) {
+          var groupIndex = groups[g].dataset.group;
+          var errorEl = document.getElementById("varError" + groupIndex);
           if (!groups[g].querySelector(".product-variation-option.selected")) {
             groups[g].classList.add("needs-selection");
-            (function(el) {
-              setTimeout(function() {
-                el.classList.remove("needs-selection");
-              }, 500);
-            })(groups[g]);
+            var label = groups[g].querySelector(".product-variation-label");
+            var groupName = "";
+            if (label) {
+              var nodes = label.childNodes;
+              for (var n = 0; n < nodes.length; n++) {
+                if (nodes[n].nodeType === 3) {
+                  groupName = nodes[n].textContent.trim();
+                  if (groupName) break;
+                }
+              }
+            }
+            if (errorEl) {
+              errorEl.textContent = "Please select a " + (groupName.toLowerCase() || "option");
+              errorEl.classList.add("visible");
+            }
+            if (!firstUnselected) firstUnselected = groups[g];
+          } else {
+            groups[g].classList.remove("needs-selection");
+            if (errorEl) {
+              errorEl.textContent = "";
+              errorEl.classList.remove("visible");
+            }
           }
         }
-        for (var s = 0; s < groups.length; s++) {
-          if (!groups[s].querySelector(".product-variation-option.selected")) {
-            groups[s].scrollIntoView({ behavior: "smooth", block: "center" });
-            break;
-          }
+        if (firstUnselected) {
+          firstUnselected.scrollIntoView({ behavior: "smooth", block: "center" });
         }
         return;
       }

@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\OAuth;
 
+/**
+ * Instagram OAuth provider.
+ *
+ * @since 1.0.0
+ */
 final class InstagramProvider implements OAuthProviderInterface
 {
     use OAuthHttpTrait;
@@ -19,6 +24,7 @@ final class InstagramProvider implements OAuthProviderInterface
         return 'instagram';
     }
 
+    /** {@inheritDoc} */
     public function getAuthUrl(string $state): string
     {
         $params = http_build_query([
@@ -32,6 +38,7 @@ final class InstagramProvider implements OAuthProviderInterface
         return 'https://www.instagram.com/oauth/authorize?' . $params;
     }
 
+    /** {@inheritDoc} */
     public function handleCallback(string $code): ?OAuthUser
     {
         $tokenData = $this->httpPost('https://api.instagram.com/oauth/access_token', [

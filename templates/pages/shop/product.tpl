@@ -128,7 +128,7 @@
                 <div class="product-variation-group" data-group="{$vgroup@index}">
                     <div class="product-variation-label">
                         {$vgroup.name|escape}
-                        <span class="variation-selected-value" id="varSelected{$vgroup@index}"></span>
+                        <span class="variation-selected-value variation-prompt" id="varSelected{$vgroup@index}">— Pick one</span>
                     </div>
                     <div class="product-variation-options">
                         {foreach $vgroup.options as $opt}
@@ -154,6 +154,7 @@
                             {/if}
                         {/foreach}
                     </div>
+                    <div class="variation-error-msg" id="varError{$vgroup@index}"></div>
                 </div>
             {/foreach}
         </div>

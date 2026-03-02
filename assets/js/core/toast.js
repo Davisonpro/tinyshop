@@ -1,6 +1,11 @@
-/* ============================================================
-   Toast notification — queue-based, max 3 visible
-   ============================================================ */
+/**
+ * Queue-based toast notification system (max 3 visible).
+ *
+ * Toasts slide in from the top, auto-dismiss after 3 seconds,
+ * and support success / error / warning variants.
+ *
+ * @since 1.0.0
+ */
 (function() {
     var MAX_TOASTS = 3;
     var DISMISS_MS = 3000;
@@ -12,6 +17,7 @@
         warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
     };
 
+    /** Get or create the toast container element. */
     function getContainer() {
         var c = document.getElementById('toast-container');
         if (!c) {
@@ -25,6 +31,7 @@
         return c;
     }
 
+    /** Dismiss a toast by its internal id. */
     function dismiss(id) {
         var idx = -1;
         for (var i = 0; i < _queue.length; i++) {
@@ -40,6 +47,14 @@
         _queue.splice(idx, 1);
     }
 
+    /**
+     * Show a toast notification.
+     *
+     * @since 1.0.0
+     *
+     * @param {string} message The message to display.
+     * @param {string} [type]  Variant: 'success' (default), 'error', or 'warning'.
+     */
     TinyShop.toast = function(message, type) {
         type = type || 'success';
         var container = getContainer();

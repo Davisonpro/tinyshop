@@ -1,20 +1,28 @@
 <?php
 /**
- * TinyShop — Platform Setup
+ * Platform installer.
  *
- * One-time setup for the TinyShop SaaS platform.
- * Self-contained OOP installer — no framework dependencies.
- * Delete this file after setup for security.
+ * @since 1.0.0
  */
 
 declare(strict_types=1);
 
 // ─── Installer Class ─────────────────────────────────────────────────────────
 
+/**
+ * Self-contained platform installer (no framework dependencies).
+ *
+ * @since 1.0.0
+ */
 final class Installer
 {
     private string $basePath;
 
+    /**
+     * @since 1.0.0
+     *
+     * @param string $basePath Project root path.
+     */
     public function __construct(string $basePath)
     {
         $this->basePath = $basePath;
@@ -22,6 +30,7 @@ final class Installer
 
     // ── Guard ──
 
+    /** Check if the install lock file exists. */
     public function isInstalled(): bool
     {
         return file_exists($this->basePath . '/config/.installed');
@@ -29,6 +38,13 @@ final class Installer
 
     // ── Actions ──
 
+    /**
+     * Verify system requirements.
+     *
+     * @since 1.0.0
+     *
+     * @return array{ok: true, checks: list<array{label: string, detail: string, pass: bool}>, allPass: bool}
+     */
     public function checkRequirements(): array
     {
         $checks = [];
@@ -60,6 +76,14 @@ final class Installer
         return ['ok' => true, 'checks' => $checks, 'allPass' => $allPass];
     }
 
+    /**
+     * Test database connection and create the database if needed.
+     *
+     * @since 1.0.0
+     *
+     * @param array $data Database credentials from POST.
+     * @return array{ok: bool, message: string}
+     */
     public function testDatabase(array $data): array
     {
         $creds = $this->parseDbCredentials($data);
@@ -83,6 +107,14 @@ final class Installer
         }
     }
 
+    /**
+     * Set up the database (test, write config, create tables).
+     *
+     * @since 1.0.0
+     *
+     * @param array $data Database credentials from POST.
+     * @return array{ok: bool, message: string}
+     */
     public function setupDatabase(array $data): array
     {
         $test = $this->testDatabase($data);
@@ -98,6 +130,14 @@ final class Installer
         return $this->createTables($data);
     }
 
+    /**
+     * Create the admin account and finalize installation.
+     *
+     * @since 1.0.0
+     *
+     * @param array $data Email and password from POST.
+     * @return array{ok: bool, message: string}
+     */
     public function createAdmin(array $data): array
     {
         $email    = trim($data['email'] ?? '');
@@ -145,6 +185,11 @@ final class Installer
 
     // ── Routing ──
 
+    /**
+     * Handle the incoming request.
+     *
+     * @since 1.0.0
+     */
     public function handleRequest(): void
     {
         if ($this->isInstalled()) {
@@ -167,6 +212,7 @@ final class Installer
 
     // ── Private helpers ──
 
+    /** Dispatch a POST action. */
     private function dispatch(string $action): array
     {
         return match ($action) {
@@ -178,6 +224,7 @@ final class Installer
         };
     }
 
+    /** Send security headers. */
     private function sendSecurityHeaders(): void
     {
         header('X-Content-Type-Options: nosniff');
@@ -186,21 +233,25 @@ final class Installer
         header('Referrer-Policy: no-referrer');
     }
 
+    /** Build a check result. */
     private function check(string $label, string $detail, bool $pass): array
     {
         return compact('label', 'detail', 'pass');
     }
 
+    /** Build a failure response. */
     private function fail(string $message): array
     {
         return ['ok' => false, 'message' => $message];
     }
 
+    /** Sanitize a database identifier. */
     private function sanitizeIdentifier(string $value): string
     {
         return preg_replace('/[^a-zA-Z0-9_\-]/', '', $value);
     }
 
+    /** @return array{host: string, port: int, name: string, user: string, pass: string} */
     private function parseDbCredentials(array $data): array
     {
         return [
@@ -212,6 +263,7 @@ final class Installer
         ];
     }
 
+    /** Connect to MySQL without selecting a database. */
     private function connectWithoutDb(array $creds): PDO
     {
         $dsn = "mysql:host={$creds['host']};port={$creds['port']};charset=utf8mb4";
@@ -221,6 +273,7 @@ final class Installer
         ]);
     }
 
+    /** Connect to a specific database. */
     private function connectToDb(array $config): PDO
     {
         $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
@@ -229,6 +282,7 @@ final class Installer
         ]);
     }
 
+    /** Write config/database.php. */
     private function writeDatabaseConfig(array $data): array
     {
         $creds = $this->parseDbCredentials($data);
@@ -249,6 +303,7 @@ final class Installer
             : $this->fail('Could not write config/database.php — check permissions.');
     }
 
+    /** Write config/env.php with detected URL and defaults. */
     private function writeEnvConfig(array $dbConfig): void
     {
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -286,6 +341,7 @@ final class Installer
         @file_put_contents($this->basePath . '/config/env.php', $config);
     }
 
+    /** Run schema.sql to create all tables. */
     private function createTables(array $data): array
     {
         $creds = $this->parseDbCredentials($data);
@@ -314,6 +370,7 @@ final class Installer
 
     // ── Render ──
 
+    /** Render the installer page. */
     private function renderPage(): void
     {
         require __DIR__ . '/templates/install.html';

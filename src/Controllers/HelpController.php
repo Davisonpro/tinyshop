@@ -12,6 +12,11 @@ use TinyShop\Models\PageView;
 use TinyShop\Models\ShopView;
 use TinyShop\Services\View;
 
+/**
+ * Public help center controller.
+ *
+ * @since 1.0.0
+ */
 final class HelpController
 {
     private const VISITOR_COOKIE_MAX_AGE = 86400 * 365;
@@ -23,6 +28,15 @@ final class HelpController
         private readonly PageView $pageViewModel
     ) {}
 
+    /**
+     * Render the help center index.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function index(Request $request, Response $response): Response
     {
         $response = $this->trackPageView($request, $response, '/help');
@@ -52,6 +66,16 @@ final class HelpController
         ]);
     }
 
+    /**
+     * Render a single help article.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function article(Request $request, Response $response, array $args): Response
     {
         $slug = $args['slug'] ?? '';

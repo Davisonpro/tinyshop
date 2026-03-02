@@ -6,7 +6,12 @@ namespace TinyShop\Models;
 
 use TinyShop\Enums\FieldType;
 
-class HelpArticle extends Model
+/**
+ * Help article model.
+ *
+ * @since 1.0.0
+ */
+final class HelpArticle extends Model
 {
     protected static array $definition = [
         'table'   => 'help_articles',
@@ -25,6 +30,13 @@ class HelpArticle extends Model
         ],
     ];
 
+    /**
+     * Get all published articles with category info.
+     *
+     * @since 1.0.0
+     *
+     * @return array[]
+     */
     public function findPublished(): array
     {
         return static::rawQuery(
@@ -36,6 +48,14 @@ class HelpArticle extends Model
         );
     }
 
+    /**
+     * Find a published article by slug.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $slug URL slug.
+     * @return array|null
+     */
     public function findBySlug(string $slug): ?array
     {
         $rows = static::rawQuery(
@@ -48,6 +68,14 @@ class HelpArticle extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Get published articles in a category.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $categoryId Category ID.
+     * @return array[]
+     */
     public function findByCategory(int $categoryId): array
     {
         return static::rawQuery(
@@ -58,6 +86,13 @@ class HelpArticle extends Model
         );
     }
 
+    /**
+     * Get all articles with category info (admin).
+     *
+     * @since 1.0.0
+     *
+     * @return array[]
+     */
     public function findAll(): array
     {
         return static::rawQuery(
@@ -68,6 +103,14 @@ class HelpArticle extends Model
         );
     }
 
+    /**
+     * Find an article by ID with category info.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $id Article ID.
+     * @return array|null
+     */
     public function findById(int $id): ?array
     {
         $rows = static::rawQuery(
@@ -80,6 +123,14 @@ class HelpArticle extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Create a new article.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Article data.
+     * @return int   New article ID.
+     */
     public function create(array $data): int
     {
         $article = new static();
@@ -97,6 +148,15 @@ class HelpArticle extends Model
         return (int) $article->getId();
     }
 
+    /**
+     * Update an article by ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   Article ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         $article = static::find($id);
@@ -115,7 +175,11 @@ class HelpArticle extends Model
     }
 
     /**
-     * Published articles grouped by category slug — for frontend display.
+     * Get published articles grouped by category slug.
+     *
+     * @since 1.0.0
+     *
+     * @return array<string, array[]>
      */
     public function grouped(): array
     {

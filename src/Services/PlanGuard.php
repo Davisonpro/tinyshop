@@ -8,6 +8,11 @@ use TinyShop\Models\Plan;
 use TinyShop\Models\Product;
 use TinyShop\Models\User;
 
+/**
+ * Subscription plan enforcement.
+ *
+ * @since 1.0.0
+ */
 final class PlanGuard
 {
     private ?array $defaultPlan = null;
@@ -19,8 +24,12 @@ final class PlanGuard
     ) {}
 
     /**
-     * Get the effective plan for a user. Falls back to the default (free) plan
-     * if the user has no plan or their plan has expired.
+     * Get the effective plan for a user.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId User ID.
+     * @return array Plan data.
      */
     public function getUserPlan(int $userId): array
     {
@@ -46,6 +55,14 @@ final class PlanGuard
         return $this->getDefaultPlan();
     }
 
+    /**
+     * Check if the user can create another product.
+     *
+     * @since 1.0.0
+     *
+     * @param  int  $userId User ID.
+     * @return bool
+     */
     public function canCreateProduct(int $userId): bool
     {
         $plan = $this->getUserPlan($userId);
@@ -60,6 +77,15 @@ final class PlanGuard
         return $currentCount < (int) $maxProducts;
     }
 
+    /**
+     * Check if the user's plan allows a specific theme.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId User ID.
+     * @param  string $theme  Theme slug.
+     * @return bool
+     */
     public function canUseTheme(int $userId, string $theme): bool
     {
         $plan = $this->getUserPlan($userId);
@@ -73,12 +99,14 @@ final class PlanGuard
         return in_array($theme, $allowedThemes, true);
     }
 
+    /** Check if the user's plan allows custom domains. */
     public function canUseCustomDomain(int $userId): bool
     {
         $plan = $this->getUserPlan($userId);
         return !empty($plan['custom_domain_allowed']);
     }
 
+    /** Check if the user's plan allows coupons. */
     public function canUseCoupons(int $userId): bool
     {
         $plan = $this->getUserPlan($userId);
@@ -86,7 +114,12 @@ final class PlanGuard
     }
 
     /**
-     * Get plan usage summary for UI display.
+     * Build a plan usage summary for the dashboard.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $userId User ID.
+     * @return array Usage data including limits, counts, and flags.
      */
     public function getUsageSummary(int $userId): array
     {
@@ -135,6 +168,7 @@ final class PlanGuard
         ];
     }
 
+    /** Get the default free plan. */
     private function getDefaultPlan(): array
     {
         if ($this->defaultPlan === null) {

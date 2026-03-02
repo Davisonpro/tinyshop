@@ -8,15 +8,24 @@ use Psr\Http\Message\ResponseInterface;
 use Smarty\Smarty;
 use TinyShop\Models\Setting;
 
+/**
+ * View service.
+ *
+ * @since 1.0.0
+ */
 final class View
 {
-    public const ASSET_VERSION = '1.0.112';
+    /** Cache-busting version appended to CSS/JS URLs. */
+    public const ASSET_VERSION = '1.0.115';
 
     private readonly Smarty $smarty;
     private readonly string $baseTemplatesDir;
     private readonly bool $minifyHtml;
 
-    public function __construct(Config $config, Auth $auth, Setting $setting)
+    /**
+     * @param array<string, array{enabled: bool}> $oauthConfig OAuth provider flags.
+     */
+    public function __construct(Config $config, Auth $auth, Setting $setting, array $oauthConfig = [])
     {
         $this->smarty = new Smarty();
         $this->baseTemplatesDir = $config->templatesDir();
@@ -77,10 +86,10 @@ final class View
         $this->smarty->assign('site_favicon', $setting->get('site_favicon', ''));
         $this->smarty->assign('support_email', $setting->get('support_email', ''));
 
-        // OAuth providers
-        $this->smarty->assign('oauth_google', filter_var($_ENV['OAUTH_GOOGLE_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN));
-        $this->smarty->assign('oauth_instagram', filter_var($_ENV['OAUTH_INSTAGRAM_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN));
-        $this->smarty->assign('oauth_tiktok', filter_var($_ENV['OAUTH_TIKTOK_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN));
+        // OAuth providers — flags injected via container from config/oauth.php
+        $this->smarty->assign('oauth_google', $oauthConfig['google']['enabled'] ?? false);
+        $this->smarty->assign('oauth_instagram', $oauthConfig['instagram']['enabled'] ?? false);
+        $this->smarty->assign('oauth_tiktok', $oauthConfig['tiktok']['enabled'] ?? false);
 
         // SEO & Analytics
         $this->smarty->assign('google_verification', $setting->get('google_verification', ''));
@@ -90,8 +99,12 @@ final class View
     }
 
     /**
-     * Set the theme template directory — called by Theme service.
-     * Smarty checks theme dir first, falls back to base templates dir.
+     * Set the theme template directory.
+     *
+     * @since 1.0.0
+     *
+     * @param string $dir       Absolute path to theme templates.
+     * @param string $compileId Compile ID to isolate cached templates per theme.
      */
     public function setThemeDir(string $dir, string $compileId = ''): void
     {
@@ -107,7 +120,13 @@ final class View
     }
 
     /**
-     * Assign theme asset variables to all templates.
+     * Assign theme asset URLs to templates.
+     *
+     * @since 1.0.0
+     *
+     * @param string[]    $styleUrls  Theme CSS URLs.
+     * @param string[]    $scriptUrls Theme JS URLs.
+     * @param string|null $fontLink   External font link tag.
      */
     public function assignThemeVars(array $styleUrls, array $scriptUrls, ?string $fontLink): void
     {
@@ -116,14 +135,22 @@ final class View
         $this->smarty->assign('theme_font_link', $fontLink);
     }
 
-    /**
-     * Assign a global template variable available in all subsequently rendered templates.
-     */
+    /** Assign a global template variable. */
     public function assign(string $key, mixed $value): void
     {
         $this->smarty->assign($key, $value);
     }
 
+    /**
+     * Render a template into the response.
+     *
+     * @since 1.0.0
+     *
+     * @param ResponseInterface    $response PSR-7 response.
+     * @param string               $template Template path.
+     * @param array<string, mixed> $data     Template variables.
+     * @return ResponseInterface
+     */
     public function render(ResponseInterface $response, string $template, array $data = []): ResponseInterface
     {
         foreach ($data as $key => $value) {
@@ -143,6 +170,15 @@ final class View
             ->withHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
 
+    /**
+     * Render a template to a string.
+     *
+     * @since 1.0.0
+     *
+     * @param string               $template Template path.
+     * @param array<string, mixed> $data     Template variables.
+     * @return string Rendered HTML.
+     */
     public function renderFragment(string $template, array $data = []): string
     {
         foreach ($data as $key => $value) {
@@ -152,6 +188,7 @@ final class View
         return $this->smarty->fetch($template);
     }
 
+    /** Minify HTML while preserving pre/textarea/script/style blocks. */
     private function minifyHtml(string $html): string
     {
         // Preserve <pre>, <textarea>, <script>, <style> content

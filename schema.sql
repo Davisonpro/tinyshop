@@ -97,6 +97,7 @@ CREATE TABLE `categories` (
     `image_url` VARCHAR(500) DEFAULT NULL,
     `sort_order` INT UNSIGNED NOT NULL DEFAULT 0,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT NULL,
     PRIMARY KEY (`id`),
     INDEX `idx_user_sort` (`user_id`, `sort_order`),
     INDEX `idx_parent` (`parent_id`),

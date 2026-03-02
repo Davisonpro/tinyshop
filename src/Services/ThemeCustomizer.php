@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace TinyShop\Services;
 
 /**
- * WordPress Customizer API equivalent.
+ * Theme customizer registry.
  *
- * Themes register sections, settings, and controls in their functions.php.
- * The platform reads the schema to render UI and validate saves.
+ * @since 1.0.0
  */
 final class ThemeCustomizer
 {
@@ -22,9 +21,12 @@ final class ThemeCustomizer
     private array $controls = [];
 
     /**
-     * Register a customizer section.
+     * Register a section.
      *
-     * @param array{title: string, description?: string, icon?: string, priority?: int} $args
+     * @since 1.0.0
+     *
+     * @param string $id   Section ID.
+     * @param array  $args Section options.
      */
     public function addSection(string $id, array $args): void
     {
@@ -37,9 +39,12 @@ final class ThemeCustomizer
     }
 
     /**
-     * Register a customizer setting.
+     * Register a setting.
      *
-     * @param array{default?: mixed, type?: string, sanitize_callback?: callable|null} $args
+     * @since 1.0.0
+     *
+     * @param string $id   Setting ID.
+     * @param array  $args Setting options.
      */
     public function addSetting(string $id, array $args): void
     {
@@ -51,9 +56,12 @@ final class ThemeCustomizer
     }
 
     /**
-     * Register a customizer control.
+     * Register a control.
      *
-     * @param array{section: string, label: string, description?: string, type?: string, choices?: array, fields?: array, max?: int, input_attrs?: array, priority?: int} $args
+     * @since 1.0.0
+     *
+     * @param string $id   Control ID (matches setting ID).
+     * @param array  $args Control options.
      */
     public function addControl(string $id, array $args): void
     {
@@ -70,11 +78,7 @@ final class ThemeCustomizer
         ], $args, ['id' => $id, 'setting' => $id]);
     }
 
-    /**
-     * Get all sections sorted by priority.
-     *
-     * @return array<string, array>
-     */
+    /** @return array<string, array> Sections sorted by priority. */
     public function getSections(): array
     {
         $sections = $this->sections;
@@ -82,11 +86,7 @@ final class ThemeCustomizer
         return $sections;
     }
 
-    /**
-     * Get controls for a specific section, sorted by priority.
-     *
-     * @return array<string, array>
-     */
+    /** @return array<string, array> Controls for a section, sorted by priority. */
     public function getControlsForSection(string $sectionId): array
     {
         $controls = array_filter(
@@ -98,10 +98,11 @@ final class ThemeCustomizer
     }
 
     /**
-     * Get the full schema: sections with nested controls and defaults.
-     * Used by the design dashboard to dynamically render the UI.
+     * Get the full schema for the design dashboard.
      *
-     * @return list<array>
+     * @since 1.0.0
+     *
+     * @return list<array> Sections with nested controls.
      */
     public function getSchema(): array
     {
@@ -122,11 +123,7 @@ final class ThemeCustomizer
         return $schema;
     }
 
-    /**
-     * Get default values for all registered settings.
-     *
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> Default values for all settings. */
     public function getDefaults(): array
     {
         $defaults = [];
@@ -136,21 +133,19 @@ final class ThemeCustomizer
         return $defaults;
     }
 
-    /**
-     * Get all registered settings.
-     *
-     * @return array<string, array>
-     */
+    /** @return array<string, array> All registered settings. */
     public function getSettings(): array
     {
         return $this->settings;
     }
 
     /**
-     * Merge saved options with defaults and decode JSON types.
+     * Merge saved options with defaults.
      *
-     * @param array<string, string|null> $saved Raw values from theme_options table
-     * @return array<string, mixed>
+     * @since 1.0.0
+     *
+     * @param  array<string, string|null> $saved Raw values from DB.
+     * @return array<string, mixed> Resolved options.
      */
     public function resolveOptions(array $saved): array
     {
@@ -176,7 +171,13 @@ final class ThemeCustomizer
     }
 
     /**
-     * Sanitize a value for a registered setting before saving.
+     * Sanitize a setting value before saving.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $settingId Setting ID.
+     * @param  mixed  $value     Raw value.
+     * @return string|null Sanitized value, or null if setting not found.
      */
     public function sanitizeValue(string $settingId, mixed $value): ?string
     {
@@ -197,25 +198,19 @@ final class ThemeCustomizer
         };
     }
 
-    /**
-     * Check if a setting ID is registered.
-     */
+    /** Check if a setting is registered. */
     public function hasSetting(string $id): bool
     {
         return isset($this->settings[$id]);
     }
 
-    /**
-     * Check if a control is marked as pro-only (requires paid plan).
-     */
+    /** Check if a control requires a paid plan. */
     public function isProControl(string $id): bool
     {
         return !empty($this->controls[$id]['pro']);
     }
 
-    /**
-     * Clear all registrations. Used for per-request isolation.
-     */
+    /** Clear all registrations. */
     public function reset(): void
     {
         $this->sections = [];

@@ -18,6 +18,11 @@ use TinyShop\Services\Importers\WooCommerceImporter;
 use TinyShop\Services\Upload;
 use TinyShop\Services\Validation;
 
+/**
+ * Product import API controller.
+ *
+ * @since 1.0.0
+ */
 final class ImportController
 {
     use JsonResponder;
@@ -35,6 +40,15 @@ final class ImportController
         private readonly LoggerInterface $logger,
     ) {}
 
+    /**
+     * Fetch product data from a URL or pasted HTML.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function fetch(Request $request, Response $response): Response
     {
         $data     = (array) $request->getParsedBody();
@@ -73,6 +87,15 @@ final class ImportController
         }
     }
 
+    /**
+     * Save an imported product to the catalog.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function save(Request $request, Response $response): Response
     {
         $data   = (array) $request->getParsedBody();
@@ -189,12 +212,30 @@ final class ImportController
         ], 201);
     }
 
+    /**
+     * Return the seller's category tree.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function categories(Request $request, Response $response): Response
     {
         $tree = $this->categoryModel->findByUserAsTree($this->auth->userId());
         return $this->json($response, ['categories' => $tree]);
     }
 
+    /**
+     * Create or find a top-level category by name.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function saveCategory(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();

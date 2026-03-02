@@ -1,6 +1,13 @@
-/* ============================================================
-   CSRF protection — jQuery $.ajax + native fetch
-   ============================================================ */
+/**
+ * CSRF protection for jQuery $.ajax and native fetch.
+ *
+ * Reads the token from the <meta name="csrf-token"> tag and
+ * injects it as an X-CSRF-Token header on every same-origin
+ * request. The live value of TinyShop.csrfToken is used so
+ * SPA navigation can refresh it without re-patching fetch.
+ *
+ * @since 1.0.0
+ */
 (function() {
     var meta = document.querySelector('meta[name="csrf-token"]');
     var token = meta ? meta.getAttribute('content') : '';
@@ -12,7 +19,6 @@
         var _fetch = window.fetch;
         window.fetch = function(url, opts) {
             opts = opts || {};
-            // Read live token — SPA navigation updates TinyShop.csrfToken
             var currentToken = TinyShop.csrfToken;
             var isSameOrigin = typeof url === 'string' && (url.startsWith('/') || url.startsWith(location.origin));
             if (isSameOrigin && currentToken) {

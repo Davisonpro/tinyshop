@@ -14,6 +14,11 @@ use TinyShop\Services\Auth;
 use TinyShop\Services\Validation;
 use TinyShop\Services\View;
 
+/**
+ * Admin help center management controller.
+ *
+ * @since 1.0.0
+ */
 final class AdminHelpController
 {
     use JsonResponder;
@@ -29,6 +34,15 @@ final class AdminHelpController
 
     // ── Pages ──
 
+    /**
+     * Render the help center management page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function help(Request $request, Response $response): Response
     {
         $categories = $this->helpCategoryModel->findAllAdmin();
@@ -42,6 +56,16 @@ final class AdminHelpController
         ]);
     }
 
+    /**
+     * Render the create/edit article form.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function helpArticleForm(Request $request, Response $response, array $args = []): Response
     {
         $categories = $this->helpCategoryModel->findAllAdmin();
@@ -67,11 +91,29 @@ final class AdminHelpController
 
     // ── Category API ──
 
+    /**
+     * Return all help categories as JSON.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function listHelpCategories(Request $request, Response $response): Response
     {
         return $this->json($response, ['success' => true, 'categories' => $this->helpCategoryModel->findAllAdmin()]);
     }
 
+    /**
+     * Create a help category.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function createHelpCategory(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -102,6 +144,16 @@ final class AdminHelpController
         return $this->json($response, ['success' => true, 'category' => HelpCategory::find($id)], 201);
     }
 
+    /**
+     * Update a help category.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function updateHelpCategory(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -143,6 +195,16 @@ final class AdminHelpController
         return $this->json($response, ['success' => true, 'category' => HelpCategory::find($id)]);
     }
 
+    /**
+     * Delete a help category.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function deleteHelpCategory(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -167,11 +229,29 @@ final class AdminHelpController
 
     // ── Article API ──
 
+    /**
+     * Return all help articles as JSON.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function listHelpArticles(Request $request, Response $response): Response
     {
         return $this->json($response, ['success' => true, 'articles' => $this->helpArticleModel->findAll()]);
     }
 
+    /**
+     * Create a help article.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function createHelpArticle(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -210,6 +290,16 @@ final class AdminHelpController
         return $this->json($response, ['success' => true, 'article' => $this->helpArticleModel->findById($id)], 201);
     }
 
+    /**
+     * Update a help article.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function updateHelpArticle(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -261,6 +351,16 @@ final class AdminHelpController
         return $this->json($response, ['success' => true, 'article' => $this->helpArticleModel->findById($id)]);
     }
 
+    /**
+     * Delete a help article.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function deleteHelpArticle(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];

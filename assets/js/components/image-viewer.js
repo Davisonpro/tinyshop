@@ -1,6 +1,12 @@
-/* ============================================================
-   Image Viewer — fullscreen lightbox for product gallery
-   ============================================================ */
+/**
+ * Fullscreen image viewer / lightbox for product galleries.
+ *
+ * Supports swipe navigation, pinch-to-zoom, double-tap zoom,
+ * and keyboard arrows. Rebuilds its DOM if removed by a SPA
+ * body swap.
+ *
+ * @since 1.0.0
+ */
 TinyShop.imageViewer = {
     _el: null,
     _images: [],
@@ -10,6 +16,14 @@ TinyShop.imageViewer = {
     _panX: 0,
     _panY: 0,
 
+    /**
+     * Open the viewer with a set of image URLs.
+     *
+     * @since 1.0.0
+     *
+     * @param {string[]} images     Array of image URLs.
+     * @param {number}   [startIndex] Zero-based index to show first.
+     */
     open: function(images, startIndex) {
         var self = this;
         self._images = images;
@@ -25,6 +39,7 @@ TinyShop.imageViewer = {
         setTimeout(function() { self._el.classList.add('active'); }, 10);
     },
 
+    /** Close the viewer and reset zoom. */
     close: function() {
         var self = this;
         if (!self._el) return;
@@ -32,6 +47,7 @@ TinyShop.imageViewer = {
         self._el.classList.remove('active');
     },
 
+    /** Build the viewer DOM and bind all gesture handlers. */
     _build: function() {
         var self = this;
         var div = document.createElement('div');
@@ -85,12 +101,14 @@ TinyShop.imageViewer = {
         var panStartX = 0, panStartY = 0, panBaseX = 0, panBaseY = 0, isPanning = false;
         var lastTap = 0;
 
+        /** Euclidean distance between two touch points. */
         function getDistance(t1, t2) {
             var dx = t1.clientX - t2.clientX;
             var dy = t1.clientY - t2.clientY;
             return Math.sqrt(dx * dx + dy * dy);
         }
 
+        /** Apply the current scale + pan as a CSS transform. */
         function applyTransform() {
             img.style.transform = 'translate(' + self._panX + 'px, ' + self._panY + 'px) scale(' + self._scale + ')';
         }
@@ -107,7 +125,6 @@ TinyShop.imageViewer = {
             img.style.transition = 'none';
 
             if (e.touches.length === 2) {
-                // Pinch start
                 tracking = false;
                 isPanning = false;
                 pinchStartDist = getDistance(e.touches[0], e.touches[1]);
@@ -147,7 +164,7 @@ TinyShop.imageViewer = {
                     panBaseX = self._panX;
                     panBaseY = self._panY;
                 } else {
-                    // Swipe mode at 1×
+                    // Swipe mode at 1x
                     isPanning = false;
                     startX = e.touches[0].clientX;
                     startY = e.touches[0].clientY;
@@ -158,7 +175,6 @@ TinyShop.imageViewer = {
 
         img.addEventListener('touchmove', function(e) {
             if (e.touches.length === 2) {
-                // Pinch zoom
                 e.preventDefault();
                 var dist = getDistance(e.touches[0], e.touches[1]);
                 var newScale = pinchStartScale * (dist / pinchStartDist);
@@ -182,7 +198,6 @@ TinyShop.imageViewer = {
         img.addEventListener('touchend', function(e) {
             if (e.touches.length === 0 && isPanning) {
                 isPanning = false;
-                // Snap back if scale is ~1
                 if (self._scale <= 1.02) {
                     img.style.transition = 'transform 0.2s ease';
                     self._resetZoom();
@@ -200,7 +215,7 @@ TinyShop.imageViewer = {
             }
         }, { passive: true });
 
-        // Transition end — remove from DOM after close
+        // Remove from DOM after close transition completes
         div.addEventListener('transitionend', function() {
             if (!div.classList.contains('active')) {
                 div.style.display = '';
@@ -208,6 +223,7 @@ TinyShop.imageViewer = {
         });
     },
 
+    /** Update the displayed image, counter, and nav button visibility. */
     _show: function() {
         var self = this;
         var img = self._el.querySelector('.image-viewer-img');
@@ -223,6 +239,7 @@ TinyShop.imageViewer = {
         counter.style.display = self._images.length > 1 ? '' : 'none';
     },
 
+    /** Navigate to an image by index (wraps around). */
     _go: function(idx) {
         var self = this;
         if (self._images.length <= 1) return;
@@ -232,7 +249,8 @@ TinyShop.imageViewer = {
     }
 };
 
-// Image viewer — delegated click survives SPA navigation
+// Delegated click — opens the viewer from any product gallery image.
+// Survives SPA navigation because it's bound to the document.
 $(document).on('click', '.product-gallery-slide img', function() {
     var gallery = document.getElementById('productGallery');
     if (!gallery) return;

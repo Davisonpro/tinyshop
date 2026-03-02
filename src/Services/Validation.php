@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyShop\Services;
 
+/**
+ * Input validation and sanitization.
+ *
+ * @since 1.0.0
+ */
 final class Validation
 {
     private const PASSWORD_MIN_LENGTH = 6;
@@ -75,8 +80,13 @@ final class Validation
     ];
 
     /**
-     * Check a value against the max character limit for a field.
-     * Returns null if valid, or an error message string.
+     * Check a value against max length for a field.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $value Field value.
+     * @param  string $field Field name (key in INPUT_LIMITS).
+     * @return string|null Error message, or null if valid.
      */
     public function maxLength(string $value, string $field): ?string
     {
@@ -88,7 +98,14 @@ final class Validation
         return null;
     }
 
-    /** Returns null if valid, or an error message string. */
+    /**
+     * Validate password length.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $password Password to validate.
+     * @return string|null Error message, or null if valid.
+     */
     public function password(string $password): ?string
     {
         if (strlen($password) < self::PASSWORD_MIN_LENGTH) {
@@ -103,7 +120,11 @@ final class Validation
 
     /**
      * Sanitize and validate a phone number.
-     * @return array{0: string, 1: ?string} [cleanNumber, errorOrNull]
+     *
+     * @since 1.0.0
+     *
+     * @param  string $phone Raw phone input.
+     * @return array{0: string, 1: ?string} [cleaned, error].
      */
     public function phone(string $phone): array
     {
@@ -119,7 +140,11 @@ final class Validation
 
     /**
      * Sanitize HTML for product descriptions.
-     * Allows safe tags but strips dangerous attributes (javascript: URIs, event handlers).
+     *
+     * @since 1.0.0
+     *
+     * @param  string $html Raw HTML.
+     * @return string Sanitized HTML.
      */
     public function sanitizeHtml(string $html): string
     {
@@ -156,9 +181,12 @@ final class Validation
     }
 
     /**
-     * Validate and sanitize variations JSON structure.
-     * Expected: array of {name: string, options: string[]}
-     * Returns JSON string or null if invalid.
+     * Sanitize product variations.
+     *
+     * @since 1.0.0
+     *
+     * @param  mixed $variations JSON string or array of variation groups.
+     * @return string|null Sanitized JSON, or null if invalid.
      */
     public function sanitizeVariations(mixed $variations): ?string
     {
@@ -211,7 +239,7 @@ final class Validation
         return !empty($clean) ? json_encode($clean, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) : null;
     }
 
-    /** Generate a URL-safe slug from a name. */
+    /** Generate a URL slug from a name. */
     public function slug(string $name): string
     {
         $slug = mb_strtolower($name);
@@ -222,8 +250,12 @@ final class Validation
     }
 
     /**
-     * Validate and sanitize a subdomain.
-     * @return array{0: string, 1: ?string} [sanitizedSubdomain, errorOrNull]
+     * Validate and sanitize a shop subdomain.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $subdomain Raw subdomain input.
+     * @return array{0: string, 1: ?string} [sanitized, error].
      */
     public function subdomain(string $subdomain): array
     {

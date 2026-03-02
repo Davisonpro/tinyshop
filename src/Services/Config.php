@@ -7,10 +7,9 @@ namespace TinyShop\Services;
 use RuntimeException;
 
 /**
- * Immutable application configuration with boot-time validation.
+ * Application configuration.
  *
- * Every required key is validated once at construction. No fallback
- * defaults — if config is wrong, the app fails fast with a clear message.
+ * @since 1.0.0
  */
 final class Config
 {
@@ -29,6 +28,11 @@ final class Config
 
     private array $data;
 
+    /**
+     * @param array<string, mixed> $data Raw config array from config/app.php.
+     *
+     * @throws RuntimeException If required keys are missing.
+     */
     public function __construct(array $data)
     {
         $missing = array_diff(self::REQUIRED_KEYS, array_keys($data));
@@ -45,6 +49,16 @@ final class Config
         $this->data = $data;
     }
 
+    /**
+     * Get a config value by key.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $key Config key.
+     * @return mixed
+     *
+     * @throws RuntimeException If key does not exist.
+     */
     public function get(string $key): mixed
     {
         if (!array_key_exists($key, $this->data)) {
@@ -54,19 +68,28 @@ final class Config
         return $this->data[$key];
     }
 
+    /** Platform display name. */
     public function name(): string        { return $this->data['name']; }
+
+    /** Base URL without trailing slash. */
     public function url(): string         { return rtrim($this->data['url'], '/'); }
+
+    /** Root domain for subdomain routing. */
     public function baseDomain(): string  { return $this->data['base_domain']; }
+
     public function isDebug(): bool       { return !empty($this->data['debug']); }
     public function templatesDir(): string { return $this->data['templates_dir']; }
     public function compileDir(): string  { return $this->data['compile_dir']; }
     public function cacheDir(): string    { return $this->data['cache_dir']; }
     public function uploadDir(): string   { return $this->data['upload_dir']; }
     public function uploadUrl(): string   { return $this->data['upload_url']; }
+
+    /** @return int Max upload size in bytes. */
     public function maxFileSize(): int    { return (int) $this->data['max_file_size']; }
 
-    /** @return string[] */
+    /** @return string[] Allowed MIME types. */
     public function allowedTypes(): array { return $this->data['allowed_types']; }
 
+    /** @return array<string, mixed> */
     public function toArray(): array { return $this->data; }
 }

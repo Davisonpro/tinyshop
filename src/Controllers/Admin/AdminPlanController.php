@@ -11,9 +11,15 @@ use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Models\Plan;
 use TinyShop\Models\Subscription;
 use TinyShop\Services\Auth;
+use TinyShop\Services\Theme;
 use TinyShop\Services\Validation;
 use TinyShop\Services\View;
 
+/**
+ * Admin plan management controller.
+ *
+ * @since 1.0.0
+ */
 final class AdminPlanController
 {
     use JsonResponder;
@@ -23,10 +29,20 @@ final class AdminPlanController
         private readonly Auth $auth,
         private readonly Plan $planModel,
         private readonly Subscription $subscriptionModel,
+        private readonly Theme $themeService,
         private readonly Validation $validation,
         private readonly LoggerInterface $logger,
     ) {}
 
+    /**
+     * Render the plans management page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function plans(Request $request, Response $response): Response
     {
         $plans = $this->planModel->findAllAdmin();
@@ -37,12 +53,22 @@ final class AdminPlanController
         unset($plan);
 
         return $this->view->render($response, 'pages/admin/plans.tpl', [
-            'page_title'  => 'Plans',
-            'active_page' => 'plans',
-            'plans'       => $plans,
+            'page_title'        => 'Plans',
+            'active_page'       => 'plans',
+            'plans'             => $plans,
+            'available_themes'  => $this->themeService->listAvailable(),
         ]);
     }
 
+    /**
+     * Return all plans as JSON.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function listPlans(Request $request, Response $response): Response
     {
         $plans = $this->planModel->findAllAdmin();
@@ -54,6 +80,15 @@ final class AdminPlanController
         return $this->json($response, ['success' => true, 'plans' => $plans]);
     }
 
+    /**
+     * Create a plan.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function createPlan(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -113,6 +148,16 @@ final class AdminPlanController
         return $this->json($response, ['success' => true, 'plan' => $plan], 201);
     }
 
+    /**
+     * Update a plan.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function updatePlan(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -191,6 +236,16 @@ final class AdminPlanController
         return $this->json($response, ['success' => true, 'plan' => $plan]);
     }
 
+    /**
+     * Delete a plan.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function deletePlan(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];

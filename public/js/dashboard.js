@@ -1,9 +1,9 @@
-function escapeHtml(str) {
+TinyShop.escapeHtml = function(str) {
   if (!str) return "";
   var div = document.createElement("div");
   div.appendChild(document.createTextNode(str));
   return div.innerHTML;
-}
+};
 TinyShop.formatPrice = function(amount, currency) {
   currency = currency || "KES";
   var num = parseFloat(amount);
@@ -53,7 +53,13 @@ TinyShop.api = function(method, url, data) {
     opts.contentType = "application/json";
     opts.data = JSON.stringify(data);
   }
-  return $.ajax(opts);
+  var xhr = $.ajax(opts);
+  if (method !== "GET" && TinyShop.spa) {
+    xhr.done(function() {
+      TinyShop.spa._cache = {};
+    });
+  }
+  return xhr;
 };
 TinyShop.uploadFile = function(file, onSuccess, onError) {
   var formData = new FormData();
@@ -243,7 +249,7 @@ TinyShop.initProductList = function() {
     }
     var html = '<button class="category-tab active" data-cat="">All</button>';
     catIds.forEach(function(id) {
-      html += '<button class="category-tab" data-cat="' + id + '">' + escapeHtml(cats[id]) + "</button>";
+      html += '<button class="category-tab" data-cat="' + id + '">' + TinyShop.escapeHtml(cats[id]) + "</button>";
     });
     $filterBar.html(html).show();
   }
@@ -302,7 +308,7 @@ TinyShop.initProductList = function() {
     if (products.length === 0) {
       var msg, hint;
       if (_searchQuery) {
-        msg = 'No results for "' + escapeHtml(_searchQuery) + '"';
+        msg = 'No results for "' + TinyShop.escapeHtml(_searchQuery) + '"';
         hint = "<p>Try a different search term</p>";
       } else if (_activeFilter) {
         msg = "Nothing in this category";
@@ -343,10 +349,10 @@ TinyShop.initProductList = function() {
       } else {
         priceHtml = TinyShop.formatPrice(p.price, _currency);
       }
-      var catLabel = p.category_name ? '<div class="product-card-category">' + escapeHtml(p.category_name) + "</div>" : "";
+      var catLabel = p.category_name ? '<div class="product-card-category">' + TinyShop.escapeHtml(p.category_name) + "</div>" : "";
       var checkHtml = _selectMode ? '<span class="product-select-check' + (_selected[p.id] ? " checked" : "") + '"><i class="fa-solid fa-check"></i></span>' : "";
-      var shareBtn = !_selectMode && !isHidden ? '<button type="button" class="product-share-btn" data-slug="' + escapeHtml(p.slug || p.id) + '" data-name="' + escapeHtml(p.name) + '" title="Share"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>' : "";
-      html += '<a href="/dashboard/products/' + p.id + '/edit" class="' + cardClass + '" data-id="' + p.id + '">' + checkHtml + '<div class="product-card-img-wrap">' + badge + shareBtn + '<img src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(p.name) + '" loading="lazy"></div><div class="product-card-body"><h3>' + escapeHtml(p.name) + '</h3><div class="product-price">' + priceHtml + "</div>" + catLabel + "</div></a>";
+      var shareBtn = !_selectMode && !isHidden ? '<button type="button" class="product-share-btn" data-slug="' + TinyShop.escapeHtml(p.slug || p.id) + '" data-name="' + TinyShop.escapeHtml(p.name) + '" title="Share"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>' : "";
+      html += '<a href="/dashboard/products/' + p.id + '/edit" class="' + cardClass + '" data-id="' + p.id + '">' + checkHtml + '<div class="product-card-img-wrap">' + badge + shareBtn + '<img src="' + TinyShop.escapeHtml(imgSrc) + '" alt="' + TinyShop.escapeHtml(p.name) + '" loading="lazy"></div><div class="product-card-body"><h3>' + TinyShop.escapeHtml(p.name) + '</h3><div class="product-price">' + priceHtml + "</div>" + catLabel + "</div></a>";
     });
     $grid.html(html);
     if (hasMore) {
@@ -455,8 +461,8 @@ TinyShop.initProductList = function() {
     var name = $(this).data("name");
     var port = window.location.port ? ":" + window.location.port : "";
     var productUrl = window.location.protocol + "//" + _subdomain + "." + _baseDomain + port + "/" + slug;
-    var html = '<div class="share-quick-btns share-quick-btns-modal"><button type="button" class="share-quick-btn share-btn-whatsapp" data-channel="whatsapp" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></button><button type="button" class="share-quick-btn share-btn-facebook" data-channel="facebook" title="Facebook"><i class="fa-brands fa-facebook-f"></i></button><button type="button" class="share-quick-btn share-btn-x" data-channel="x" title="X (Twitter)"><i class="fa-brands fa-x-twitter"></i></button><button type="button" class="share-quick-btn share-btn-email" data-channel="email" title="Email"><i class="fa-solid fa-envelope"></i></button></div><div class="share-link-row" style="margin-top:12px"><input type="text" value="' + escapeHtml(productUrl) + '" id="shareProductUrl" readonly><button type="button" class="btn-copy" id="copyShareUrl">Copy</button></div>';
-    TinyShop.openModal("Share " + escapeHtml(name), html);
+    var html = '<div class="share-quick-btns share-quick-btns-modal"><button type="button" class="share-quick-btn share-btn-whatsapp" data-channel="whatsapp" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></button><button type="button" class="share-quick-btn share-btn-facebook" data-channel="facebook" title="Facebook"><i class="fa-brands fa-facebook-f"></i></button><button type="button" class="share-quick-btn share-btn-x" data-channel="x" title="X (Twitter)"><i class="fa-brands fa-x-twitter"></i></button><button type="button" class="share-quick-btn share-btn-email" data-channel="email" title="Email"><i class="fa-solid fa-envelope"></i></button></div><div class="share-link-row" style="margin-top:12px"><input type="text" value="' + TinyShop.escapeHtml(productUrl) + '" id="shareProductUrl" readonly><button type="button" class="btn-copy" id="copyShareUrl">Copy</button></div>';
+    TinyShop.openModal("Share " + TinyShop.escapeHtml(name), html);
     var text = encodeURIComponent("Check out " + name + "!");
     $(".share-quick-btns-modal .share-quick-btn").on("click", function() {
       var channel = $(this).data("channel");
@@ -532,7 +538,7 @@ TinyShop.initProductForm = function() {
     return urls;
   }
   function addImageToGallery(url) {
-    var $item = $('<div class="image-gallery-item" draggable="true" data-url="' + escapeHtml(url) + '"><img src="' + escapeHtml(url) + '" alt=""><button type="button" class="image-gallery-remove">&times;</button></div>');
+    var $item = $('<div class="image-gallery-item" draggable="true" data-url="' + TinyShop.escapeHtml(url) + '"><img src="' + TinyShop.escapeHtml(url) + '" alt=""><button type="button" class="image-gallery-remove">&times;</button></div>');
     $addBtn.before($item);
     bindDrag($item[0]);
     saveDraft();
@@ -557,7 +563,7 @@ TinyShop.initProductForm = function() {
       (function(file) {
         var $placeholder = addImagePlaceholder(file);
         TinyShop.uploadFile(file, function(url) {
-          var $item = $('<div class="image-gallery-item" draggable="true" data-url="' + escapeHtml(url) + '"><img src="' + escapeHtml(url) + '" alt=""><button type="button" class="image-gallery-remove">&times;</button></div>');
+          var $item = $('<div class="image-gallery-item" draggable="true" data-url="' + TinyShop.escapeHtml(url) + '"><img src="' + TinyShop.escapeHtml(url) + '" alt=""><button type="button" class="image-gallery-remove">&times;</button></div>');
           $placeholder.replaceWith($item);
           bindDrag($item[0]);
           saveDraft();
@@ -666,10 +672,10 @@ TinyShop.initProductForm = function() {
     html += '<div class="category-picker-list">';
     html += '<div class="category-picker-none' + (!currentVal ? " selected" : "") + '" data-id="">No category</div>';
     _categoryTree.forEach(function(parent) {
-      html += '<div class="category-picker-group" data-search-parent="' + escapeHtml(parent.name.toLowerCase()) + '">';
-      html += '<div class="category-picker-item category-picker-item-parent' + (String(parent.id) === String(currentVal) ? " selected" : "") + '" data-id="' + parent.id + '" data-search-name="' + escapeHtml(parent.name.toLowerCase()) + '"><span>' + escapeHtml(parent.name) + '</span><span class="category-picker-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>';
+      html += '<div class="category-picker-group" data-search-parent="' + TinyShop.escapeHtml(parent.name.toLowerCase()) + '">';
+      html += '<div class="category-picker-item category-picker-item-parent' + (String(parent.id) === String(currentVal) ? " selected" : "") + '" data-id="' + parent.id + '" data-search-name="' + TinyShop.escapeHtml(parent.name.toLowerCase()) + '"><span>' + TinyShop.escapeHtml(parent.name) + '</span><span class="category-picker-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>';
       (parent.children || []).forEach(function(child) {
-        html += '<div class="category-picker-item category-picker-item-child' + (String(child.id) === String(currentVal) ? " selected" : "") + '" data-id="' + child.id + '" data-search-name="' + escapeHtml(child.name.toLowerCase()) + '"><span>' + escapeHtml(child.name) + '</span><span class="category-picker-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>';
+        html += '<div class="category-picker-item category-picker-item-child' + (String(child.id) === String(currentVal) ? " selected" : "") + '" data-id="' + child.id + '" data-search-name="' + TinyShop.escapeHtml(child.name.toLowerCase()) + '"><span>' + TinyShop.escapeHtml(child.name) + '</span><span class="category-picker-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>';
       });
       html += "</div>";
     });
@@ -763,11 +769,11 @@ TinyShop.initProductForm = function() {
   }
   function buildOptionRow(value, price) {
     var priceVal = price !== null && price !== void 0 ? price : "";
-    return '<div class="variation-option-row"><input type="text" class="variation-option-value" placeholder="Value name" value="' + escapeHtml(value || "") + '" autocomplete="off"><input type="text" class="variation-option-price price-input" placeholder="Price" inputmode="decimal" value="' + escapeHtml(String(priceVal)) + '" autocomplete="off"><button type="button" class="variation-option-remove" title="Remove">&times;</button></div>';
+    return '<div class="variation-option-row"><input type="text" class="variation-option-value" placeholder="Value name" value="' + TinyShop.escapeHtml(value || "") + '" autocomplete="off"><input type="text" class="variation-option-price price-input" placeholder="Price" inputmode="decimal" value="' + TinyShop.escapeHtml(String(priceVal)) + '" autocomplete="off"><button type="button" class="variation-option-remove" title="Remove">&times;</button></div>';
   }
   function addVariationGroup(name, options) {
     var gid = _varCounter++;
-    var html = '<div class="variation-group" data-gid="' + gid + '"><div class="variation-group-header"><input type="text" class="variation-group-name" placeholder="Option name (e.g. Size)" value="' + escapeHtml(name || "") + '" autocomplete="off"><button type="button" class="variation-group-remove" title="Remove">&times;</button></div><div class="variation-options">';
+    var html = '<div class="variation-group" data-gid="' + gid + '"><div class="variation-group-header"><input type="text" class="variation-group-name" placeholder="Option name (e.g. Size)" value="' + TinyShop.escapeHtml(name || "") + '" autocomplete="off"><button type="button" class="variation-group-remove" title="Remove">&times;</button></div><div class="variation-options">';
     if (options && options.length) {
       options.forEach(function(opt) {
         if (typeof opt === "string") {

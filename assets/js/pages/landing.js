@@ -1,7 +1,11 @@
 /**
- * Landing page — nav scroll effect + reveal animations.
- * Uses page:init so it re-initializes on SPA navigation.
- * Cleans up window listeners when leaving the landing page.
+ * Landing page — nav scroll effect and reveal animations.
+ *
+ * Uses page:init so it re-initialises on SPA navigation.
+ * Cleans up window listeners when leaving the landing page
+ * to avoid leaking handlers.
+ *
+ * @since 1.0.0
  */
 (function() {
     var _scrollHandler = null;
@@ -27,7 +31,7 @@
         };
         window.addEventListener('scroll', _scrollHandler, { passive: true });
 
-        // Reveal animations
+        // Reveal animations via IntersectionObserver
         var els = document.querySelectorAll('.land-reveal');
         if (!els.length) return;
 

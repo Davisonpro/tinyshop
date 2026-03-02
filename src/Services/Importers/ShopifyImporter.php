@@ -6,6 +6,11 @@ namespace TinyShop\Services\Importers;
 
 use RuntimeException;
 
+/**
+ * Shopify product importer.
+ *
+ * @since 1.0.0
+ */
 final class ShopifyImporter implements ImporterInterface
 {
     /** Known Shopify-powered domains (extend as needed). */
@@ -18,6 +23,7 @@ final class ShopifyImporter implements ImporterInterface
     {
     }
 
+    /** {@inheritDoc} */
     public function supports(string $url): bool
     {
         $host = parse_url($url, PHP_URL_HOST) ?? '';
@@ -29,6 +35,7 @@ final class ShopifyImporter implements ImporterInterface
         return false;
     }
 
+    /** {@inheritDoc} */
     public function fetch(string $url): ImportResult
     {
         $handle  = $this->extractHandle($url);
@@ -111,6 +118,7 @@ final class ShopifyImporter implements ImporterInterface
         );
     }
 
+    /** Extract the product handle from the URL. */
     private function extractHandle(string $url): string
     {
         $path = parse_url($url, PHP_URL_PATH) ?? '';
@@ -121,6 +129,7 @@ final class ShopifyImporter implements ImporterInterface
         throw new RuntimeException('Cannot extract product handle from URL');
     }
 
+    /** Get the base URL (scheme + host) from a URL. */
     private function baseUrl(string $url): string
     {
         $scheme = parse_url($url, PHP_URL_SCHEME) ?? 'https';

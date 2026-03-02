@@ -13,6 +13,11 @@ use TinyShop\Services\Auth;
 use TinyShop\Services\Validation;
 use TinyShop\Services\View;
 
+/**
+ * Admin CMS page management controller.
+ *
+ * @since 1.0.0
+ */
 final class AdminPageController
 {
     use JsonResponder;
@@ -25,6 +30,15 @@ final class AdminPageController
         private readonly LoggerInterface $logger,
     ) {}
 
+    /**
+     * Render the pages listing.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function pages(Request $request, Response $response): Response
     {
         return $this->view->render($response, 'pages/admin/pages.tpl', [
@@ -34,6 +48,16 @@ final class AdminPageController
         ]);
     }
 
+    /**
+     * Render the create/edit page form.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function pageForm(Request $request, Response $response, array $args = []): Response
     {
         $page = null;
@@ -55,11 +79,29 @@ final class AdminPageController
         ]);
     }
 
+    /**
+     * Return all pages as JSON.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function listPages(Request $request, Response $response): Response
     {
         return $this->json($response, ['success' => true, 'pages' => $this->pageModel->findAll()]);
     }
 
+    /**
+     * Create a new CMS page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function createPage(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -96,6 +138,16 @@ final class AdminPageController
         return $this->json($response, ['success' => true, 'page' => Page::find($id)], 201);
     }
 
+    /**
+     * Update a CMS page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function updatePage(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -152,6 +204,16 @@ final class AdminPageController
         return $this->json($response, ['success' => true, 'page' => Page::find($id)]);
     }
 
+    /**
+     * Delete a CMS page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function deletePage(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];

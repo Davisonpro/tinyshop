@@ -1,6 +1,9 @@
 /**
- * Pricing page — monthly/yearly toggle.
- * Uses page:init so it re-initializes on SPA navigation.
+ * Pricing page — monthly/yearly billing toggle.
+ *
+ * Re-initialises on SPA navigation via page:init.
+ *
+ * @since 1.0.0
  */
 $(document).on('page:init', function() {
     var btns = document.querySelectorAll('.pricing-toggle-btn');

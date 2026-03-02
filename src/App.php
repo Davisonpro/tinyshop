@@ -18,8 +18,22 @@ use TinyShop\Services\Hooks;
 use TinyShop\Services\Logger;
 use TinyShop\Services\View;
 
+/**
+ * Application bootstrapper.
+ *
+ * @since 1.0.0
+ */
 final class App
 {
+    /**
+     * Build and return the Slim application.
+     *
+     * @since 1.0.0
+     *
+     * @param array $appConfig Application settings from config/app.php.
+     * @param array $dbConfig  Database credentials from config/database.php.
+     * @return \Slim\App Configured application instance.
+     */
     public static function create(array $appConfig, array $dbConfig): \Slim\App
     {
         $config = new Config($appConfig);
@@ -138,6 +152,14 @@ final class App
         return $app;
     }
 
+    /**
+     * Render a plain HTML error page (no Smarty dependency).
+     *
+     * @since 1.0.0
+     *
+     * @param \Throwable|null $exception Shown in debug mode only.
+     * @return string HTML output.
+     */
     private static function renderErrorPage(?\Throwable $exception = null): string
     {
         $detail = '';

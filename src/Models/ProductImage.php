@@ -6,7 +6,12 @@ namespace TinyShop\Models;
 
 use TinyShop\Enums\FieldType;
 
-class ProductImage extends Model
+/**
+ * Product image model.
+ *
+ * @since 1.0.0
+ */
+final class ProductImage extends Model
 {
     protected static array $definition = [
         'table'   => 'product_images',
@@ -20,8 +25,12 @@ class ProductImage extends Model
     ];
 
     /**
-     * Batch-load images for multiple products in a single query.
-     * @return array<int, array> Map of productId => images[]
+     * Batch-load images for multiple products.
+     *
+     * @since 1.0.0
+     *
+     * @param  int[] $productIds Product IDs.
+     * @return array<int, array>  Keyed by product ID.
      */
     public function findByProducts(array $productIds): array
     {
@@ -43,6 +52,14 @@ class ProductImage extends Model
         return $grouped;
     }
 
+    /**
+     * Get all images for a product.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $productId Product ID.
+     * @return array[]
+     */
     public function findByProduct(int $productId): array
     {
         return static::rawQuery(
@@ -51,6 +68,16 @@ class ProductImage extends Model
         );
     }
 
+    /**
+     * Create a product image record.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $productId Product ID.
+     * @param  string $imageUrl  Image URL.
+     * @param  int    $sortOrder Display order.
+     * @return int    New image ID.
+     */
     public function create(int $productId, string $imageUrl, int $sortOrder = 0): int
     {
         $img = new static();
@@ -63,6 +90,14 @@ class ProductImage extends Model
         return (int) $img->getId();
     }
 
+    /**
+     * Delete all images for a product.
+     *
+     * @since 1.0.0
+     *
+     * @param  int  $productId Product ID.
+     * @return bool
+     */
     public function deleteByProduct(int $productId): bool
     {
         return static::rawExecute(
@@ -72,7 +107,12 @@ class ProductImage extends Model
     }
 
     /**
-     * Sync images for a product: delete old, insert new, update products.image_url.
+     * Replace a product's entire image gallery.
+     *
+     * @since 1.0.0
+     *
+     * @param int      $productId Product ID.
+     * @param string[] $imageUrls Ordered image URLs.
      */
     public function sync(int $productId, array $imageUrls): void
     {
@@ -88,7 +128,11 @@ class ProductImage extends Model
     }
 
     /**
-     * Set products.image_url to the first image, or null if none.
+     * Sync the product's primary image to the first gallery image.
+     *
+     * @since 1.0.0
+     *
+     * @param int $productId Product ID.
      */
     public function syncPrimary(int $productId): void
     {

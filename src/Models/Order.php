@@ -8,7 +8,12 @@ use PDO;
 use TinyShop\Enums\FieldType;
 use TinyShop\Enums\OrderStatus;
 
-class Order extends Model
+/**
+ * Order model.
+ *
+ * @since 1.0.0
+ */
+final class Order extends Model
 {
     protected static array $definition = [
         'table'   => 'orders',
@@ -37,6 +42,16 @@ class Order extends Model
         ],
     ];
 
+    /**
+     * Get orders for a seller with item counts.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @param  int $limit  Max rows.
+     * @param  int $offset Pagination offset.
+     * @return array[]
+     */
     public function findByUser(int $userId, int $limit = 50, int $offset = 0): array
     {
         $db = static::db();
@@ -55,6 +70,14 @@ class Order extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Count all orders for a seller.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @return int
+     */
     public function countByUser(int $userId): int
     {
         return (int) static::rawScalar(
@@ -63,6 +86,14 @@ class Order extends Model
         );
     }
 
+    /**
+     * Get order stats for a seller's dashboard.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @return array{total: int, pending: int, completed: int, revenue: float}
+     */
     public function getStats(int $userId): array
     {
         $rows = static::rawQuery(
@@ -77,6 +108,14 @@ class Order extends Model
         return $rows[0] ?? ['total' => 0, 'pending' => 0, 'completed' => 0, 'revenue' => 0];
     }
 
+    /**
+     * Create a new order.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Order data.
+     * @return int   New order ID.
+     */
     public function create(array $data): int
     {
         $order = new static();
@@ -104,6 +143,14 @@ class Order extends Model
         return (int) $order->getId();
     }
 
+    /**
+     * Find an order by its order number.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $orderNumber Order number (e.g. "TS-A1B2C3D4").
+     * @return array|null
+     */
     public function findByOrderNumber(string $orderNumber): ?array
     {
         $rows = static::rawQuery(
@@ -113,6 +160,14 @@ class Order extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Find an order by payment intent ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $intentId Payment gateway intent ID.
+     * @return array|null
+     */
     public function findByPaymentIntent(string $intentId): ?array
     {
         $rows = static::rawQuery(
@@ -122,11 +177,27 @@ class Order extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Generate a unique order number.
+     *
+     * @since 1.0.0
+     *
+     * @return string
+     */
     public static function generateOrderNumber(): string
     {
         return 'TS-' . strtoupper(bin2hex(random_bytes(4)));
     }
 
+    /**
+     * Update an order by ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   Order ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         $order = static::find($id);
@@ -144,6 +215,16 @@ class Order extends Model
         return $order->save();
     }
 
+    /**
+     * Get orders for a customer account.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $customerId Customer ID.
+     * @param  int $limit      Max rows.
+     * @param  int $offset     Pagination offset.
+     * @return array[]
+     */
     public function findByCustomer(int $customerId, int $limit = 50, int $offset = 0): array
     {
         $db = static::db();
@@ -162,6 +243,16 @@ class Order extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Link unlinked orders to a customer account by email.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $shopId     Shop (seller) ID.
+     * @param  string $email      Customer email.
+     * @param  int    $customerId Customer ID to link.
+     * @return int    Orders linked.
+     */
     public function linkToCustomer(int $shopId, string $email, int $customerId): int
     {
         return static::rawExecute(
@@ -170,6 +261,15 @@ class Order extends Model
         );
     }
 
+    /**
+     * Set an order's status.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $id     Order ID.
+     * @param  string $status New status.
+     * @return bool
+     */
     public function updateStatus(int $id, string $status): bool
     {
         return static::rawExecute(
@@ -179,9 +279,13 @@ class Order extends Model
     }
 
     /**
-     * Atomically mark an order as paid. Returns true only if the order was
-     * pending — guarantees exactly-once processing even under concurrent
-     * webhook + return-handler requests.
+     * Atomically mark an order as paid (only if pending).
+     *
+     * @since 1.0.0
+     *
+     * @param  int     $id               Order ID.
+     * @param  ?string $paymentIntentId   Payment intent to store.
+     * @return bool    False if already processed.
      */
     public function markPaid(int $id, ?string $paymentIntentId = null): bool
     {
@@ -203,7 +307,13 @@ class Order extends Model
     }
 
     /**
-     * Daily sales totals for a seller over N days.
+     * Daily paid-order totals for a seller, zero-filled.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @param  int $days   Number of days (1-90).
+     * @return list<array{day: string, label: string, orders: int, revenue: float}>
      */
     public function getDailySales(int $userId, int $days = 14): array
     {
@@ -238,11 +348,25 @@ class Order extends Model
 
     // ── Admin queries ──
 
+    /**
+     * Count all orders platform-wide.
+     *
+     * @since 1.0.0
+     *
+     * @return int
+     */
     public function countAll(): int
     {
         return (int) static::rawScalar('SELECT COUNT(*) FROM orders');
     }
 
+    /**
+     * Get platform-wide order stats (admin).
+     *
+     * @since 1.0.0
+     *
+     * @return array{total: int, pending: int, completed: int, total_volume: float, paid_volume: float}
+     */
     public function getPlatformStats(): array
     {
         $rows = static::rawQuery(
@@ -258,6 +382,16 @@ class Order extends Model
         return $rows[0] ?? ['total' => 0, 'pending' => 0, 'completed' => 0, 'total_volume' => 0, 'paid_volume' => 0];
     }
 
+    /**
+     * Get orders for admin listing with seller info.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $limit  Max rows.
+     * @param  int    $offset Pagination offset.
+     * @param  string $status Optional status filter.
+     * @return array[]
+     */
     public function findAllAdmin(int $limit = 50, int $offset = 0, string $status = ''): array
     {
         $sql = 'SELECT o.*, u.name AS seller_name, u.store_name, u.subdomain
@@ -284,6 +418,14 @@ class Order extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Count orders for admin listing.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $status Optional status filter.
+     * @return int
+     */
     public function countAllAdmin(string $status = ''): int
     {
         $sql = 'SELECT COUNT(*) FROM orders';
@@ -298,7 +440,12 @@ class Order extends Model
     }
 
     /**
-     * Platform-wide daily sales totals over N days.
+     * Platform-wide daily paid-order totals, zero-filled.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $days Number of days (1-90).
+     * @return list<array{day: string, label: string, orders: int, revenue: float}>
      */
     public function getPlatformDailySales(int $days = 14): array
     {
@@ -331,6 +478,14 @@ class Order extends Model
         return $result;
     }
 
+    /**
+     * Count recent orders platform-wide.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $days Lookback period.
+     * @return int
+     */
     public function recentOrders(int $days = 7): int
     {
         return (int) static::rawScalar(
@@ -339,6 +494,17 @@ class Order extends Model
         );
     }
 
+    /**
+     * Get unique customers for a seller, aggregated from orders.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId Seller ID.
+     * @param  int    $limit  Max rows.
+     * @param  int    $offset Pagination offset.
+     * @param  string $search Optional search term.
+     * @return array[]
+     */
     public function getUniqueCustomers(int $userId, int $limit = 50, int $offset = 0, string $search = ''): array
     {
         $where = 'WHERE user_id = ? AND customer_email IS NOT NULL AND customer_email != ?';
@@ -372,6 +538,15 @@ class Order extends Model
         return static::rawQuery($sql, $params);
     }
 
+    /**
+     * Count unique customers for a seller.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId Seller ID.
+     * @param  string $search Optional search term.
+     * @return int
+     */
     public function countUniqueCustomers(int $userId, string $search = ''): int
     {
         $where = 'WHERE user_id = ? AND customer_email IS NOT NULL AND customer_email != ?';
@@ -391,6 +566,15 @@ class Order extends Model
         );
     }
 
+    /**
+     * Count stale pending orders (likely abandoned).
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId   Seller ID.
+     * @param  int $hoursOld Minimum age in hours.
+     * @return int
+     */
     public function countStalePending(int $userId, int $hoursOld = 1): int
     {
         return (int) static::rawScalar(

@@ -11,10 +11,20 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 use TinyShop\Services\Auth;
 
+/**
+ * Admin-only route protection.
+ *
+ * @since 1.0.0
+ */
 final class AdminGuard implements MiddlewareInterface
 {
     public function __construct(private readonly Auth $auth) {}
 
+    /**
+     * Block non-admin users.
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         Auth::ensureSession();

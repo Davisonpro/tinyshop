@@ -4,10 +4,20 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\Gateways;
 
+/**
+ * Payment request value object.
+ *
+ * @since 1.0.0
+ */
 final class PaymentRequest
 {
     /**
-     * @param array<array{product_name: string, product_image: ?string, unit_price: float, quantity: int}> $lineItems
+     * @param float  $amount     Total amount.
+     * @param string $currency   ISO 4217 currency code.
+     * @param string $reference  Order reference.
+     * @param string $successUrl Success redirect URL.
+     * @param string $cancelUrl  Cancel redirect URL.
+     * @param string $webhookUrl Webhook URL.
      */
     public function __construct(
         public readonly float $amount,

@@ -1,6 +1,11 @@
-/* ============================================================
-   One-time delegated handlers (survive SPA body swaps)
-   ============================================================ */
+/**
+ * Delegated UI handlers that survive SPA body swaps.
+ *
+ * Includes: desktop search redirect, smooth anchor scrolling,
+ * variation option selection, and the share-sheet bottom sheet.
+ *
+ * @since 1.0.0
+ */
 $(function() {
     // Bloom desktop search — redirect on product pages
     var $bloomSearch = $('#bloomDesktopSearch');
@@ -36,7 +41,8 @@ $(function() {
         $(this).addClass('selected');
     });
 
-    // Share sheet (all delegated)
+    // --- Share sheet (all delegated) ---
+
     $(document).on('click', '[data-share-trigger]', function(e) {
         e.preventDefault();
         var baseUrl = window.location.href.split('?')[0];
@@ -46,7 +52,7 @@ $(function() {
         if (navigator.share) {
             navigator.share({ title: title, url: baseUrl + '?utm_source=native' }).then(function() {
                 TinyShop.toast('Thanks for sharing!');
-            }).catch(function() { /* user cancelled — no action */ });
+            }).catch(function() { /* user cancelled */ });
             return;
         }
 
@@ -70,13 +76,16 @@ $(function() {
             document.body.style.overflow = '';
         }
     });
+
     $(document).on('click', '#shareSheetBackdrop .share-sheet-close', function() {
         $('#shareSheetBackdrop').removeClass('active');
         document.body.style.overflow = '';
     });
+
     $(document).on('click', '#shareSheetBackdrop [data-share-action="copy"]', function() {
         var $label = $(this).find('.share-sheet-label');
         var url = window.location.href;
+
         function onCopied() {
             $label.text('Copied!');
             setTimeout(function() {
@@ -86,6 +95,7 @@ $(function() {
             }, 800);
             TinyShop.toast('Link copied!');
         }
+
         if (navigator.clipboard) {
             navigator.clipboard.writeText(url).then(onCopied, function() {
                 TinyShop.toast('Could not copy link', 'error');
@@ -102,6 +112,7 @@ $(function() {
             onCopied();
         }
     });
+
     $(document).on('click', '#shareSheetBackdrop a[data-share-action]', function() {
         setTimeout(function() { $('#shareSheetBackdrop').removeClass('active'); document.body.style.overflow = ''; }, 300);
     });

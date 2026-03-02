@@ -18,6 +18,11 @@ use TinyShop\Services\DB;
 use TinyShop\Services\Gateways\GatewayFactory;
 use TinyShop\Services\Mailer;
 
+/**
+ * Payment webhook controller.
+ *
+ * @since 1.0.0
+ */
 final class WebhookController
 {
     use JsonResponder;
@@ -40,9 +45,13 @@ final class WebhookController
     }
 
     /**
-     * POST /webhook/stripe
-     * Handles Stripe checkout.session.completed events.
-     * Re-verifies with Stripe API — never trusts the webhook payload alone.
+     * Handle a Stripe webhook event.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function stripeWebhook(Request $request, Response $response): Response
     {
@@ -109,9 +118,13 @@ final class WebhookController
     }
 
     /**
-     * POST /webhook/paypal
-     * Handles PayPal CHECKOUT.ORDER.APPROVED / PAYMENT.CAPTURE.COMPLETED events.
-     * Re-verifies with PayPal API — never trusts the webhook payload alone.
+     * Handle a PayPal webhook event.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function paypalWebhook(Request $request, Response $response): Response
     {
@@ -178,8 +191,13 @@ final class WebhookController
     }
 
     /**
-     * POST /webhook/mpesa
-     * Handles M-Pesa STK Push callback for storefront orders.
+     * Handle an M-Pesa storefront webhook callback.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function mpesaWebhook(Request $request, Response $response): Response
     {
@@ -222,8 +240,13 @@ final class WebhookController
     }
 
     /**
-     * POST /webhook/mpesa/billing
-     * Handles M-Pesa STK Push callback for platform billing payments.
+     * Handle an M-Pesa billing webhook callback.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function mpesaBillingWebhook(Request $request, Response $response): Response
     {
@@ -292,9 +315,13 @@ final class WebhookController
     }
 
     /**
-     * GET /webhook/pesapal
-     * Handles Pesapal IPN for storefront orders.
-     * Re-verifies with Pesapal API.
+     * Handle a Pesapal storefront webhook.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function pesapalWebhook(Request $request, Response $response): Response
     {
@@ -350,8 +377,13 @@ final class WebhookController
     }
 
     /**
-     * GET /webhook/pesapal/billing
-     * Handles Pesapal IPN for platform billing payments.
+     * Handle a Pesapal billing webhook.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function pesapalBillingWebhook(Request $request, Response $response): Response
     {

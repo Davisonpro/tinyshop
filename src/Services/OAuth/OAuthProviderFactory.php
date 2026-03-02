@@ -6,18 +6,38 @@ namespace TinyShop\Services\OAuth;
 
 use RuntimeException;
 
+/**
+ * OAuth provider factory.
+ *
+ * @since 1.0.0
+ */
 final class OAuthProviderFactory
 {
+    /**
+     * @param array<string, array<string, mixed>> $config  Provider config array.
+     * @param string                              $baseUrl Application base URL.
+     */
     public function __construct(
         private readonly array $config,
         private readonly string $baseUrl,
     ) {}
 
+    /** Check if a provider is enabled. */
     public function isEnabled(string $provider): bool
     {
         return !empty($this->config[$provider]['enabled']);
     }
 
+    /**
+     * Create a provider instance.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $provider Provider name.
+     * @return OAuthProviderInterface
+     *
+     * @throws RuntimeException If provider is unknown.
+     */
     public function create(string $provider): OAuthProviderInterface
     {
         $cfg = $this->config[$provider] ?? null;

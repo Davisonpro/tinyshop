@@ -7,7 +7,12 @@ namespace TinyShop\Models;
 use PDO;
 use TinyShop\Enums\FieldType;
 
-class Subscription extends Model
+/**
+ * Subscription model.
+ *
+ * @since 1.0.0
+ */
+final class Subscription extends Model
 {
     protected static array $definition = [
         'table'   => 'subscriptions',
@@ -27,6 +32,14 @@ class Subscription extends Model
         ],
     ];
 
+    /**
+     * Find the active subscription for a user.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId User ID.
+     * @return array|null  Subscription with plan details, or null.
+     */
     public function findActiveByUser(int $userId): ?array
     {
         $rows = static::rawQuery(
@@ -40,6 +53,15 @@ class Subscription extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Get subscription history for a user.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId User ID.
+     * @param  int $limit  Max rows.
+     * @return array[]
+     */
     public function findByUser(int $userId, int $limit = 20): array
     {
         $db = static::db();
@@ -57,6 +79,14 @@ class Subscription extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Create a new subscription.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Subscription data.
+     * @return int   New subscription ID.
+     */
     public function create(array $data): int
     {
         $sub = new static();
@@ -75,6 +105,15 @@ class Subscription extends Model
         return (int) $sub->getId();
     }
 
+    /**
+     * Update subscription status.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $id     Subscription ID.
+     * @param  string $status New status.
+     * @return bool
+     */
     public function updateStatus(int $id, string $status): bool
     {
         return static::rawExecute(
@@ -83,6 +122,13 @@ class Subscription extends Model
         ) > 0;
     }
 
+    /**
+     * Expire overdue subscriptions and clear user plan assignments.
+     *
+     * @since 1.0.0
+     *
+     * @return int Number of subscriptions expired.
+     */
     public function expireOverdue(): int
     {
         // Mark expired subscriptions

@@ -4,12 +4,24 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\Importers;
 
+/**
+ * Imported product data.
+ *
+ * @since 1.0.0
+ */
 final class ImportResult
 {
     /**
-     * @param string[] $images      Remote image URLs
-     * @param string[] $categories  Breadcrumb order (parent → child)
-     * @param array[]  $variations  Each: [name => string, price => float|null, attributes => array<string,string>]
+     * @param string   $title            Product title.
+     * @param string   $description      Full description (may contain HTML).
+     * @param string   $shortDescription Short summary.
+     * @param float    $price            Selling price.
+     * @param ?float   $comparePrice     Compare-at price.
+     * @param string[] $images           Image URLs.
+     * @param string[] $categories       Category names.
+     * @param array[]  $variations       Variant data.
+     * @param string   $currency         ISO 4217 currency code.
+     * @param string   $sourcePlatform   Source platform identifier.
      */
     public function __construct(
         public readonly string $title,
@@ -29,6 +41,7 @@ final class ImportResult
         public readonly string $metaDescription = '',
     ) {}
 
+    /** @return array<string, mixed> */
     public function toArray(): array
     {
         return [

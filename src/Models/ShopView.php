@@ -9,12 +9,9 @@ use PDO;
 use Throwable;
 
 /**
- * Privacy-friendly analytics with session-based deduplication.
+ * Shop view analytics.
  *
- * - Visitor identified by a random cookie token (no PII stored).
- * - Same visitor + same page within 30 min = 1 view (GA-style sessions).
- * - Bots, crawlers, and seller self-views are excluded.
- * - All methods are fail-safe: errors never break the storefront or dashboard.
+ * @since 1.0.0
  */
 final class ShopView
 {
@@ -37,7 +34,7 @@ final class ShopView
         'scrapy', 'httpclient', 'java/', 'libwww', 'apache-httpclient',
     ];
 
-    /** Domain → source key mapping for known traffic sources. */
+    /** Domain-to-source mapping. */
     private const SOURCE_DOMAINS = [
         'google'    => ['google.com', 'google.co'],
         'facebook'  => ['facebook.com', 'fb.com', 'fb.me', 'l.facebook.com', 'm.facebook.com'],
@@ -73,8 +70,12 @@ final class ShopView
     }
 
     /**
-     * Get or create a visitor token from the cookie value.
-     * Returns [token, isNew] so the controller can set the cookie if new.
+     * Get or create a visitor token from the cookie.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $cookieValue Existing cookie value.
+     * @return array{0: string, 1: bool} [token, isNew].
      */
     public static function resolveVisitorToken(string $cookieValue = ''): array
     {
@@ -87,8 +88,12 @@ final class ShopView
     }
 
     /**
-     * Extract the domain from a raw Referer URL.
-     * Returns null for empty or invalid values.
+     * Extract the bare domain from a Referer URL.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $referer Raw Referer header value.
+     * @return string|null     Lowercase domain, or null if unparseable.
      */
     public static function extractRefererDomain(string $referer): ?string
     {
@@ -110,8 +115,12 @@ final class ShopView
     }
 
     /**
-     * Categorize a domain into a named traffic source.
-     * Returns [key, label] where label is the display name.
+     * Categorize a domain or UTM value into a traffic source.
+     *
+     * @since 1.0.0
+     *
+     * @param  ?string $domain Domain or UTM value.
+     * @return array{key: string, label: string}
      */
     public static function categorizeSource(?string $domain): array
     {
@@ -141,7 +150,18 @@ final class ShopView
     }
 
     /**
-     * Log a page view. Silently fails — never breaks the storefront.
+     * Record a page view with deduplication.
+     *
+     * @since 1.0.0
+     *
+     * @param int     $sellerId       Shop owner ID.
+     * @param ?int    $productId      Product ID, or null for shop home.
+     * @param string  $visitorToken   Cookie token.
+     * @param string  $ip             Visitor IP.
+     * @param string  $userAgent      User-agent string.
+     * @param ?int    $visitorUserId  Logged-in user ID (to exclude self-views).
+     * @param ?string $refererDomain  Parsed referer domain.
+     * @param ?string $utmSource      UTM source parameter.
      */
     public function log(
         int $sellerId,
@@ -191,7 +211,12 @@ final class ShopView
     }
 
     /**
-     * Traffic sources for the last 30 days, grouped and categorized.
+     * Get traffic sources for a seller (last 30 days).
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @return list<array{key: string, label: string, views: int, unique: int, percent: float}>
      */
     public function getTrafficSources(int $userId): array
     {
@@ -251,7 +276,12 @@ final class ShopView
     }
 
     /**
-     * Stats: today, week, month, all time, unique visitors this week.
+     * Get aggregate view stats for a seller.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @return array{today: int, week: int, month: int, total: int, unique_week: int}
      */
     public function getStats(int $userId): array
     {
@@ -282,7 +312,13 @@ final class ShopView
     }
 
     /**
-     * Daily view counts. Always returns exactly $days entries, zero-filled.
+     * Daily view counts for a seller, zero-filled for charts.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @param  int $days   Number of days (1-90).
+     * @return list<array{day: string, label: string, views: int}>
      */
     public function getDailyViews(int $userId, int $days = 14): array
     {
@@ -316,7 +352,13 @@ final class ShopView
     }
 
     /**
-     * Top viewed products in the last 30 days.
+     * Top products by views for a seller (last 30 days).
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @param  int $limit  Max results (1-20).
+     * @return list<array{product_id: int, name: string, image_url: ?string, views: int}>
      */
     public function getTopProducts(int $userId, int $limit = 5): array
     {
@@ -344,7 +386,11 @@ final class ShopView
     // ── Platform-wide (admin) queries ──
 
     /**
-     * Platform-wide view stats: today, week, month, all time, unique visitors this week.
+     * Platform-wide aggregate view stats (admin).
+     *
+     * @since 1.0.0
+     *
+     * @return array{today: int, week: int, month: int, total: int, unique_week: int}
      */
     public function getPlatformStats(): array
     {
@@ -373,7 +419,12 @@ final class ShopView
     }
 
     /**
-     * Platform-wide daily view counts, zero-filled.
+     * Platform-wide daily views, zero-filled for charts.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $days Number of days (1-90).
+     * @return list<array{day: string, label: string, views: int}>
      */
     public function getPlatformDailyViews(int $days = 14): array
     {
@@ -407,7 +458,11 @@ final class ShopView
     }
 
     /**
-     * Platform-wide traffic sources for the last 30 days.
+     * Platform-wide traffic sources (last 30 days).
+     *
+     * @since 1.0.0
+     *
+     * @return list<array{key: string, label: string, views: int, unique: int, percent: float}>
      */
     public function getPlatformTrafficSources(): array
     {
@@ -464,7 +519,12 @@ final class ShopView
     }
 
     /**
-     * Top viewed products platform-wide in the last 30 days.
+     * Top products platform-wide (last 30 days).
+     *
+     * @since 1.0.0
+     *
+     * @param  int $limit Max results (1-20).
+     * @return list<array{product_id: int, name: string, image_url: ?string, store_name: string, views: int}>
      */
     public function getPlatformTopProducts(int $limit = 10): array
     {
@@ -491,7 +551,12 @@ final class ShopView
     }
 
     /**
-     * Top shops by views in the last 30 days.
+     * Top shops by traffic (last 30 days, admin).
+     *
+     * @since 1.0.0
+     *
+     * @param  int $limit Max results (1-20).
+     * @return list<array{user_id: int, store_name: string, subdomain: string, views: int, unique_visitors: int}>
      */
     public function getTopShops(int $limit = 10): array
     {
@@ -516,6 +581,7 @@ final class ShopView
         }
     }
 
+    /** Check if a user-agent looks like a bot. */
     private function isBot(string $ua): bool
     {
         if ($ua === '') {

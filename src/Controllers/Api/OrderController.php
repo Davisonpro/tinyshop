@@ -17,6 +17,11 @@ use TinyShop\Models\ProductImage;
 use TinyShop\Services\Auth;
 use TinyShop\Services\Validation;
 
+/**
+ * Order API controller.
+ *
+ * @since 1.0.0
+ */
 final class OrderController
 {
     use JsonResponder;
@@ -33,6 +38,15 @@ final class OrderController
 
     private const MAX_PAGE_SIZE = 100;
 
+    /**
+     * List the seller's orders.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function list(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -60,6 +74,15 @@ final class OrderController
         return $this->json($response, ['orders' => $orders, 'stats' => $stats]);
     }
 
+    /**
+     * List the seller's customers.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function customers(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -74,6 +97,15 @@ final class OrderController
         return $this->json($response, ['customers' => $customers, 'total' => $total]);
     }
 
+    /**
+     * Create an order manually.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function create(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -178,6 +210,16 @@ final class OrderController
         return $this->json($response, ['success' => true, 'order' => $order], 201);
     }
 
+    /**
+     * Update an order's status.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function updateStatus(Request $request, Response $response, array $args): Response
     {
         $data = (array) $request->getParsedBody();
@@ -219,6 +261,16 @@ final class OrderController
         return $this->json($response, ['success' => true, 'order' => $order]);
     }
 
+    /**
+     * Delete an order.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function delete(Request $request, Response $response, array $args): Response
     {
         $userId = $this->auth->userId();

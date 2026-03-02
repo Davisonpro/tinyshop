@@ -20,6 +20,11 @@ use TinyShop\Services\Upload;
 use TinyShop\Services\Validation;
 use TinyShop\Services\View;
 
+/**
+ * Admin product import controller.
+ *
+ * @since 1.0.0
+ */
 final class AdminImportController
 {
     use JsonResponder;
@@ -39,6 +44,15 @@ final class AdminImportController
         private readonly LoggerInterface $logger,
     ) {}
 
+    /**
+     * Render the product import page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function import(Request $request, Response $response): Response
     {
         $sellers = $this->userModel->findSellers(500, 0);
@@ -50,6 +64,16 @@ final class AdminImportController
         ]);
     }
 
+    /**
+     * Return a seller's category tree.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function importCategories(Request $request, Response $response, array $args): Response
     {
         $sellerId = (int) $args['seller_id'];
@@ -57,6 +81,15 @@ final class AdminImportController
         return $this->json($response, ['categories' => $tree]);
     }
 
+    /**
+     * Find or create a category for import.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function importSaveCategory(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -80,6 +113,15 @@ final class AdminImportController
         return $this->json($response, ['category' => ['id' => $id, 'name' => $name]]);
     }
 
+    /**
+     * Fetch product data from a URL or pasted HTML.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function fetchImport(Request $request, Response $response): Response
     {
         $data     = (array) $request->getParsedBody();
@@ -122,6 +164,15 @@ final class AdminImportController
         }
     }
 
+    /**
+     * Save an imported product to the database.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function saveImport(Request $request, Response $response): Response
     {
         $data     = (array) $request->getParsedBody();
@@ -246,8 +297,11 @@ final class AdminImportController
     }
 
     /**
-     * Convert flat WooCommerce-style variations into TinyShop grouped format.
+     * Convert flat variations to grouped format.
      *
+     * @since 1.0.0
+     *
+     * @param array $flatVariations Flat variation list.
      * @return array[]
      */
     private function convertToGroupedVariations(array $flatVariations): array

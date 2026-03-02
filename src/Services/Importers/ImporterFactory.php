@@ -6,6 +6,11 @@ namespace TinyShop\Services\Importers;
 
 use RuntimeException;
 
+/**
+ * Product importer factory.
+ *
+ * @since 1.0.0
+ */
 final class ImporterFactory
 {
     /** @var ImporterInterface[] */
@@ -22,7 +27,16 @@ final class ImporterFactory
         ];
     }
 
-    /** Resolve the correct importer for a given URL. */
+    /**
+     * Resolve the importer for a URL.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $url Product URL.
+     * @return ImporterInterface
+     *
+     * @throws RuntimeException If no importer supports the URL.
+     */
     public function resolve(string $url): ImporterInterface
     {
         $errors = [];

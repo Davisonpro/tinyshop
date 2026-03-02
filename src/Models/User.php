@@ -9,7 +9,12 @@ use TinyShop\Enums\FieldType;
 use TinyShop\Enums\OrderStatus;
 use TinyShop\Enums\UserRole;
 
-class User extends Model
+/**
+ * User model.
+ *
+ * @since 1.0.0
+ */
+final class User extends Model
 {
     protected static array $definition = [
         'table'   => 'users',
@@ -82,12 +87,29 @@ class User extends Model
 
     // ── Finders ──
 
+    /**
+     * Find a user by OAuth provider and ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $provider OAuth provider name.
+     * @param  string $oauthId  Provider user ID.
+     * @return array|null
+     */
     public function findByOAuth(string $provider, string $oauthId): ?array
     {
         $result = static::findWhere(['oauth_provider' => $provider, 'oauth_id' => $oauthId]);
         return $result?->toArray();
     }
 
+    /**
+     * Find an active seller by subdomain.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $subdomain Shop subdomain.
+     * @return array|null
+     */
     public function findBySubdomain(string $subdomain): ?array
     {
         $rows = static::rawQuery(
@@ -97,6 +119,14 @@ class User extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Find an active seller by custom domain.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $domain Custom domain.
+     * @return array|null
+     */
     public function findByCustomDomain(string $domain): ?array
     {
         $rows = static::rawQuery(
@@ -108,6 +138,7 @@ class User extends Model
 
     // ── Admin queries ──
 
+    /** Count users by role. */
     public function countByRole(string $role): int
     {
         return (int) static::rawScalar(
@@ -116,6 +147,7 @@ class User extends Model
         );
     }
 
+    /** Count active sellers. */
     public function countActive(): int
     {
         return (int) static::rawScalar(
@@ -124,6 +156,16 @@ class User extends Model
         );
     }
 
+    /**
+     * Paginated seller list for admin.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $limit  Max rows.
+     * @param  int    $offset Starting offset.
+     * @param  string $search Optional search query.
+     * @return array[]
+     */
     public function findSellers(int $limit = 50, int $offset = 0, string $search = ''): array
     {
         $sql = 'SELECT id, name, email, store_name, subdomain, custom_domain, is_active, created_at, updated_at, last_login_at, login_count, currency
@@ -150,6 +192,7 @@ class User extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** Count sellers, optionally filtered by search. */
     public function countSellers(string $search = ''): int
     {
         $sql = 'SELECT COUNT(*) FROM users WHERE role = ?';
@@ -164,6 +207,14 @@ class User extends Model
         return (int) static::rawScalar($sql, $params);
     }
 
+    /**
+     * Get a seller with aggregated stats.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $id Seller ID.
+     * @return array|null
+     */
     public function getSellerWithStats(int $id): ?array
     {
         $rows = static::rawQuery(
@@ -200,6 +251,7 @@ class User extends Model
         return $seller;
     }
 
+    /** Count recent seller signups. */
     public function recentSignups(int $days = 7): int
     {
         return (int) static::rawScalar(
@@ -210,6 +262,14 @@ class User extends Model
 
     // ── Mutations ──
 
+    /**
+     * Create a new user.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data User data.
+     * @return int   New user ID.
+     */
     public function create(array $data): int
     {
         $user = new static();
@@ -227,6 +287,15 @@ class User extends Model
         return (int) $user->getId();
     }
 
+    /**
+     * Update a user by ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   User ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         $user = static::find($id);
@@ -264,6 +333,7 @@ class User extends Model
         return $user->save();
     }
 
+    /** Record a login (bump count and timestamp). */
     public function recordLogin(int $id): void
     {
         static::increment($id, 'login_count');
@@ -273,6 +343,7 @@ class User extends Model
         );
     }
 
+    /** Check if a user is active. */
     public function isActive(int $id): bool
     {
         return (int) static::rawScalar(
@@ -281,6 +352,7 @@ class User extends Model
         ) === 1;
     }
 
+    /** Toggle a user's active status. */
     public function toggleActive(int $id, bool $active): bool
     {
         return static::rawExecute(
@@ -289,6 +361,7 @@ class User extends Model
         ) > 0;
     }
 
+    /** Get the password hash for a user. */
     public function getPasswordHash(int $id): ?string
     {
         $hash = static::rawScalar(
@@ -298,6 +371,7 @@ class User extends Model
         return $hash ?: null;
     }
 
+    /** Update a user's password hash. */
     public function updatePassword(int $id, string $hash): bool
     {
         return static::rawExecute(
@@ -306,6 +380,7 @@ class User extends Model
         ) > 0;
     }
 
+    /** Link an OAuth provider to a user. */
     public function updateOAuth(int $id, string $provider, string $oauthId): bool
     {
         return static::rawExecute(
@@ -314,6 +389,7 @@ class User extends Model
         ) > 0;
     }
 
+    /** Update a user's email. */
     public function updateEmail(int $id, string $email): bool
     {
         return static::rawExecute(
@@ -322,6 +398,14 @@ class User extends Model
         ) > 0;
     }
 
+    /**
+     * Get showcased shops for the homepage.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $limit Max shops.
+     * @return array[]
+     */
     public function findShowcased(int $limit = 12): array
     {
         $db = static::db();
@@ -337,9 +421,12 @@ class User extends Model
     }
 
     /**
-     * Permanently delete a user account and all associated data.
-     * Returns an array of uploaded file URLs for cleanup, or false on failure.
-     * @return string[]|false
+     * Delete a user account and all associated data.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $id User ID.
+     * @return string[]|false File URLs to clean up, or false on failure.
      */
     public function deleteAccount(int $id): array|false
     {

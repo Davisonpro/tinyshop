@@ -7,7 +7,12 @@ namespace TinyShop\Models;
 use PDO;
 use TinyShop\Enums\FieldType;
 
-class Product extends Model
+/**
+ * Product model.
+ *
+ * @since 1.0.0
+ */
+final class Product extends Model
 {
     protected static array $definition = [
         'table'   => 'products',
@@ -36,6 +41,16 @@ class Product extends Model
         ],
     ];
 
+    /**
+     * Get all products for a seller with category info.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @param  int $limit  Max rows.
+     * @param  int $offset Pagination offset.
+     * @return array[]
+     */
     public function findByUser(int $userId, int $limit = 100, int $offset = 0): array
     {
         $db = static::db();
@@ -54,6 +69,15 @@ class Product extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Get active products for a seller's storefront.
+     *
+     * @since 1.0.0
+     *
+     * @param  int  $userId     Seller ID.
+     * @param  ?int $categoryId Optional category filter.
+     * @return array[]
+     */
     public function findActiveByUser(int $userId, ?int $categoryId = null): array
     {
         $sql = 'SELECT p.*, c.name AS category_name, c.slug AS category_slug
@@ -71,6 +95,14 @@ class Product extends Model
         return static::rawQuery($sql, $params);
     }
 
+    /**
+     * Find a product by ID with category info.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $id Product ID.
+     * @return array|null
+     */
     public function findById(int $id): ?array
     {
         $rows = static::rawQuery(
@@ -83,6 +115,15 @@ class Product extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Find a product by slug within a seller's shop.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId Seller ID.
+     * @param  string $slug   Product slug.
+     * @return array|null
+     */
     public function findBySlug(int $userId, string $slug): ?array
     {
         $rows = static::rawQuery(
@@ -95,6 +136,15 @@ class Product extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Find a product by its source URL (import dedup).
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId    Seller ID.
+     * @param  string $sourceUrl External source URL.
+     * @return array|null
+     */
     public function findBySourceUrl(int $userId, string $sourceUrl): ?array
     {
         $rows = static::rawQuery(
@@ -107,6 +157,16 @@ class Product extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Ensure a product slug is unique within a seller's shop.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId    Seller ID.
+     * @param  string $slug      Base slug.
+     * @param  ?int   $excludeId Product ID to exclude.
+     * @return string Unique slug.
+     */
     public function ensureUniqueSlug(int $userId, string $slug, ?int $excludeId = null): string
     {
         $base = $slug;
@@ -127,6 +187,14 @@ class Product extends Model
         }
     }
 
+    /**
+     * Create a new product.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Product data.
+     * @return int   New product ID.
+     */
     public function create(array $data): int
     {
         $product = new static();
@@ -153,6 +221,15 @@ class Product extends Model
         return (int) $product->getId();
     }
 
+    /**
+     * Update a product by ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   Product ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         $product = static::find($id);
@@ -177,8 +254,13 @@ class Product extends Model
     }
 
     /**
-     * Atomically decrement stock. Returns false if insufficient stock.
-     * Auto-marks product as sold when stock reaches 0.
+     * Decrement stock atomically. Marks as sold when stock hits 0.
+     *
+     * @since 1.0.0
+     *
+     * @param  int  $productId Product ID.
+     * @param  int  $qty       Quantity to subtract.
+     * @return bool False if insufficient stock.
      */
     public function decrementStock(int $productId, int $qty): bool
     {
@@ -188,6 +270,14 @@ class Product extends Model
         ) > 0;
     }
 
+    /**
+     * Count all products for a seller.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @return int
+     */
     public function countByUser(int $userId): int
     {
         return (int) static::rawScalar(
@@ -196,16 +286,40 @@ class Product extends Model
         );
     }
 
+    /**
+     * Count all products platform-wide.
+     *
+     * @since 1.0.0
+     *
+     * @return int
+     */
     public function countAll(): int
     {
         return (int) static::rawScalar('SELECT COUNT(*) FROM products');
     }
 
+    /**
+     * Count active products platform-wide.
+     *
+     * @since 1.0.0
+     *
+     * @return int
+     */
     public function countActive(): int
     {
         return (int) static::rawScalar('SELECT COUNT(*) FROM products WHERE is_active = 1');
     }
 
+    /**
+     * Get products for admin listing with seller info.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $limit  Max rows.
+     * @param  int    $offset Pagination offset.
+     * @param  string $search Optional search term.
+     * @return array[]
+     */
     public function findAllAdmin(int $limit = 50, int $offset = 0, string $search = ''): array
     {
         $sql = 'SELECT p.*, u.name AS seller_name, u.subdomain, u.store_name
@@ -233,6 +347,14 @@ class Product extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Count products for admin listing.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $search Optional search term.
+     * @return int
+     */
     public function countAllAdmin(string $search = ''): int
     {
         $sql = 'SELECT COUNT(*) FROM products p JOIN users u ON u.id = p.user_id';
@@ -247,9 +369,7 @@ class Product extends Model
         return (int) static::rawScalar($sql, $params);
     }
 
-    /**
-     * Tokenize a search query into individual words (min 2 chars each, max 5 tokens).
-     */
+    /** Tokenize a search query into words (min 2 chars, max 5 tokens). */
     private function tokenizeSearch(string $search): array
     {
         $tokens = array_filter(
@@ -264,9 +384,7 @@ class Product extends Model
         return array_slice(array_values($tokens), 0, 5);
     }
 
-    /**
-     * Build multi-field, multi-word WHERE conditions.
-     */
+    /** Build multi-token WHERE clause for product search. */
     private function buildSearchWhere(string $search, array &$binds): string
     {
         $tokens = $this->tokenizeSearch($search);
@@ -283,9 +401,7 @@ class Product extends Model
         return ' AND (' . implode(' AND ', $clauses) . ')';
     }
 
-    /**
-     * Build relevance scoring expression for search result ranking.
-     */
+    /** Build a weighted relevance-score SQL expression for search ranking. */
     private function buildRelevanceScore(string $search, array &$binds): string
     {
         $trimmed = trim($search);
@@ -314,6 +430,19 @@ class Product extends Model
         return '(' . implode(' + ', $parts) . ')';
     }
 
+    /**
+     * Paginated storefront products with search, filter, and sort.
+     *
+     * @since 1.0.0
+     *
+     * @param  int     $userId      Seller ID.
+     * @param  int     $limit       Max rows.
+     * @param  int     $offset      Pagination offset.
+     * @param  ?string $search      Search query.
+     * @param  ?string $categoryIds Comma-separated category IDs.
+     * @param  string  $sort        Sort mode.
+     * @return array[]
+     */
     public function findActiveByUserPaginated(
         int $userId,
         int $limit = 24,
@@ -376,6 +505,16 @@ class Product extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Count active products for a seller with optional filters.
+     *
+     * @since 1.0.0
+     *
+     * @param  int     $userId      Seller ID.
+     * @param  ?string $search      Search query.
+     * @param  ?string $categoryIds Comma-separated category IDs.
+     * @return int
+     */
     public function countActiveByUser(
         int $userId,
         ?string $search = null,
@@ -410,6 +549,17 @@ class Product extends Model
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Find related products for a product detail page.
+     *
+     * @since 1.0.0
+     *
+     * @param  int  $userId     Seller ID.
+     * @param  int  $excludeId  Current product ID.
+     * @param  ?int $categoryId Category to prioritize.
+     * @param  int  $limit      Max results.
+     * @return array[]
+     */
     public function findRelated(int $userId, int $excludeId, ?int $categoryId, int $limit = 6): array
     {
         $db = static::db();
@@ -430,6 +580,15 @@ class Product extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Reorder products by array position.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $userId     Seller ID.
+     * @param  int[] $orderedIds Product IDs in display order.
+     * @return bool
+     */
     public function reorder(int $userId, array $orderedIds): bool
     {
         $db = static::db();
@@ -440,6 +599,15 @@ class Product extends Model
         return true;
     }
 
+    /**
+     * Find active products with low stock.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId    Seller ID.
+     * @param  int $threshold Stock threshold.
+     * @return array[]
+     */
     public function findLowStock(int $userId, int $threshold = 5): array
     {
         return static::rawQuery(

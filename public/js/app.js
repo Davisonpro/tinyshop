@@ -107,10 +107,6 @@ TinyShop.navigate = function(url) {
     window.location.href = url;
   }
 };
-TinyShop.formatPrice = function(n) {
-  var num = parseFloat(n) || 0;
-  return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-};
 (function() {
   var _overlay = null;
   var _showing = false;
@@ -326,6 +322,14 @@ TinyShop.imageViewer = {
   _scale: 1,
   _panX: 0,
   _panY: 0,
+  /**
+   * Open the viewer with a set of image URLs.
+   *
+   * @since 1.0.0
+   *
+   * @param {string[]} images     Array of image URLs.
+   * @param {number}   [startIndex] Zero-based index to show first.
+   */
   open: function(images, startIndex) {
     var self = this;
     self._images = images;
@@ -339,12 +343,14 @@ TinyShop.imageViewer = {
       self._el.classList.add("active");
     }, 10);
   },
+  /** Close the viewer and reset zoom. */
   close: function() {
     var self = this;
     if (!self._el) return;
     if (self._resetZoom) self._resetZoom();
     self._el.classList.remove("active");
   },
+  /** Build the viewer DOM and bind all gesture handlers. */
   _build: function() {
     var self = this;
     var div = document.createElement("div");
@@ -484,6 +490,7 @@ TinyShop.imageViewer = {
       }
     });
   },
+  /** Update the displayed image, counter, and nav button visibility. */
   _show: function() {
     var self = this;
     var img = self._el.querySelector(".image-viewer-img");
@@ -497,6 +504,7 @@ TinyShop.imageViewer = {
     next.style.display = self._images.length > 1 ? "" : "none";
     counter.style.display = self._images.length > 1 ? "" : "none";
   },
+  /** Navigate to an image by index (wraps around). */
   _go: function(idx) {
     var self = this;
     if (self._images.length <= 1) return;
@@ -517,6 +525,12 @@ $(document).on("click", ".product-gallery-slide img", function() {
   TinyShop.imageViewer.open(images, idx >= 0 ? idx : 0);
 });
 TinyShop.cardHelpers = {
+  /**
+   * Compute the badge for a product (sold-out or sale).
+   *
+   * @param {Object} p Product data.
+   * @return {Object|null} Badge object with type, text, and pct, or null.
+   */
   badge: function(p) {
     if (p.is_sold == 1) return { type: "sold", text: "Sold out", pct: 0 };
     if (p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price)) {
@@ -525,17 +539,32 @@ TinyShop.cardHelpers = {
     }
     return null;
   },
+  /**
+   * Return badge HTML or empty string.
+   *
+   * @param {Object} p Product data.
+   * @return {string} Badge markup.
+   */
   badgeHtml: function(p) {
     var b = this.badge(p);
     if (!b) return "";
     return '<span class="product-badge product-badge-' + b.type + '">' + b.text + "</span>";
   },
+  /** HTML-escape a product name. */
   escapeName: function(name) {
     return $("<span>").text(name).html();
   },
+  /** Return the product image URL or placeholder. */
   imgSrc: function(p) {
     return p.image_url || "/public/img/placeholder.svg";
   },
+  /**
+   * Build the price HTML for a product card.
+   *
+   * @param {Object} p              Product data.
+   * @param {string} currencySymbol Currency prefix string.
+   * @return {Object} Object with compare, main, and full HTML strings.
+   */
   priceHtml: function(p, currencySymbol) {
     var compare = "";
     if (p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) && p.is_sold != 1) {
@@ -1005,14 +1034,16 @@ TinyShop.spa = {
   _loading: false,
   _xhr: null,
   _loadedScripts: {},
-  /* --- Inflight fetch dedup map (url → Promise<data|null>) --- */
+  /** Inflight fetch dedup map (url -> Promise<data|null>). */
   _fetchMap: {},
-  /* --- Client-side page cache (5min TTL, max 20 entries) --- */
+  /** Client-side page cache (5 min TTL, max 20 entries). */
   _cache: {},
   _cacheTimeout: 3e5,
+  /** Strip the hash from a URL for cache keying. */
   _cacheKey: function(url) {
     return url.split("#")[0];
   },
+  /** Retrieve a cached page if still valid. */
   _getCached: function(url) {
     var key = this._cacheKey(url);
     var entry = this._cache[key];
@@ -1023,6 +1054,7 @@ TinyShop.spa = {
     }
     return entry.data;
   },
+  /** Store a page in the cache, evicting the oldest if full. */
   _setCache: function(url, data) {
     var key = this._cacheKey(url);
     this._cache[key] = { data, time: Date.now() };
@@ -1038,7 +1070,12 @@ TinyShop.spa = {
       delete this._cache[oldest];
     }
   },
-  /* --- Link validation helper --- */
+  /**
+   * Check whether a URL is an internal, SPA-navigable link.
+   *
+   * @param {string} href The href attribute value.
+   * @return {boolean} True if the link should be handled by the SPA.
+   */
   _isInternalLink: function(href) {
     if (!href || href.charAt(0) === "#") return false;
     if (href.indexOf("://") !== -1 && href.indexOf(location.origin) !== 0) return false;
@@ -1046,6 +1083,7 @@ TinyShop.spa = {
     if (/\.(pdf|zip|csv|xlsx?)$/i.test(href)) return false;
     return true;
   },
+  /** Initialise the SPA: bind click/popstate handlers and start prefetching. */
   init: function() {
     var self = this;
     $("script[src]").each(function() {
@@ -1107,7 +1145,7 @@ TinyShop.spa = {
     self._initPrefetch();
     self._ready = true;
   },
-  /* --- Link prefetching (hover + viewport) --- */
+  /** Set up hover and viewport-based link prefetching. */
   _initPrefetch: function() {
     var self = this;
     var prefetched = {};
@@ -1202,7 +1240,12 @@ TinyShop.spa = {
       observeLinks2();
     }
   },
-  /* --- Parse response (JSON fragment or full HTML fallback) --- */
+  /**
+   * Parse a SPA response (JSON fragment or full HTML fallback).
+   *
+   * @param {string} text Raw response body.
+   * @return {Object|null} Parsed page data or null on failure.
+   */
   _parseResponse: function(text) {
     try {
       var data = JSON.parse(text);
@@ -1252,6 +1295,18 @@ TinyShop.spa = {
       return null;
     }
   },
+  /**
+   * Navigate to a URL via the SPA router.
+   *
+   * Checks the cache first, then inflight fetches, then
+   * falls back to a fresh XHR. Handles redirects and the
+   * login modal for 401s.
+   *
+   * @since 1.0.0
+   *
+   * @param {string}  url        The destination URL.
+   * @param {boolean} [isPopState] True when triggered by browser back/forward.
+   */
   go: function(url, isPopState) {
     var self = this;
     if (self._xhr) {
@@ -1300,6 +1355,7 @@ TinyShop.spa = {
     }
     self._doFetch(url, isPopState);
   },
+  /** Fetch a page via XHR (fallback when not cached or prefetched). */
   _doFetch: function(url, isPopState) {
     var self = this;
     self._xhr = $.ajax({
@@ -1307,7 +1363,7 @@ TinyShop.spa = {
       method: "GET",
       dataType: "text",
       headers: { "X-SPA": "1" },
-      success: function(text, status, xhr) {
+      success: function(text) {
         self._xhr = null;
         var data = self._parseResponse(text);
         if (!data) {
@@ -1337,7 +1393,7 @@ TinyShop.spa = {
       }
     });
   },
-  /* --- Apply page data with view transition --- */
+  /** Apply parsed page data to the DOM, with view-transition support. */
   _applyPage: function(data, url, isPopState) {
     var self = this;
     function doSwap(onDomReady) {
@@ -1405,7 +1461,7 @@ TinyShop.spa = {
       });
     }
   },
-  /* --- Preload stylesheets into browser cache --- */
+  /** Preload stylesheets into the browser cache via low-priority fetch. */
   _preloadStyles: function(styleHrefs) {
     if (!styleHrefs || !styleHrefs.length || !window.fetch) return;
     var loaded = {};
@@ -1413,37 +1469,42 @@ TinyShop.spa = {
     for (var i = 0; i < links.length; i++) {
       loaded[links[i].getAttribute("href")] = true;
     }
-    for (var i = 0; i < styleHrefs.length; i++) {
-      if (!loaded[styleHrefs[i]]) {
-        fetch(styleHrefs[i], { credentials: "same-origin", priority: "low" }).catch(function() {
+    for (var j = 0; j < styleHrefs.length; j++) {
+      if (!loaded[styleHrefs[j]]) {
+        fetch(styleHrefs[j], { credentials: "same-origin", priority: "low" }).catch(function() {
         });
       }
     }
   },
-  /* --- Sync stylesheets and inline styles --- */
+  /**
+   * Sync <link> stylesheets and inline <style> blocks.
+   *
+   * Adds missing stylesheets, waits for them to load, then
+   * removes stale SPA-injected styles from previous pages.
+   */
   _syncStylesFromList: function(styleHrefs, inlineStyles, onReady) {
     var neededSet = {};
     for (var i = 0; i < styleHrefs.length; i++) neededSet[styleHrefs[i]] = true;
     var existingHrefs = {};
     var allLinks = document.head.querySelectorAll('link[rel="stylesheet"], link[rel="preload"][as="style"]');
-    for (var i = 0; i < allLinks.length; i++) {
-      existingHrefs[allLinks[i].getAttribute("href")] = true;
+    for (var j = 0; j < allLinks.length; j++) {
+      existingHrefs[allLinks[j].getAttribute("href")] = true;
     }
     var oldSpaStyles = document.head.querySelectorAll("[data-spa-style]");
     var newLinks = [];
-    for (var i = 0; i < styleHrefs.length; i++) {
-      if (!existingHrefs[styleHrefs[i]]) {
+    for (var k = 0; k < styleHrefs.length; k++) {
+      if (!existingHrefs[styleHrefs[k]]) {
         var link = document.createElement("link");
         link.rel = "stylesheet";
-        link.href = styleHrefs[i];
+        link.href = styleHrefs[k];
         link.setAttribute("data-spa-style", "");
         document.head.appendChild(link);
         newLinks.push(link);
       }
     }
     function finish() {
-      for (var i2 = 0; i2 < oldSpaStyles.length; i2++) {
-        var el = oldSpaStyles[i2];
+      for (var m = 0; m < oldSpaStyles.length; m++) {
+        var el = oldSpaStyles[m];
         if (el.tagName === "STYLE") {
           if (el.parentNode) el.parentNode.removeChild(el);
         } else if (el.tagName === "LINK") {
@@ -1454,9 +1515,9 @@ TinyShop.spa = {
         }
       }
       if (inlineStyles && inlineStyles.length) {
-        for (var i2 = 0; i2 < inlineStyles.length; i2++) {
+        for (var n = 0; n < inlineStyles.length; n++) {
           var style = document.createElement("style");
-          style.textContent = inlineStyles[i2];
+          style.textContent = inlineStyles[n];
           style.setAttribute("data-spa-style", "");
           document.head.appendChild(style);
         }
@@ -1476,9 +1537,9 @@ TinyShop.spa = {
         finish();
       }
     }
-    for (var i = 0; i < newLinks.length; i++) {
-      newLinks[i].onload = check;
-      newLinks[i].onerror = check;
+    for (var p = 0; p < newLinks.length; p++) {
+      newLinks[p].onload = check;
+      newLinks[p].onerror = check;
     }
     setTimeout(function() {
       if (!done) {
@@ -1487,6 +1548,12 @@ TinyShop.spa = {
       }
     }, 3e3);
   },
+  /**
+   * Load external scripts sequentially, then execute inline scripts.
+   *
+   * @param {Object[]} scripts  Array of { src, text, type } objects.
+   * @param {Function}  [callback] Called after all scripts have executed.
+   */
   loadScripts: function(scripts, callback) {
     var self = this;
     var externals = [];
@@ -1534,6 +1601,7 @@ TinyShop.spa = {
     }
     loadNext(0);
   },
+  /** Get or create the progress bar element. */
   _getBar: function() {
     var bar = document.getElementById("spaProgress");
     if (!bar) {
@@ -1545,6 +1613,7 @@ TinyShop.spa = {
     }
     return bar;
   },
+  /** Show the progress bar at the top of the page. */
   showProgress: function() {
     var bar = this._getBar();
     bar.className = "spa-progress-bar";
@@ -1553,6 +1622,7 @@ TinyShop.spa = {
     bar.classList.add("spa-active");
     bar.style.width = "70%";
   },
+  /** Complete and hide the progress bar. */
   hideProgress: function() {
     var bar = this._getBar();
     bar.style.width = "100%";

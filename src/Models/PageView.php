@@ -9,9 +9,9 @@ use PDO;
 use Throwable;
 
 /**
- * Tracks views on public marketing pages (landing, pricing, help, etc.).
- * Same privacy-friendly approach as ShopView: cookie-based visitor token,
- * 30-min dedup, bot exclusion, no PII stored.
+ * Marketing page view analytics.
+ *
+ * @since 1.0.0
  */
 final class PageView
 {
@@ -27,7 +27,7 @@ final class PageView
         'unique_week' => 0,
     ];
 
-    /** Page path labels for display. */
+    /** Human-readable labels for known paths. */
     private const PAGE_LABELS = [
         '/'        => 'Home',
         '/pricing' => 'Pricing',
@@ -40,7 +40,16 @@ final class PageView
     }
 
     /**
-     * Log a page view. Silently fails — never breaks the site.
+     * Record a page view with deduplication.
+     *
+     * @since 1.0.0
+     *
+     * @param string  $pagePath      URL path (e.g. "/pricing").
+     * @param string  $visitorToken  Cookie token.
+     * @param string  $ip            Visitor IP.
+     * @param string  $userAgent     User-agent string.
+     * @param ?string $refererDomain Parsed referer domain.
+     * @param ?string $utmSource     UTM source parameter.
      */
     public function log(
         string $pagePath,
@@ -81,7 +90,11 @@ final class PageView
     }
 
     /**
-     * Stats: today, week, month, all time, unique visitors this week.
+     * Get aggregate view stats.
+     *
+     * @since 1.0.0
+     *
+     * @return array{today: int, week: int, month: int, total: int, unique_week: int}
      */
     public function getStats(): array
     {
@@ -110,7 +123,12 @@ final class PageView
     }
 
     /**
-     * Daily view counts. Always returns exactly $days entries, zero-filled.
+     * Daily view counts, zero-filled for charts.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $days Number of days (1-90).
+     * @return list<array{day: string, label: string, views: int}>
      */
     public function getDailyViews(int $days = 14): array
     {
@@ -144,7 +162,11 @@ final class PageView
     }
 
     /**
-     * Traffic sources for the last 30 days, grouped and categorized.
+     * Traffic sources for the last 30 days.
+     *
+     * @since 1.0.0
+     *
+     * @return list<array{key: string, label: string, views: int, unique: int, percent: float}>
      */
     public function getTrafficSources(): array
     {
@@ -201,7 +223,12 @@ final class PageView
     }
 
     /**
-     * Top pages by views in the last 30 days.
+     * Top pages by views (last 30 days).
+     *
+     * @since 1.0.0
+     *
+     * @param  int $limit Max results (1-20).
+     * @return list<array{page_path: string, views: int, unique_visitors: int, label: string}>
      */
     public function getTopPages(int $limit = 10): array
     {
@@ -231,6 +258,7 @@ final class PageView
         }
     }
 
+    /** Check if a user-agent looks like a bot. */
     private function isBot(string $ua): bool
     {
         if ($ua === '') {

@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\OAuth;
 
+/**
+ * TikTok OAuth provider.
+ *
+ * @since 1.0.0
+ */
 final class TiktokProvider implements OAuthProviderInterface
 {
     use OAuthHttpTrait;
@@ -19,6 +24,7 @@ final class TiktokProvider implements OAuthProviderInterface
         return 'tiktok';
     }
 
+    /** {@inheritDoc} */
     public function getAuthUrl(string $state): string
     {
         $params = http_build_query([
@@ -32,6 +38,7 @@ final class TiktokProvider implements OAuthProviderInterface
         return 'https://www.tiktok.com/v2/auth/authorize/?' . $params;
     }
 
+    /** {@inheritDoc} */
     public function handleCallback(string $code): ?OAuthUser
     {
         $tokenData = $this->httpPost('https://open.tiktokapis.com/v2/oauth/token/', [

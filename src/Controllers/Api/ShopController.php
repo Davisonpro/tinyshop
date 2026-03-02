@@ -19,6 +19,11 @@ use TinyShop\Services\Upload;
 use TinyShop\Services\Validation;
 use TinyShop\Services\View;
 
+/**
+ * Shop settings API controller.
+ *
+ * @since 1.0.0
+ */
 final class ShopController
 {
     use JsonResponder;
@@ -35,6 +40,15 @@ final class ShopController
         private readonly AuditLog $auditLog
     ) {}
 
+    /**
+     * Get the seller's shop profile.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function get(Request $request, Response $response): Response
     {
         $user = User::find($this->auth->userId());
@@ -42,6 +56,15 @@ final class ShopController
         return $this->json($response, ['shop' => $user]);
     }
 
+    /**
+     * Update shop settings.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function update(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -61,8 +84,13 @@ final class ShopController
         }
 
         // Validate theme if being changed
-        if (isset($data['shop_theme']) && $this->themeService->loadManifest($data['shop_theme']) === null) {
-            return $this->json($response, ['error' => true, 'message' => 'Invalid theme'], 422);
+        if (isset($data['shop_theme'])) {
+            if ($this->themeService->loadManifest($data['shop_theme']) === null) {
+                return $this->json($response, ['error' => true, 'message' => 'Invalid theme'], 422);
+            }
+            if (!$this->planGuard->canUseTheme($userId, $data['shop_theme'])) {
+                return $this->json($response, ['error' => true, 'message' => 'Your plan doesn\'t include this theme. Upgrade to unlock it.'], 403);
+            }
         }
 
         // Validate color palette
@@ -197,6 +225,15 @@ final class ShopController
         return $this->json($response, ['success' => true, 'shop' => $user]);
     }
 
+    /**
+     * Change the seller's password.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function changePassword(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -229,6 +266,15 @@ final class ShopController
         return $this->json($response, ['success' => true, 'message' => 'Password updated']);
     }
 
+    /**
+     * Change the seller's email.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function changeEmail(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -271,6 +317,15 @@ final class ShopController
         return $this->json($response, ['success' => true, 'message' => 'Email updated']);
     }
 
+    /**
+     * Get theme customizer options.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function getThemeOptions(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -292,6 +347,15 @@ final class ShopController
         ]);
     }
 
+    /**
+     * Save theme customizer options.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function saveThemeOptions(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -348,6 +412,15 @@ final class ShopController
         return $this->json($response, ['success' => true]);
     }
 
+    /**
+     * Delete the seller's account.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function deleteAccount(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();

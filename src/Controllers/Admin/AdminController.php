@@ -20,6 +20,11 @@ use TinyShop\Services\Mailer;
 use TinyShop\Services\Upload;
 use TinyShop\Services\View;
 
+/**
+ * Platform administration controller.
+ *
+ * @since 1.0.0
+ */
 final class AdminController
 {
     use JsonResponder;
@@ -59,6 +64,15 @@ final class AdminController
         private readonly LoggerInterface $logger,
     ) {}
 
+    /**
+     * Render the admin dashboard.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function dashboard(Request $request, Response $response): Response
     {
         $orderStats = $this->orderModel->getPlatformStats();
@@ -77,6 +91,15 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Render the platform analytics page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function analytics(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -108,6 +131,15 @@ final class AdminController
         ]);
     }
 
+    /**
+     * List all platform orders.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function orders(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -129,6 +161,15 @@ final class AdminController
         ]);
     }
 
+    /**
+     * List all platform products.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function products(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -150,6 +191,15 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Render the platform settings page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function settings(Request $request, Response $response): Response
     {
         return $this->view->render($response, 'pages/admin/settings.tpl', [
@@ -159,6 +209,15 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Stop impersonating a seller.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function stopImpersonate(Request $request, Response $response): Response
     {
         $this->auth->stopImpersonating();
@@ -168,6 +227,15 @@ final class AdminController
 
     // ── API endpoints ──
 
+    /**
+     * Save platform settings.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function updateSettings(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -194,6 +262,15 @@ final class AdminController
         return $this->json($response, ['success' => true]);
     }
 
+    /**
+     * Send a test email to verify SMTP config.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function testEmail(Request $request, Response $response): Response
     {
         $adminEmail = $this->settingModel->get('support_email', '');
@@ -223,6 +300,15 @@ final class AdminController
         return $this->json($response, ['success' => true, 'message' => 'Test email sent to ' . $adminEmail]);
     }
 
+    /**
+     * Test S3-compatible storage connectivity.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function testS3(Request $request, Response $response): Response
     {
         $bucket    = trim($this->settingModel->get('s3_bucket', '') ?? '');
@@ -282,6 +368,15 @@ final class AdminController
         }
     }
 
+    /**
+     * Ping search engines with the sitemap URL.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function pingSitemap(Request $request, Response $response): Response
     {
         $baseDomain = $this->settingModel->get('base_domain', '');

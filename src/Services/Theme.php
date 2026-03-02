@@ -6,6 +6,11 @@ namespace TinyShop\Services;
 
 use TinyShop\Models\ThemeOption;
 
+/**
+ * Theme service.
+ *
+ * @since 1.0.0
+ */
 final class Theme
 {
     private string $themesDir;
@@ -24,7 +29,11 @@ final class Theme
 
     /**
      * Activate a theme for the current request.
-     * Loads manifest, registers template dir, runs functions.php, fires hook.
+     *
+     * @since 1.0.0
+     *
+     * @param string $themeSlug Theme slug.
+     * @param View   $view      View service to register templates with.
      */
     public function activate(string $themeSlug, View $view): void
     {
@@ -57,6 +66,11 @@ final class Theme
 
     /**
      * Load and validate a theme.json manifest.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $themeSlug Theme slug.
+     * @return array|null Parsed manifest, or null if invalid.
      */
     public function loadManifest(string $themeSlug): ?array
     {
@@ -83,20 +97,19 @@ final class Theme
         return $manifest;
     }
 
+    /** Get the active theme slug. */
     public function activeSlug(): ?string
     {
         return $this->activeTheme;
     }
 
+    /** Get the active theme's manifest. */
     public function activeManifest(): ?array
     {
         return $this->activeManifest;
     }
 
-    /**
-     * Get CSS URLs for the active theme.
-     * @return string[]
-     */
+    /** @return string[] CSS URLs for the active theme. */
     public function getStyleUrls(): array
     {
         if (!$this->activeManifest || empty($this->activeManifest['styles'])) {
@@ -110,10 +123,7 @@ final class Theme
         return $urls;
     }
 
-    /**
-     * Get JS URLs for the active theme.
-     * @return string[]
-     */
+    /** @return string[] JS URLs for the active theme. */
     public function getScriptUrls(): array
     {
         if (!$this->activeManifest || empty($this->activeManifest['scripts'])) {
@@ -127,9 +137,7 @@ final class Theme
         return $urls;
     }
 
-    /**
-     * Get Google Fonts <link> URL from theme manifest.
-     */
+    /** Get the Google Fonts link URL, or null. */
     public function getFontLink(): ?string
     {
         if (!$this->activeManifest || empty($this->activeManifest['fonts'])) {
@@ -151,25 +159,24 @@ final class Theme
             : null;
     }
 
-    /**
-     * Check if the active theme supports a feature.
-     */
+    /** Check if the active theme supports a feature. */
     public function supports(string $feature): bool
     {
         return (bool) ($this->activeManifest['supports'][$feature] ?? false);
     }
 
-    /**
-     * Get a theme setting value.
-     */
+    /** Get a setting from the active theme manifest. */
     public function setting(string $key, mixed $default = null): mixed
     {
         return $this->activeManifest['settings'][$key] ?? $default;
     }
 
     /**
-     * List all available themes (scans themes directory).
-     * @return array[]
+     * List all available themes.
+     *
+     * @since 1.0.0
+     *
+     * @return array[] Theme manifests.
      */
     public function listAvailable(): array
     {
@@ -189,15 +196,20 @@ final class Theme
         return $themes;
     }
 
+    /** Get the theme customizer. */
     public function getCustomizer(): ThemeCustomizer
     {
         return $this->customizer;
     }
 
     /**
-     * Load saved theme options for a seller and merge with theme defaults.
+     * Resolve theme options for a seller, merging saved values with defaults.
      *
-     * @return array<string, mixed>
+     * @since 1.0.0
+     *
+     * @param  int         $userId     Seller ID.
+     * @param  ThemeOption $themeOption Theme option model.
+     * @return array<string, mixed> Resolved options.
      */
     public function resolveOptions(int $userId, ThemeOption $themeOption): array
     {
@@ -206,6 +218,7 @@ final class Theme
         return $this->customizer->resolveOptions($saved);
     }
 
+    /** Get the themes directory path. */
     public function themesDir(): string
     {
         return $this->themesDir;

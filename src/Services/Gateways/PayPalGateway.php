@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\Gateways;
 
+/**
+ * PayPal gateway (Orders v2 API).
+ *
+ * @since 1.0.0
+ */
 final class PayPalGateway implements GatewayInterface
 {
     private readonly string $baseUrl;
@@ -23,6 +28,7 @@ final class PayPalGateway implements GatewayInterface
         return 'paypal';
     }
 
+    /** {@inheritDoc} */
     public function createPayment(PaymentRequest $request): PaymentResult
     {
         $token = $this->getAccessToken();
@@ -82,6 +88,7 @@ final class PayPalGateway implements GatewayInterface
         );
     }
 
+    /** {@inheritDoc} */
     public function verifyPayment(array $params): PaymentVerification
     {
         $paypalOrderId = $params['token'] ?? '';
@@ -129,6 +136,7 @@ final class PayPalGateway implements GatewayInterface
         return new PaymentVerification(paid: false, raw: $data);
     }
 
+    /** {@inheritDoc} */
     public function parseWebhook(string $payload, array $params = [], array $headers = []): PaymentVerification
     {
         $data = json_decode($payload, true);
@@ -150,9 +158,7 @@ final class PayPalGateway implements GatewayInterface
         return new PaymentVerification(paid: false, raw: $data);
     }
 
-    /**
-     * Check PayPal order status without capturing.
-     */
+    /** Check order status without capturing. */
     public function getOrderStatus(string $paypalOrderId): PaymentVerification
     {
         $token = $this->getAccessToken();
@@ -187,6 +193,7 @@ final class PayPalGateway implements GatewayInterface
         );
     }
 
+    /** Get a PayPal OAuth2 access token. */
     private function getAccessToken(): string
     {
         $ch = curl_init($this->baseUrl . '/v1/oauth2/token');

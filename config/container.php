@@ -40,8 +40,8 @@ return function (Config $config, array $dbConfig): array {
             return new CustomerAuth();
         },
 
-        View::class => function ($container) use ($config) {
-            return new View($config, $container->get(Auth::class), $container->get(Setting::class));
+        View::class => function ($container) use ($config, $oauthConfig) {
+            return new View($config, $container->get(Auth::class), $container->get(Setting::class), $oauthConfig);
         },
 
         Upload::class => function ($container) use ($config) {

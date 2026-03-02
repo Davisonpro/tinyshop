@@ -5,30 +5,28 @@ declare(strict_types=1);
 namespace TinyShop\Services;
 
 /**
- * Loads addons from the /addons directory.
+ * Addon loader.
  *
- * Each addon is a folder containing an init.php file:
- *   addons/
- *     my-addon/
- *       init.php   ← entry point, registers hooks
- *
- * Example addon init.php:
- *   <?php
- *   use TinyShop\Services\Hooks;
- *   Hooks::addFilter('product.price.display', function ($price) {
- *       return '$' . number_format($price, 2);
- *   });
+ * @since 1.0.0
  */
 final class AddonLoader
 {
     private string $addonsDir;
     private array $loaded = [];
 
+    /**
+     * @param string $addonsDir Path to the addons directory.
+     */
     public function __construct(string $addonsDir)
     {
         $this->addonsDir = $addonsDir;
     }
 
+    /**
+     * Load all addons from the addons directory.
+     *
+     * @since 1.0.0
+     */
     public function loadAll(): void
     {
         if (!is_dir($this->addonsDir)) {
@@ -45,6 +43,13 @@ final class AddonLoader
         }
     }
 
+    /**
+     * Get loaded addon names.
+     *
+     * @since 1.0.0
+     *
+     * @return string[]
+     */
     public function getLoaded(): array
     {
         return array_keys($this->loaded);

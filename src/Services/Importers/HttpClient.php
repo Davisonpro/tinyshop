@@ -6,13 +6,27 @@ namespace TinyShop\Services\Importers;
 
 use RuntimeException;
 
+/**
+ * HTTP client for product imports.
+ *
+ * @since 1.0.0
+ */
 final class HttpClient
 {
     private const TIMEOUT = 15;
 
     private const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
 
-    /** Fetch URL body as string. */
+    /**
+     * Fetch a URL and return the response body.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $url URL to fetch.
+     * @return string Response body.
+     *
+     * @throws RuntimeException On failure.
+     */
     public function get(string $url): string
     {
         $ch = curl_init();
@@ -71,7 +85,7 @@ final class HttpClient
         return (string) $body;
     }
 
-    /** Locate a CA certificate bundle on the system. */
+    /** Find a system CA bundle for SSL verification. */
     private static function findCaBundle(): ?string
     {
         $paths = [
@@ -91,7 +105,16 @@ final class HttpClient
         return null;
     }
 
-    /** Download a file to a temporary path. Returns the temp file path. */
+    /**
+     * Download a file to a temporary path.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $url Remote file URL.
+     * @return string Path to the downloaded temp file.
+     *
+     * @throws RuntimeException On failure.
+     */
     public function download(string $url): string
     {
         $ext  = pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'jpg';

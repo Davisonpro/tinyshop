@@ -12,6 +12,11 @@ use TinyShop\Models\User;
 use TinyShop\Services\Auth;
 use TinyShop\Services\PlanGuard;
 
+/**
+ * Coupon API controller.
+ *
+ * @since 1.0.0
+ */
 final class CouponController
 {
     use JsonResponder;
@@ -24,7 +29,13 @@ final class CouponController
     ) {}
 
     /**
-     * GET /api/coupons — List seller's coupons
+     * List the seller's coupons.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function list(Request $request, Response $response): Response
     {
@@ -33,7 +44,13 @@ final class CouponController
     }
 
     /**
-     * POST /api/coupons — Create coupon
+     * Create a coupon.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function create(Request $request, Response $response): Response
     {
@@ -91,7 +108,14 @@ final class CouponController
     }
 
     /**
-     * PUT /api/coupons/{id} — Update coupon
+     * Update a coupon.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
      */
     public function update(Request $request, Response $response, array $args): Response
     {
@@ -162,7 +186,14 @@ final class CouponController
     }
 
     /**
-     * DELETE /api/coupons/{id} — Delete coupon
+     * Delete a coupon.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
      */
     public function delete(Request $request, Response $response, array $args): Response
     {
@@ -178,7 +209,13 @@ final class CouponController
     }
 
     /**
-     * POST /api/checkout/apply-coupon — Validate coupon for cart (public)
+     * Validate and apply a coupon at checkout.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function applyCoupon(Request $request, Response $response): Response
     {

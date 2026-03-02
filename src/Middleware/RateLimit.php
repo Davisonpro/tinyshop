@@ -11,10 +11,9 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 
 /**
- * File-based rate limiter — no Redis/APCu required.
+ * File-based rate limiter.
  *
- * Stores attempt counts in flat files keyed by IP + route.
- * Garbage-collected lazily (old files pruned on ~1% of requests).
+ * @since 1.0.0
  */
 final class RateLimit implements MiddlewareInterface
 {
@@ -22,6 +21,13 @@ final class RateLimit implements MiddlewareInterface
     private int $windowSeconds;
     private string $storageDir;
 
+    /**
+     * @since 1.0.0
+     *
+     * @param int    $maxAttempts   Max requests per window.
+     * @param int    $windowSeconds Window length in seconds.
+     * @param string $storageDir    State file directory.
+     */
     public function __construct(int $maxAttempts = 10, int $windowSeconds = 60, string $storageDir = '')
     {
         $this->maxAttempts = $maxAttempts;
@@ -29,6 +35,11 @@ final class RateLimit implements MiddlewareInterface
         $this->storageDir = $storageDir ?: sys_get_temp_dir() . '/tinyshop_ratelimit';
     }
 
+    /**
+     * Enforce the rate limit, returning 429 if exceeded.
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $ip = $this->resolveIp($request);
@@ -67,7 +78,7 @@ final class RateLimit implements MiddlewareInterface
         return $handler->handle($request);
     }
 
-    /** Read timestamps within the current window. */
+    /** @return int[] Timestamps within the current window. */
     private function readAttempts(string $file, int $now): array
     {
         if (!is_file($file)) {
@@ -88,18 +99,20 @@ final class RateLimit implements MiddlewareInterface
         return array_values($timestamps);
     }
 
+    /** Write timestamps to the state file. */
     private function writeAttempts(string $file, array $timestamps): void
     {
         @file_put_contents($file, implode("\n", $timestamps), LOCK_EX);
     }
 
+    /** Get the client IP. */
     private function resolveIp(ServerRequestInterface $request): string
     {
         $server = $request->getServerParams();
         return $server['REMOTE_ADDR'] ?? '127.0.0.1';
     }
 
-    /** Remove files older than 2× the window. */
+    /** Clean up stale rate-limit files. */
     private function gc(): void
     {
         $cutoff = time() - ($this->windowSeconds * 2);

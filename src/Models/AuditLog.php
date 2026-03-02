@@ -7,6 +7,11 @@ namespace TinyShop\Models;
 use TinyShop\Services\DB;
 use PDO;
 
+/**
+ * Audit log model.
+ *
+ * @since 1.0.0
+ */
 final class AuditLog
 {
     private readonly PDO $db;
@@ -18,7 +23,14 @@ final class AuditLog
 
     /**
      * Record an audit log entry.
-     * Wrapped in try/catch so failures never break the main flow.
+     *
+     * @since 1.0.0
+     *
+     * @param  string  $action     Action key (e.g. "plan.created").
+     * @param  ?int    $userId     Acting user, or null for system events.
+     * @param  ?string $entityType Entity type (e.g. "plan", "user").
+     * @param  ?int    $entityId   Affected entity ID.
+     * @param  ?array  $details    Extra metadata stored as JSON.
      */
     public function log(
         string $action,
@@ -47,7 +59,13 @@ final class AuditLog
     }
 
     /**
-     * Get recent audit log entries with user name joined.
+     * Get recent audit log entries with user info.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $limit  Max rows.
+     * @param  int $offset Pagination offset.
+     * @return array[]
      */
     public function getRecent(int $limit = 50, int $offset = 0): array
     {
@@ -66,6 +84,12 @@ final class AuditLog
 
     /**
      * Get audit log entries for a specific user.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId User ID.
+     * @param  int $limit  Max rows.
+     * @return array[]
      */
     public function getByUser(int $userId, int $limit = 50): array
     {
@@ -84,8 +108,12 @@ final class AuditLog
     }
 
     /**
-     * Delete audit log entries older than N days.
-     * Returns the number of rows deleted.
+     * Purge entries older than the retention window.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $daysToKeep Days to retain (default 90).
+     * @return int Rows deleted.
      */
     public function cleanup(int $daysToKeep = 90): int
     {

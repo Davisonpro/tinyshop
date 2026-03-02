@@ -18,6 +18,11 @@ use TinyShop\Models\Setting;
 use TinyShop\Models\ShopView;
 use TinyShop\Models\User;
 
+/**
+ * Public platform page controller.
+ *
+ * @since 1.0.0
+ */
 final class PageController
 {
     private const VISITOR_COOKIE_MAX_AGE = 86400 * 365;
@@ -33,6 +38,15 @@ final class PageController
         private readonly PageView $pageViewModel
     ) {}
 
+    /**
+     * Render the landing page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function landing(Request $request, Response $response): Response
     {
         if ($this->auth->check()) {
@@ -47,6 +61,15 @@ final class PageController
         ]);
     }
 
+    /**
+     * Render the login page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function login(Request $request, Response $response): Response
     {
         return $this->view->render($response, 'pages/auth/login.tpl', [
@@ -55,6 +78,15 @@ final class PageController
         ]);
     }
 
+    /**
+     * Render the registration page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function register(Request $request, Response $response): Response
     {
         if ($this->setting->get('allow_registration', '1') !== '1') {
@@ -67,6 +99,16 @@ final class PageController
         ]);
     }
 
+    /**
+     * Redirect to the OAuth provider's auth URL.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function oauthRedirect(Request $request, Response $response, array $args): Response
     {
         $provider = $args['provider'] ?? '';
@@ -84,6 +126,16 @@ final class PageController
         return $response->withHeader('Location', $url)->withStatus(302);
     }
 
+    /**
+     * Handle the OAuth provider callback.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function oauthCallback(Request $request, Response $response, array $args): Response
     {
         $provider = $args['provider'] ?? '';
@@ -172,6 +224,15 @@ final class PageController
         return $response->withHeader('Location', '/dashboard')->withStatus(302);
     }
 
+    /**
+     * Render the pricing page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function pricing(Request $request, Response $response): Response
     {
         $response = $this->trackPageView($request, $response, '/pricing');
@@ -190,6 +251,15 @@ final class PageController
         ]);
     }
 
+    /**
+     * Render the forgot-password page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function forgotPassword(Request $request, Response $response): Response
     {
         return $this->view->render($response, 'pages/auth/forgot_password.tpl', [
@@ -198,6 +268,15 @@ final class PageController
         ]);
     }
 
+    /**
+     * Render the password-reset page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function resetPassword(Request $request, Response $response): Response
     {
         $token = $request->getQueryParams()['token'] ?? '';
@@ -209,12 +288,33 @@ final class PageController
         ]);
     }
 
+    /**
+     * Log out and redirect to the login page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function logout(Request $request, Response $response): Response
     {
         $this->auth->logout();
         return $response->withHeader('Location', '/login')->withStatus(302);
     }
 
+    /**
+     * Render a CMS page by slug.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     *
+     * @throws HttpNotFoundException When the page does not exist.
+     */
     public function showPage(Request $request, Response $response, array $args): Response
     {
         $slug = $args['slug'] ?? '';
@@ -237,6 +337,15 @@ final class PageController
         ]);
     }
 
+    /**
+     * Serve the platform PWA manifest.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function manifest(Request $request, Response $response): Response
     {
         $appName = $this->setting->get('app_name') ?: 'TinyShop';

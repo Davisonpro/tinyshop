@@ -9,6 +9,11 @@ use Psr\Http\Message\UploadedFileInterface;
 use RuntimeException;
 use TinyShop\Models\Setting;
 
+/**
+ * File upload service.
+ *
+ * @since 1.0.0
+ */
 final class Upload
 {
     private const WEBP_QUALITY = 82;
@@ -16,7 +21,7 @@ final class Upload
     private string $uploadDir;
     private string $uploadUrl;
     private int $maxSize;
-    /** @var string[] */
+    /** @var string[] MIME types accepted for upload. */
     private array $allowedTypes;
     private Setting $settings;
 
@@ -29,6 +34,16 @@ final class Upload
         $this->settings     = $settings;
     }
 
+    /**
+     * Store an uploaded file.
+     *
+     * @since 1.0.0
+     *
+     * @param  UploadedFileInterface $file PSR-7 uploaded file.
+     * @return string Public URL of the stored file.
+     *
+     * @throws RuntimeException On validation failure.
+     */
     public function store(UploadedFileInterface $file): string
     {
         if ($file->getError() !== UPLOAD_ERR_OK) {
@@ -87,6 +102,7 @@ final class Upload
         return $this->finalize($finalPath, $finalName, $finalMime, $originalPath !== $finalPath ? $originalPath : null);
     }
 
+    /** Push to S3 if configured, otherwise return local URL. */
     private function finalize(string $localPath, string $fileName, string $mime, ?string $companionPath = null): string
     {
         $s3Client = $this->buildS3Client();
@@ -109,7 +125,8 @@ final class Upload
 
                 return $this->getS3PublicUrl($s3Key);
             } catch (\Throwable $e) {
-                // S3 failed — fall through to local storage
+                // S3 upload failed — fall through to local storage as a graceful degradation.
+                error_log('[Upload] S3 upload failed for ' . $fileName . ': ' . $e->getMessage());
             }
         }
 
@@ -118,6 +135,7 @@ final class Upload
 
     /* ── S3 helpers ── */
 
+    /** Build an S3 client from platform settings, or null if unconfigured. */
     private function buildS3Client(): ?S3Client
     {
         $all = $this->settings->all();
@@ -152,6 +170,7 @@ final class Upload
         return trim($this->settings->get('s3_bucket', '') ?? '');
     }
 
+    /** Build the public URL for an S3 object. */
     private function getS3PublicUrl(string $key): string
     {
         $cdnUrl = trim($this->settings->get('s3_cdn_url', '') ?? '');
@@ -170,6 +189,7 @@ final class Upload
         return 'https://' . $bucket . '.s3.' . $region . '.amazonaws.com/' . $key;
     }
 
+    /** Check if a URL points to our S3 bucket. */
     private function isS3Url(string $url): bool
     {
         if (!str_starts_with($url, 'https://')) {
@@ -195,6 +215,7 @@ final class Upload
             || str_contains($url, '.amazonaws.com/' . $bucket . '/');
     }
 
+    /** Extract the S3 object key from a public URL. */
     private function extractS3Key(string $url): ?string
     {
         $cdnUrl = trim($this->settings->get('s3_cdn_url', '') ?? '');
@@ -226,6 +247,7 @@ final class Upload
         return null;
     }
 
+    /** Delete an object and its companions from S3. */
     private function deleteFromS3(string $url): bool
     {
         $s3Client = $this->buildS3Client();
@@ -269,7 +291,17 @@ final class Upload
         }
     }
 
-    /** Store a local file (e.g. downloaded image) — runs MIME check, WebP conversion, S3. */
+    /**
+     * Store a file from a local path (e.g. downloaded import image).
+     *
+     * @since 1.0.0
+     *
+     * @param  string $localPath    Absolute path to the file.
+     * @param  string $originalName Original filename for extension detection.
+     * @return string Public URL of the stored file.
+     *
+     * @throws RuntimeException If the file is missing or type not allowed.
+     */
     public function storeFromPath(string $localPath, string $originalName): string
     {
         if (!is_file($localPath)) {
@@ -308,6 +340,7 @@ final class Upload
 
     /* ── WebP conversion ── */
 
+    /** Convert an image to WebP using GD, or null if not possible. */
     private function convertToWebP(string $sourcePath, string $baseName, string $mime): ?string
     {
         if (!function_exists('imagewebp')) {
@@ -353,6 +386,7 @@ final class Upload
 
     /* ── SVG sanitization ── */
 
+    /** Sanitize an SVG by stripping scripts, event handlers, and dangerous URIs. */
     private function sanitizeSvg(string $path): void
     {
         $xml = file_get_contents($path);
@@ -385,7 +419,7 @@ final class Upload
         file_put_contents($path, $xml);
     }
 
-    /** Detect real MIME type from file content using finfo. */
+    /** Detect MIME type from file content. */
     private function detectMime(string $path): ?string
     {
         if (!function_exists('finfo_open')) {
@@ -405,6 +439,14 @@ final class Upload
 
     /* ── Delete ── */
 
+    /**
+     * Delete a file by its public URL.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $url Public URL of the file.
+     * @return bool True if deleted.
+     */
     public function deleteFile(string $url): bool
     {
         // S3 URL — full https:// URL

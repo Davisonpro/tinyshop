@@ -16,6 +16,11 @@ use TinyShop\Services\Auth;
 use TinyShop\Services\Upload;
 use TinyShop\Services\View;
 
+/**
+ * Admin seller management controller.
+ *
+ * @since 1.0.0
+ */
 final class AdminSellerController
 {
     use JsonResponder;
@@ -32,6 +37,15 @@ final class AdminSellerController
         private readonly LoggerInterface $logger,
     ) {}
 
+    /**
+     * List all sellers.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function sellers(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -53,6 +67,16 @@ final class AdminSellerController
         ]);
     }
 
+    /**
+     * Render the seller detail page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function sellerDetail(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -80,6 +104,16 @@ final class AdminSellerController
         ]);
     }
 
+    /**
+     * Impersonate a seller.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function impersonate(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -100,6 +134,16 @@ final class AdminSellerController
         return $this->json($response, ['success' => true, 'redirect' => '/dashboard']);
     }
 
+    /**
+     * Toggle a seller's active or showcased status.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function toggleSeller(Request $request, Response $response, array $args): Response
     {
         $id   = (int) $args['id'];
@@ -129,6 +173,16 @@ final class AdminSellerController
         return $this->json($response, ['success' => true]);
     }
 
+    /**
+     * Assign or remove a seller's plan.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function updateSellerPlan(Request $request, Response $response, array $args): Response
     {
         $id   = (int) $args['id'];
@@ -177,6 +231,16 @@ final class AdminSellerController
         return $this->json($response, ['success' => true, 'plan_name' => $planName]);
     }
 
+    /**
+     * Delete a seller account.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function deleteSeller(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];

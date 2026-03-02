@@ -1,10 +1,17 @@
 /**
  * Auth pages — login, register, forgot-password, reset-password.
- * Detects which form exists on the page and binds handlers.
- * Uses page:init so it re-initializes on SPA navigation.
+ *
+ * Detects which form exists on the page and binds the
+ * appropriate handlers. Re-initialises on SPA navigation
+ * via page:init.
+ *
+ * @since 1.0.0
  */
 $(document).on('page:init', function() {
+
     // ── Shared: password toggle ──
+
+    /** Bind a show/hide toggle to a password input. */
     function bindPasswordToggle(toggleId, inputId) {
         $('#' + toggleId).on('click', function() {
             var $input = $('#' + inputId);
@@ -55,6 +62,7 @@ $(document).on('page:init', function() {
     if ($('#registerForm').length) {
         bindPasswordToggle('togglePassword', 'password');
 
+        /** Score password strength from 0 (very weak) to 5 (very strong). */
         function checkStrength(pw) {
             var score = 0;
             if (pw.length >= 6) score++;

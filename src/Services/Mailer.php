@@ -9,6 +9,11 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use Smarty\Smarty;
 use TinyShop\Models\Setting;
 
+/**
+ * Email service.
+ *
+ * @since 1.0.0
+ */
 final class Mailer
 {
     private const DEFAULT_SMTP_PORT = 587;
@@ -31,6 +36,15 @@ final class Mailer
         $this->smarty->setCaching(Smarty::CACHING_OFF);
     }
 
+    /**
+     * Send the welcome email to a new seller.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $email Recipient email.
+     * @param  string $name  Recipient name.
+     * @return bool
+     */
     public function sendWelcome(string $email, string $name): bool
     {
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -46,6 +60,16 @@ final class Mailer
         return $this->send($email, 'Welcome to ' . $this->appName . '!', $html) === null;
     }
 
+    /**
+     * Send a password reset email.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $email    Recipient email.
+     * @param  string $name     Recipient name.
+     * @param  string $resetUrl Password reset link.
+     * @return bool
+     */
     public function sendPasswordReset(string $email, string $name, string $resetUrl): bool
     {
         $this->smarty->assign('app_name', $this->appName);
@@ -58,6 +82,18 @@ final class Mailer
         return $this->send($email, $this->appName . ' - Reset Your Password', $html) === null;
     }
 
+    /**
+     * Send an order confirmation to the customer.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $customerEmail Customer email.
+     * @param  string $customerName  Customer name.
+     * @param  array  $order         Order data.
+     * @param  array  $items         Line items.
+     * @param  array  $shop          Shop data.
+     * @return bool
+     */
     public function sendOrderConfirmation(
         string $customerEmail,
         string $customerName,
@@ -84,6 +120,18 @@ final class Mailer
         return $this->send($customerEmail, $subject, $html) === null;
     }
 
+    /**
+     * Notify a seller about a new order.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $sellerEmail Seller email.
+     * @param  string $sellerName  Seller name.
+     * @param  array  $order       Order data.
+     * @param  array  $items       Line items.
+     * @param  array  $shop        Shop data.
+     * @return bool
+     */
     public function sendNewOrderNotification(
         string $sellerEmail,
         string $sellerName,
@@ -111,7 +159,14 @@ final class Mailer
     }
 
     /**
-     * Send an email. Returns null on success, error message string on failure.
+     * Send an HTML email.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $to       Recipient.
+     * @param  string $subject  Subject line.
+     * @param  string $htmlBody HTML body.
+     * @return string|null Null on success, error message on failure.
      */
     public function send(string $to, string $subject, string $htmlBody): ?string
     {
@@ -132,9 +187,7 @@ final class Mailer
         }
     }
 
-    /**
-     * Build a PHPMailer instance configured with current SMTP settings.
-     */
+    /** Build a PHPMailer instance with SMTP settings from the database. */
     private function buildMailer(): PHPMailer
     {
         $allSettings = $this->settings->all();
@@ -173,6 +226,7 @@ final class Mailer
         return $mail;
     }
 
+    /** Convert HTML to plain text for the email alt body. */
     private static function htmlToPlainText(string $html): string
     {
         $text = str_replace(

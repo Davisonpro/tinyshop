@@ -1,11 +1,23 @@
-/* ============================================================
-   Modal (Bottom Sheet) — kept for generic use
-   ============================================================ */
+/**
+ * Bottom-sheet modal with focus trapping and confirm dialog.
+ *
+ * Provides TinyShop.openModal / closeModal for generic content
+ * and TinyShop.confirm for yes/no confirmation flows.
+ *
+ * @since 1.0.0
+ */
 TinyShop._previousFocus = null;
-
 TinyShop._modalClearTimer = null;
+
+/**
+ * Open a bottom-sheet modal.
+ *
+ * @since 1.0.0
+ *
+ * @param {string} title       Modal heading text.
+ * @param {string} contentHtml Inner HTML for the modal body.
+ */
 TinyShop.openModal = function(title, contentHtml) {
-    // Cancel any pending clear from a previous closeModal
     if (TinyShop._modalClearTimer) { clearTimeout(TinyShop._modalClearTimer); TinyShop._modalClearTimer = null; }
     TinyShop._previousFocus = document.activeElement;
     $('#modalTitle').text(title);
@@ -20,12 +32,12 @@ TinyShop.openModal = function(title, contentHtml) {
     }, 100);
 };
 
+/** Close the active modal and restore focus to its trigger. */
 TinyShop.closeModal = function() {
     $('#modal').removeClass('active');
     document.body.style.overflow = '';
     if (TinyShop._modalClearTimer) clearTimeout(TinyShop._modalClearTimer);
     TinyShop._modalClearTimer = setTimeout(function() { $('#modalBody').html(''); TinyShop._modalClearTimer = null; }, 300);
-    // Restore focus to trigger element
     if (TinyShop._previousFocus) {
         try { TinyShop._previousFocus.focus(); } catch(e) {}
         TinyShop._previousFocus = null;
@@ -33,8 +45,19 @@ TinyShop.closeModal = function() {
 };
 
 /**
- * TinyShop.confirm(title, message, confirmLabel, onConfirm, variant)
- * Also accepts: TinyShop.confirm({ title, message, confirmText, onConfirm, variant })
+ * Show a confirmation dialog inside the modal.
+ *
+ * Accepts either positional arguments or a single options object:
+ *   TinyShop.confirm('Delete?', 'Are you sure?', 'Delete', fn, 'danger')
+ *   TinyShop.confirm({ title, message, confirmText, onConfirm, variant })
+ *
+ * @since 1.0.0
+ *
+ * @param {string|Object} title        Heading text or options object.
+ * @param {string}        [message]    Body text.
+ * @param {string}        [confirmLabel] Confirm button label.
+ * @param {Function}      [onConfirm]  Called when the user confirms.
+ * @param {string}        [variant]    'danger' for red confirm button.
  */
 TinyShop.confirm = function(title, message, confirmLabel, onConfirm, variant) {
     if (typeof title === 'object' && title !== null) {
@@ -58,7 +81,7 @@ TinyShop.confirm = function(title, message, confirmLabel, onConfirm, variant) {
     });
 };
 
-// Modal event handlers — use document delegation so they survive SPA navigation
+// Modal event handlers — delegated so they survive SPA navigation
 $(document).on('click', '#modalClose, #modal', function(e) {
     if (e.target === this) TinyShop.closeModal();
 });
@@ -69,6 +92,7 @@ $(document).on('keydown', function(e) {
     }
 });
 
+// Focus trap — keep Tab cycling inside the modal
 $(document).on('keydown', '#modal', function(e) {
     if (e.key !== 'Tab') return;
     var $focusable = $(this).find('input, button, select, textarea, a[href], [tabindex]:not([tabindex="-1"])').filter(':visible');

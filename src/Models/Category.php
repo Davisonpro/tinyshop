@@ -6,7 +6,12 @@ namespace TinyShop\Models;
 
 use TinyShop\Enums\FieldType;
 
-class Category extends Model
+/**
+ * Product category model.
+ *
+ * @since 1.0.0
+ */
+final class Category extends Model
 {
     protected static array $definition = [
         'table'   => 'categories',
@@ -23,6 +28,14 @@ class Category extends Model
         ],
     ];
 
+    /**
+     * Get all categories for a seller.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @return array[]
+     */
     public function findByUser(int $userId): array
     {
         return static::rawQuery(
@@ -31,6 +44,15 @@ class Category extends Model
         );
     }
 
+    /**
+     * Find a category by slug within a seller's shop.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId Seller ID.
+     * @param  string $slug   Category slug.
+     * @return array|null
+     */
     public function findByUserAndSlug(int $userId, string $slug): ?array
     {
         $rows = static::rawQuery(
@@ -41,8 +63,14 @@ class Category extends Model
     }
 
     /**
-     * Find a category by name (case-insensitive) under a specific parent.
-     * Tries exact name match first, then slug match as fallback.
+     * Find a category by name under a specific parent.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId   Seller ID.
+     * @param  string $name     Category name.
+     * @param  ?int   $parentId Parent category ID.
+     * @return array|null
      */
     public function findByUserNameAndParent(int $userId, string $name, ?int $parentId): ?array
     {
@@ -87,6 +115,14 @@ class Category extends Model
         return $rows3[0] ?? null;
     }
 
+    /**
+     * Get categories as a nested parent-children tree.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $userId Seller ID.
+     * @return array[]     Top-level categories with 'children' key.
+     */
     public function findByUserAsTree(int $userId): array
     {
         $all = $this->findByUser($userId);
@@ -104,6 +140,14 @@ class Category extends Model
         return $tree;
     }
 
+    /**
+     * Create a new category.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Category data.
+     * @return int   New category ID.
+     */
     public function create(array $data): int
     {
         $slug = $data['slug'] ?? self::generateSlug($data['name']);
@@ -122,6 +166,15 @@ class Category extends Model
         return (int) $cat->getId();
     }
 
+    /**
+     * Update a category by ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   Category ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         // Auto-generate slug when name changes
@@ -146,6 +199,14 @@ class Category extends Model
         return $cat->save();
     }
 
+    /**
+     * Convert a name to a URL-safe slug.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $name Category name.
+     * @return string
+     */
     public static function generateSlug(string $name): string
     {
         $slug = mb_strtolower(trim($name));
@@ -154,6 +215,7 @@ class Category extends Model
         return trim($slug, '-') ?: 'category';
     }
 
+    /** Ensure a slug is unique within a seller's categories. */
     private function ensureUniqueSlug(int $userId, string $slug, ?int $excludeId = null): string
     {
         $base = $slug;

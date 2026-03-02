@@ -8,6 +8,11 @@ use Stripe\Checkout\Session as StripeSession;
 use Stripe\Stripe;
 use Stripe\Webhook as StripeWebhook;
 
+/**
+ * Stripe Checkout gateway.
+ *
+ * @since 1.0.0
+ */
 final class StripeGateway implements GatewayInterface
 {
     public function __construct(
@@ -20,6 +25,7 @@ final class StripeGateway implements GatewayInterface
         return 'stripe';
     }
 
+    /** {@inheritDoc} */
     public function createPayment(PaymentRequest $request): PaymentResult
     {
         Stripe::setApiKey($this->secretKey);
@@ -57,6 +63,7 @@ final class StripeGateway implements GatewayInterface
         return new PaymentResult(redirectUrl: $session->url);
     }
 
+    /** {@inheritDoc} */
     public function verifyPayment(array $params): PaymentVerification
     {
         $sessionId = $params['session_id'] ?? '';
@@ -80,6 +87,7 @@ final class StripeGateway implements GatewayInterface
         return new PaymentVerification(paid: false);
     }
 
+    /** {@inheritDoc} */
     public function parseWebhook(string $payload, array $params = [], array $headers = []): PaymentVerification
     {
         $sigHeader = $headers['Stripe-Signature'] ?? $headers['stripe-signature'] ?? '';

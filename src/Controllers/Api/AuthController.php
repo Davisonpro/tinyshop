@@ -19,6 +19,11 @@ use TinyShop\Services\Validation;
 use TinyShop\Services\DB;
 use TinyShop\Models\Setting;
 
+/**
+ * Authentication API controller.
+ *
+ * @since 1.0.0
+ */
 final class AuthController
 {
     use JsonResponder;
@@ -42,6 +47,15 @@ final class AuthController
         $this->db = $database->pdo();
     }
 
+    /**
+     * Register a new seller account.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function register(Request $request, Response $response): Response
     {
         if ($this->setting->get('allow_registration', '1') !== '1') {
@@ -121,6 +135,15 @@ final class AuthController
         ], 201);
     }
 
+    /**
+     * Log in a seller.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function login(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -131,6 +154,11 @@ final class AuthController
 
         if ($email === '' || $password === '') {
             return $this->json($response, ['error' => true, 'message' => 'Email and password are required'], 422);
+        }
+
+        // Cap input lengths: 255 for email (VARCHAR limit), 72 for bcrypt max
+        if (mb_strlen($email) > 255 || mb_strlen($password) > 72) {
+            return $this->json($response, ['error' => true, 'message' => 'Invalid credentials'], 401);
         }
 
         // Per-email brute force check
@@ -178,6 +206,15 @@ final class AuthController
         ]);
     }
 
+    /**
+     * Log out.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function logout(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
@@ -186,6 +223,15 @@ final class AuthController
         return $this->json($response, ['success' => true]);
     }
 
+    /**
+     * Return auth state and CSRF token.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function check(Request $request, Response $response): Response
     {
         Auth::ensureSession();
@@ -202,12 +248,21 @@ final class AuthController
         ]);
     }
 
+    /**
+     * Send a password-reset email.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function forgotPassword(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
         $email = trim($data['email'] ?? '');
 
-        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 255) {
             return $this->json($response, ['error' => true, 'message' => 'Please enter a valid email address'], 422);
         }
 
@@ -241,6 +296,15 @@ final class AuthController
         return $this->json($response, ['success' => true, 'message' => 'If that email exists, we sent a reset link']);
     }
 
+    /**
+     * Reset password using a token.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function resetPassword(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -248,7 +312,7 @@ final class AuthController
         $password = $data['password'] ?? '';
         $passwordConfirm = $data['password_confirm'] ?? '';
 
-        if (!$plainToken) {
+        if (!$plainToken || mb_strlen($plainToken) > 128) {
             return $this->json($response, ['error' => true, 'message' => 'Invalid or missing token'], 422);
         }
 

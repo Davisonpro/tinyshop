@@ -8,6 +8,13 @@ use PDO;
 use TinyShop\Enums\FieldType;
 use TinyShop\Exceptions\ValidationException;
 
+/**
+ * Active Record base model.
+ *
+ * @since 1.0.0
+ *
+ * @implements \ArrayAccess<string, mixed>
+ */
 abstract class Model implements \ArrayAccess, \JsonSerializable
 {
     private static ?PDO $pdo = null;
@@ -20,24 +27,7 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     private bool $isNew = true;
 
-    /**
-     * Definition array — must be overridden by each concrete model.
-     *
-     * Structure:
-     *   'table'   => string,
-     *   'primary' => string (default 'id'),
-     *   'fields'  => [
-     *       'column_name' => [
-     *           'type'      => FieldType,
-     *           'required'  => bool,       // enforced on INSERT (default false)
-     *           'maxLength' => int,        // for String/Text
-     *           'values'    => string[],   // for Enum
-     *           'default'   => mixed,      // applied on INSERT when null
-     *       ],
-     *   ],
-     *
-     * @var array{table: string, primary: string, fields: array<string, array>}
-     */
+    /** @var array{table: string, primary: string, fields: array<string, array>} Table schema definition. */
     protected static array $definition = [
         'table'   => '',
         'primary' => 'id',
@@ -46,11 +36,26 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     // ── Bootstrap ──────────────────────────────────────────────
 
+    /**
+     * Set the shared PDO connection for all models.
+     *
+     * @since 1.0.0
+     *
+     * @param PDO $pdo Database connection.
+     */
     public static function boot(PDO $pdo): void
     {
         self::$pdo = $pdo;
     }
 
+    /**
+     * Get the shared PDO connection.
+     *
+     * @since 1.0.0
+     *
+     * @return PDO
+     * @throws \RuntimeException If boot() has not been called.
+     */
     protected static function db(): PDO
     {
         if (self::$pdo === null) {
@@ -61,6 +66,7 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     // ── Magic accessors ────────────────────────────────────────
 
+    /** @return mixed */
     public function __get(string $name): mixed
     {
         return $this->data[$name] ?? null;
@@ -78,9 +84,7 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     // ── Hydration ──────────────────────────────────────────────
 
-    /**
-     * Create a model instance from a database row.
-     */
+    /** Hydrate a single row into a model instance. */
     protected static function hydrate(array $row): static
     {
         $instance = new static();
@@ -91,9 +95,11 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Hydrate an array of rows into model instances.
+     * Hydrate multiple rows.
      *
-     * @param array[] $rows
+     * @since 1.0.0
+     *
+     * @param  array[]  $rows Database rows.
      * @return static[]
      */
     protected static function hydrateAll(array $rows): array
@@ -105,6 +111,11 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     /**
      * Find a record by primary key.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $id Primary key value.
+     * @return static|null
      */
     public static function find(int $id): ?static
     {
@@ -118,6 +129,12 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     /**
      * Find first record matching a column value.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $column Column name.
+     * @param  mixed  $value  Value to match.
+     * @return static|null
      */
     public static function findBy(string $column, mixed $value): ?static
     {
@@ -131,6 +148,13 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     /**
      * Find all records matching a column value.
      *
+     * @since 1.0.0
+     *
+     * @param  string  $column  Column name.
+     * @param  mixed   $value   Value to match.
+     * @param  ?int    $limit   Max rows.
+     * @param  int     $offset  Starting offset.
+     * @param  string  $orderBy ORDER BY clause.
      * @return static[]
      */
     public static function where(
@@ -158,6 +182,11 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     /**
      * Get all records.
      *
+     * @since 1.0.0
+     *
+     * @param  ?int   $limit   Max rows.
+     * @param  int    $offset  Starting offset.
+     * @param  string $orderBy ORDER BY clause.
      * @return static[]
      */
     public static function all(?int $limit = null, int $offset = 0, string $orderBy = ''): array
@@ -178,6 +207,12 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     /**
      * Count records, optionally filtered by a column.
+     *
+     * @since 1.0.0
+     *
+     * @param  ?string $column Column to filter by.
+     * @param  mixed   $value  Value to match.
+     * @return int
      */
     public static function count(?string $column = null, mixed $value = null): int
     {
@@ -194,7 +229,14 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Check if a record exists with the given column value, optionally excluding an ID.
+     * Check if a record exists matching a column value.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $column    Column to check.
+     * @param  mixed  $value     Value to match.
+     * @param  ?int   $excludeId ID to exclude from the check.
+     * @return bool
      */
     public static function exists(string $column, mixed $value, ?int $excludeId = null): bool
     {
@@ -219,9 +261,12 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     // ── Multi-condition finders ────────────────────────────────
 
     /**
-     * Find first record matching multiple column conditions.
+     * Find first record matching multiple conditions.
      *
-     * @param array<string, mixed> $conditions  column => value pairs (null becomes IS NULL)
+     * @since 1.0.0
+     *
+     * @param  array<string, mixed> $conditions Column => value pairs.
+     * @return static|null
      */
     public static function findWhere(array $conditions): ?static
     {
@@ -246,9 +291,14 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Find all records matching multiple column conditions.
+     * Find all records matching multiple conditions.
      *
-     * @param array<string, mixed> $conditions  column => value pairs
+     * @since 1.0.0
+     *
+     * @param  array<string, mixed> $conditions Column => value pairs.
+     * @param  ?int                 $limit      Max rows.
+     * @param  int                  $offset     Starting offset.
+     * @param  string               $orderBy    ORDER BY clause.
      * @return static[]
      */
     public static function whereAll(
@@ -287,8 +337,12 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     // ── Raw queries (escape hatch for JOINs, aggregates) ──────
 
     /**
-     * Execute a raw SELECT query and return rows as associative arrays.
+     * Run a raw SELECT and return associative arrays.
      *
+     * @since 1.0.0
+     *
+     * @param  string $sql    SQL query.
+     * @param  array  $params Bound parameters.
      * @return array[]
      */
     public static function rawQuery(string $sql, array $params = []): array
@@ -299,7 +353,13 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Execute a raw query and return a single scalar value.
+     * Run a raw query and return a single scalar.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $sql    SQL query.
+     * @param  array  $params Bound parameters.
+     * @return mixed
      */
     public static function rawScalar(string $sql, array $params = []): mixed
     {
@@ -309,7 +369,13 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Execute a raw statement (INSERT/UPDATE/DELETE) and return affected row count.
+     * Run a raw INSERT/UPDATE/DELETE and return affected rows.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $sql    SQL statement.
+     * @param  array  $params Bound parameters.
+     * @return int
      */
     public static function rawExecute(string $sql, array $params = []): int
     {
@@ -321,9 +387,12 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     // ── Instance CRUD ──────────────────────────────────────────
 
     /**
-     * Save the model — INSERT if new, UPDATE dirty fields if existing.
+     * Save the model (insert or update).
      *
-     * @throws ValidationException
+     * @since 1.0.0
+     *
+     * @return bool
+     * @throws ValidationException If validation fails.
      */
     public function save(): bool
     {
@@ -342,10 +411,12 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Delete a record from the database.
+     * Delete a record by ID or the current instance.
      *
-     * Called with an ID:   $model->delete(5)   — finds and deletes by primary key
-     * Called on instance:  $model->delete()     — deletes current record
+     * @since 1.0.0
+     *
+     * @param  ?int $id Primary key, or null to delete current instance.
+     * @return bool
      */
     public function delete(?int $id = null): bool
     {
@@ -372,7 +443,11 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Reload data from the database.
+     * Reload from the database.
+     *
+     * @since 1.0.0
+     *
+     * @return static
      */
     public function refresh(): static
     {
@@ -394,8 +469,12 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     // ── Mass assignment ────────────────────────────────────────
 
     /**
-     * Fill model data from an associative array.
-     * Only keys that exist in $definition['fields'] or match the primary key are accepted.
+     * Mass-assign data from an array (whitelisted fields only).
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Column => value pairs.
+     * @return static
      */
     public function fill(array $data): static
     {
@@ -414,7 +493,12 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     // ── Dirty tracking ─────────────────────────────────────────
 
     /**
-     * Check if a specific field (or any field) has been modified since load.
+     * Check if a field (or any field) has changed since load.
+     *
+     * @since 1.0.0
+     *
+     * @param  ?string $field Specific field, or null for any.
+     * @return bool
      */
     public function isDirty(?string $field = null): bool
     {
@@ -426,7 +510,9 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Get all fields that have changed since load.
+     * Get all changed fields since load.
+     *
+     * @since 1.0.0
      *
      * @return array<string, mixed>
      */
@@ -442,7 +528,12 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Get the original value of a field (at load time).
+     * Get the original value of a field before changes.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $field Field name.
+     * @return mixed
      */
     public function getOriginal(string $field): mixed
     {
@@ -452,7 +543,9 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     // ── Serialization ──────────────────────────────────────────
 
     /**
-     * Convert to associative array — compatible with Smarty templates.
+     * Convert to associative array.
+     *
+     * @since 1.0.0
      *
      * @return array<string, mixed>
      */
@@ -463,21 +556,25 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     // ── ArrayAccess ─────────────────────────────────────────────
 
+    /** @inheritDoc */
     public function offsetExists(mixed $offset): bool
     {
         return array_key_exists($offset, $this->data);
     }
 
+    /** @inheritDoc */
     public function offsetGet(mixed $offset): mixed
     {
         return $this->data[$offset] ?? null;
     }
 
+    /** @inheritDoc */
     public function offsetSet(mixed $offset, mixed $value): void
     {
         $this->data[$offset] = $value;
     }
 
+    /** @inheritDoc */
     public function offsetUnset(mixed $offset): void
     {
         unset($this->data[$offset]);
@@ -485,6 +582,7 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     // ── JsonSerializable ────────────────────────────────────────
 
+    /** @return array<string, mixed> */
     public function jsonSerialize(): array
     {
         return $this->data;
@@ -492,15 +590,28 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     // ── Lifecycle hooks ────────────────────────────────────────
 
+    /** Called before insert or update. Override for pre-save logic. */
     protected function beforeSave(): void {}
+
+    /** Called after a successful insert or update. */
     protected function afterSave(): void {}
+
+    /** Called before a delete is executed. */
     protected function beforeDelete(): void {}
+
+    /** Called after a successful delete. */
     protected function afterDelete(): void {}
 
     // ── Transaction helper ──────────────────────────────────
 
     /**
-     * Execute a callback inside a database transaction.
+     * Run a callback inside a database transaction.
+     *
+     * @since 1.0.0
+     *
+     * @param  callable $fn Receives the PDO instance.
+     * @return mixed    The callback's return value.
+     * @throws \Throwable Re-thrown after rollback.
      */
     public static function transaction(callable $fn): mixed
     {
@@ -519,7 +630,14 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     // ── Atomic column operations ────────────────────────────
 
     /**
-     * Atomically increment a column value.
+     * Atomically increment a column.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $id     Record ID.
+     * @param  string $column Column name.
+     * @param  int    $amount Increment amount.
+     * @return bool
      */
     public static function increment(int $id, string $column, int $amount = 1): bool
     {
@@ -532,7 +650,14 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     }
 
     /**
-     * Atomically decrement a column value (floors at 0).
+     * Atomically decrement a column (floors at 0).
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $id     Record ID.
+     * @param  string $column Column name.
+     * @param  int    $amount Decrement amount.
+     * @return bool
      */
     public static function decrement(int $id, string $column, int $amount = 1): bool
     {
@@ -549,7 +674,10 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     /**
      * Insert multiple rows in a single query.
      *
-     * @param array[] $rows  Array of associative arrays — all must have the same keys
+     * @since 1.0.0
+     *
+     * @param  array[] $rows Rows to insert (all must share the same keys).
+     * @return bool
      */
     public static function batchInsert(array $rows): bool
     {
@@ -581,6 +709,11 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     /**
      * Delete one or more records by primary key.
+     *
+     * @since 1.0.0
+     *
+     * @param  int ...$ids Primary keys to delete.
+     * @return int         Number of deleted rows.
      */
     public static function destroy(int ...$ids): int
     {
@@ -600,14 +733,13 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     // ── State checks ───────────────────────────────────────────
 
+    /** Whether this instance is new (not yet saved). */
     public function isNew(): bool
     {
         return $this->isNew;
     }
 
-    /**
-     * Get the primary key value.
-     */
+    /** Get the primary key value. */
     public function getId(): mixed
     {
         $pk = static::$definition['primary'];
@@ -619,7 +751,9 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
     /**
      * Validate data against field definitions.
      *
-     * @return array<string, string>  field => error message (empty = valid)
+     * @since 1.0.0
+     *
+     * @return array<string, string> Field => error message (empty = valid).
      */
     public function validate(): array
     {
@@ -657,9 +791,7 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     // ── Type casting ───────────────────────────────────────────
 
-    /**
-     * Cast database values to PHP types based on field definitions.
-     */
+    /** Cast DB values to PHP types on hydrate. */
     private function castOnHydrate(array $row): array
     {
         $fields = static::$definition['fields'];
@@ -681,9 +813,7 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
         return $row;
     }
 
-    /**
-     * Cast a value for database storage based on its field type.
-     */
+    /** Cast a PHP value for DB storage. */
     private function castForStorage(string $key, mixed $value): mixed
     {
         $fields = static::$definition['fields'];
@@ -703,6 +833,7 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
 
     // ── Internal persistence ───────────────────────────────────
 
+    /** Perform an INSERT with defaults and timestamps. */
     private function performInsert(): bool
     {
         $table = static::$definition['table'];
@@ -767,6 +898,7 @@ abstract class Model implements \ArrayAccess, \JsonSerializable
         return true;
     }
 
+    /** UPDATE only dirty fields. */
     private function performUpdate(): bool
     {
         $table = static::$definition['table'];

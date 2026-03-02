@@ -12,6 +12,11 @@ use TinyShop\Models\Setting;
 use TinyShop\Models\User;
 use TinyShop\Services\Config;
 
+/**
+ * Sitemap and robots.txt controller.
+ *
+ * @since 1.0.0
+ */
 final class SitemapController
 {
     public function __construct(
@@ -23,7 +28,13 @@ final class SitemapController
     ) {}
 
     /**
-     * GET /sitemap.xml — Sitemap index pointing to sub-sitemaps.
+     * Render the sitemap index.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function index(Request $request, Response $response): Response
     {
@@ -40,7 +51,13 @@ final class SitemapController
     }
 
     /**
-     * GET /sitemap-pages.xml — Static platform pages.
+     * Render the static pages sitemap.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function pages(Request $request, Response $response): Response
     {
@@ -65,7 +82,13 @@ final class SitemapController
     }
 
     /**
-     * GET /sitemap-shops.xml — All active shops and their products.
+     * Render the shops sitemap.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function shops(Request $request, Response $response): Response
     {
@@ -105,7 +128,14 @@ final class SitemapController
     }
 
     /**
-     * GET /~shop/{subdomain}/sitemap.xml — Per-shop sitemap for custom domain shops.
+     * Render a per-shop sitemap.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
      */
     public function shopSitemap(Request $request, Response $response, array $args): Response
     {
@@ -141,7 +171,13 @@ final class SitemapController
     }
 
     /**
-     * GET /robots.txt — Dynamic robots file with sitemap reference.
+     * Render the robots.txt file.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function robots(Request $request, Response $response): Response
     {

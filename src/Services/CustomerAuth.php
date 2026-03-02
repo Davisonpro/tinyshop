@@ -4,10 +4,25 @@ declare(strict_types=1);
 
 namespace TinyShop\Services;
 
+/**
+ * Customer authentication service.
+ *
+ * @since 1.0.0
+ */
 final class CustomerAuth
 {
-    private const SESSION_TIMEOUT = 30 * 24 * 60 * 60; // 30 days
+    /** @var int Session lifetime in seconds (30 days) */
+    private const SESSION_TIMEOUT = 30 * 24 * 60 * 60;
 
+    /**
+     * Log a customer in.
+     *
+     * @since 1.0.0
+     *
+     * @param int    $customerId   Customer ID.
+     * @param int    $shopId       Shop ID.
+     * @param string $customerName Display name.
+     */
     public function login(int $customerId, int $shopId, string $customerName): void
     {
         Auth::ensureSession();
@@ -21,6 +36,11 @@ final class CustomerAuth
         $_SESSION['customer_created'] = time();
     }
 
+    /**
+     * Log the customer out.
+     *
+     * @since 1.0.0
+     */
     public function logout(): void
     {
         unset(
@@ -31,6 +51,14 @@ final class CustomerAuth
         );
     }
 
+    /**
+     * Check if the customer is logged in for a given shop.
+     *
+     * @since 1.0.0
+     *
+     * @param  int  $shopId Shop to check against.
+     * @return bool
+     */
     public function check(int $shopId): bool
     {
         if (empty($_SESSION['customer_id'])) {
@@ -46,16 +74,19 @@ final class CustomerAuth
         return true;
     }
 
+    /** Get the customer ID, or null. */
     public function customerId(): ?int
     {
         return isset($_SESSION['customer_id']) ? (int) $_SESSION['customer_id'] : null;
     }
 
+    /** Get the shop ID the customer is logged into, or null. */
     public function customerShopId(): ?int
     {
         return isset($_SESSION['customer_shop_id']) ? (int) $_SESSION['customer_shop_id'] : null;
     }
 
+    /** Get the customer's display name, or null. */
     public function customerName(): ?string
     {
         return $_SESSION['customer_name'] ?? null;

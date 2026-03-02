@@ -9,8 +9,18 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * Security headers middleware.
+ *
+ * @since 1.0.0
+ */
 final class SecureHeaders implements MiddlewareInterface
 {
+    /**
+     * Add security headers to the response.
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);

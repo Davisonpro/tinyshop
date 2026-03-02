@@ -6,7 +6,12 @@ namespace TinyShop\Models;
 
 use TinyShop\Enums\FieldType;
 
-class Page extends Model
+/**
+ * CMS page model.
+ *
+ * @since 1.0.0
+ */
+final class Page extends Model
 {
     protected static array $definition = [
         'table'   => 'pages',
@@ -22,11 +27,25 @@ class Page extends Model
         ],
     ];
 
+    /**
+     * Get all pages (admin listing).
+     *
+     * @since 1.0.0
+     *
+     * @return array[]
+     */
     public function findAll(): array
     {
         return static::rawQuery('SELECT * FROM pages ORDER BY title ASC');
     }
 
+    /**
+     * Get published pages only.
+     *
+     * @since 1.0.0
+     *
+     * @return array[]
+     */
     public function findPublished(): array
     {
         return static::rawQuery(
@@ -34,6 +53,14 @@ class Page extends Model
         );
     }
 
+    /**
+     * Find a published page by slug.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $slug URL slug.
+     * @return array|null
+     */
     public function findBySlug(string $slug): ?array
     {
         $rows = static::rawQuery(
@@ -43,6 +70,14 @@ class Page extends Model
         return $rows[0] ?? null;
     }
 
+    /**
+     * Create a new page.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Page data.
+     * @return int   New page ID.
+     */
     public function create(array $data): int
     {
         $page = new static();
@@ -57,6 +92,15 @@ class Page extends Model
         return (int) $page->getId();
     }
 
+    /**
+     * Update a page by ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   Page ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         $page = static::find($id);

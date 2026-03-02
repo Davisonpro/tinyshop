@@ -4,10 +4,23 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\Gateways;
 
+/**
+ * Payment gateway factory.
+ *
+ * @since 1.0.0
+ */
 final class GatewayFactory
 {
     /**
-     * @param array<string, mixed> $config Gateway-specific credentials/settings
+     * Create a gateway instance.
+     *
+     * @since 1.0.0
+     *
+     * @param  string               $gateway Gateway name.
+     * @param  array<string, mixed> $config  Gateway credentials.
+     * @return GatewayInterface
+     *
+     * @throws \RuntimeException If gateway is not supported.
      */
     public function create(string $gateway, array $config = []): GatewayInterface
     {

@@ -4,8 +4,21 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\OAuth;
 
+/**
+ * Normalized OAuth user profile.
+ *
+ * @since 1.0.0
+ */
 final class OAuthUser
 {
+    /**
+     * @param string $id            Provider user ID.
+     * @param string $email         Email (empty if unavailable).
+     * @param string $name          Display name.
+     * @param string $avatar        Profile picture URL.
+     * @param string $provider      Provider name.
+     * @param bool   $emailVerified Whether email is verified.
+     */
     public function __construct(
         public readonly string $id,
         public readonly string $email,

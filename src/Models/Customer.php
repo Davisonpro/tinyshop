@@ -6,7 +6,12 @@ namespace TinyShop\Models;
 
 use TinyShop\Enums\FieldType;
 
-class Customer extends Model
+/**
+ * Shop customer model.
+ *
+ * @since 1.0.0
+ */
+final class Customer extends Model
 {
     protected static array $definition = [
         'table'   => 'customers',
@@ -24,12 +29,31 @@ class Customer extends Model
         ],
     ];
 
+    /**
+     * Find a customer by email within a shop.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $shopId Shop (seller) ID.
+     * @param  string $email  Customer email.
+     * @return array|null
+     */
     public function findByShopAndEmail(int $shopId, string $email): ?array
     {
         $result = static::findWhere(['user_id' => $shopId, 'email' => $email]);
         return $result?->toArray();
     }
 
+    /**
+     * Check if an email is already registered in a shop.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $shopId    Shop (seller) ID.
+     * @param  string $email     Customer email.
+     * @param  ?int   $excludeId Customer ID to exclude.
+     * @return bool
+     */
     public function emailExists(int $shopId, string $email, ?int $excludeId = null): bool
     {
         $sql = 'SELECT id FROM customers WHERE user_id = ? AND email = ?';
@@ -43,6 +67,14 @@ class Customer extends Model
         return static::rawScalar($sql, $params) !== false;
     }
 
+    /**
+     * Create a new customer account.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Customer data.
+     * @return int   New customer ID.
+     */
     public function create(array $data): int
     {
         $customer = new static();
@@ -57,6 +89,15 @@ class Customer extends Model
         return (int) $customer->getId();
     }
 
+    /**
+     * Update a customer's profile.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   Customer ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         $customer = static::find($id);
@@ -74,6 +115,15 @@ class Customer extends Model
         return $customer->save();
     }
 
+    /**
+     * Update a customer's password hash.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $id   Customer ID.
+     * @param  string $hash New bcrypt hash.
+     * @return bool
+     */
     public function updatePassword(int $id, string $hash): bool
     {
         return static::rawExecute(
@@ -82,6 +132,13 @@ class Customer extends Model
         ) > 0;
     }
 
+    /**
+     * Record a customer login.
+     *
+     * @since 1.0.0
+     *
+     * @param int $id Customer ID.
+     */
     public function recordLogin(int $id): void
     {
         static::increment($id, 'login_count');

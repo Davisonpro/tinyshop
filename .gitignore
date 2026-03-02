@@ -32,8 +32,13 @@ Thumbs.db
 *.swp
 *.swo
 
+# Tooling caches
+.php-cs-fixer.cache
+
 # Claude local project files
 .claude/
+CLAUDE.md
 linktree/
 import_minimog2.php
 plugins/
+prototypes/

@@ -8,13 +8,17 @@ use Psr\Log\AbstractLogger;
 use Stringable;
 
 /**
- * Minimal PSR-3 logger that writes to a file.
- * No Monolog dependency — just structured, timestamped log lines.
+ * PSR-3 file logger with daily rotation.
+ *
+ * @since 1.0.0
  */
 final class Logger extends AbstractLogger
 {
     private string $logFile;
 
+    /**
+     * @param string $logDir Log directory path.
+     */
     public function __construct(string $logDir)
     {
         if (!is_dir($logDir)) {
@@ -24,6 +28,7 @@ final class Logger extends AbstractLogger
         $this->logFile = $logDir . '/app-' . date('Y-m-d') . '.log';
     }
 
+    /** {@inheritDoc} */
     public function log($level, string|Stringable $message, array $context = []): void
     {
         $timestamp = date('Y-m-d H:i:s');

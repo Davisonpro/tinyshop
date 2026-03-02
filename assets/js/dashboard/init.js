@@ -1,7 +1,11 @@
-/* ============================================================
-   page:init — global event fired on every page load / SPA swap.
-   All page-specific init code listens for this event.
-   ============================================================ */
+/**
+ * Dashboard page:init handler.
+ *
+ * Runs on every page load and SPA swap to initialise
+ * dashboard-specific modules (product list, form, autosize).
+ *
+ * @since 1.0.0
+ */
 $(document).on('page:init', function() {
     TinyShop.initProductList();
     TinyShop.initProductForm();
@@ -13,6 +17,7 @@ $(function() {
     $(document).on('input', 'textarea.autosize', function() {
         TinyShop.autosize(this);
     });
+
     $(document).on('click', '.seo-toggle', function() {
         var $section = $(this).closest('.form-section');
         setTimeout(function() {

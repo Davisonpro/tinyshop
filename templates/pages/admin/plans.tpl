@@ -94,7 +94,7 @@
             try {ldelim} features = JSON.parse(p.features); {rdelim} catch(e) {ldelim}{rdelim}
         {rdelim}
 
-        var validThemes = ['classic','bloom','ember','ivory','monaco','obsidian','volt','halloween'];
+        var validThemes = [{foreach $available_themes as $t}'{$t.slug|escape:'javascript'}'{if !$t@last},{/if}{/foreach}];
 
         var html = '<form id="planForm" autocomplete="off">'
             + '<div class="form-group">'

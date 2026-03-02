@@ -12,15 +12,26 @@ use Slim\Psr7\Response;
 use TinyShop\Models\User;
 use TinyShop\Services\Auth;
 
+/**
+ * Authenticated-user route protection.
+ *
+ * @since 1.0.0
+ */
 final class AuthGuard implements MiddlewareInterface
 {
-    private const ACTIVE_CHECK_INTERVAL = 60; // re-check DB every 60s
+    /** @var int Seconds between active-status checks. */
+    private const ACTIVE_CHECK_INTERVAL = 60;
 
     public function __construct(
         private readonly Auth $auth,
         private readonly User $userModel
     ) {}
 
+    /**
+     * Require an authenticated, non-suspended user.
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         Auth::ensureSession();
@@ -40,6 +51,7 @@ final class AuthGuard implements MiddlewareInterface
         return $handler->handle($request);
     }
 
+    /** Check if the seller account has been suspended (cached in session). */
     private function isSuspended(): bool
     {
         $userId = $this->auth->userId();
@@ -60,6 +72,7 @@ final class AuthGuard implements MiddlewareInterface
         return !$active;
     }
 
+    /** Build a 401/403 JSON or redirect response. */
     private function deny(ServerRequestInterface $request, string $message = 'Authentication required'): ResponseInterface
     {
         $path = $request->getUri()->getPath();

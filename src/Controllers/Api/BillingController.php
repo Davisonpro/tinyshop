@@ -18,6 +18,11 @@ use TinyShop\Services\DB;
 use TinyShop\Services\Gateways\GatewayFactory;
 use TinyShop\Services\Gateways\PaymentRequest;
 
+/**
+ * Billing API controller.
+ *
+ * @since 1.0.0
+ */
 final class BillingController
 {
     use JsonResponder;
@@ -39,7 +44,13 @@ final class BillingController
     }
 
     /**
-     * POST /api/billing/subscribe — Start subscription payment
+     * Initiate a subscription payment.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function subscribe(Request $request, Response $response): Response
     {
@@ -201,7 +212,14 @@ final class BillingController
     }
 
     /**
-     * GET /billing/return/{gateway} — Handle payment return
+     * Handle billing payment return redirect.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
      */
     public function handleReturn(Request $request, Response $response, array $args): Response
     {
@@ -378,7 +396,12 @@ final class BillingController
     }
 
     /**
-     * Parse SUB-{userId}-{planId}-{cycle} reference string.
+     * Parse a subscription reference string.
+     *
+     * @since 1.0.0
+     *
+     * @param string $ref Reference string.
+     * @return array|null
      */
     private function parseSubscriptionRef(string $ref): ?array
     {
@@ -426,7 +449,13 @@ final class BillingController
     }
 
     /**
-     * POST /api/billing/cancel — Cancel subscription
+     * Cancel the active subscription.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function cancel(Request $request, Response $response): Response
     {
@@ -451,7 +480,13 @@ final class BillingController
     }
 
     /**
-     * GET /api/billing/status — Check M-Pesa billing payment status (polling)
+     * Check billing payment status (polling endpoint).
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function checkBillingStatus(Request $request, Response $response): Response
     {

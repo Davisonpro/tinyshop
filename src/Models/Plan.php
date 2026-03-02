@@ -6,7 +6,12 @@ namespace TinyShop\Models;
 
 use TinyShop\Enums\FieldType;
 
-class Plan extends Model
+/**
+ * Billing plan model.
+ *
+ * @since 1.0.0
+ */
+final class Plan extends Model
 {
     protected static array $definition = [
         'table'   => 'plans',
@@ -34,6 +39,13 @@ class Plan extends Model
         ],
     ];
 
+    /**
+     * Get active plans for the pricing page.
+     *
+     * @since 1.0.0
+     *
+     * @return array[]
+     */
     public function findAll(): array
     {
         return static::rawQuery(
@@ -41,17 +53,39 @@ class Plan extends Model
         );
     }
 
+    /**
+     * Get all plans including inactive (admin view).
+     *
+     * @since 1.0.0
+     *
+     * @return array[]
+     */
     public function findAllAdmin(): array
     {
         return static::rawQuery('SELECT * FROM plans ORDER BY sort_order ASC, id ASC');
     }
 
+    /**
+     * Find the default plan (assigned on signup).
+     *
+     * @since 1.0.0
+     *
+     * @return array|null
+     */
     public function findDefault(): ?array
     {
         $plan = static::findBy('is_default', 1);
         return $plan?->toArray();
     }
 
+    /**
+     * Create a new plan.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Plan data.
+     * @return int   New plan ID.
+     */
     public function create(array $data): int
     {
         // If this plan is being set as default, unset any existing default
@@ -83,6 +117,15 @@ class Plan extends Model
         return (int) $plan->getId();
     }
 
+    /**
+     * Update a plan by ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   Plan ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         // If this plan is being set as default, unset any existing default
@@ -111,6 +154,14 @@ class Plan extends Model
         return $plan->save();
     }
 
+    /**
+     * Delete a plan if it has no active subscribers.
+     *
+     * @since 1.0.0
+     *
+     * @param  ?int $id Plan ID.
+     * @return bool False if plan has subscribers or not found.
+     */
     public function delete(?int $id = null): bool
     {
         $deleteId = $id ?? $this->getId();
@@ -126,6 +177,14 @@ class Plan extends Model
         return parent::delete((int) $deleteId);
     }
 
+    /**
+     * Count active subscribers on a plan.
+     *
+     * @since 1.0.0
+     *
+     * @param  int $planId Plan ID.
+     * @return int
+     */
     public function countSubscribers(int $planId): int
     {
         return (int) static::rawScalar(

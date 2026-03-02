@@ -6,7 +6,12 @@ namespace TinyShop\Models;
 
 use TinyShop\Enums\FieldType;
 
-class HelpCategory extends Model
+/**
+ * Help category model.
+ *
+ * @since 1.0.0
+ */
+final class HelpCategory extends Model
 {
     protected static array $definition = [
         'table'   => 'help_categories',
@@ -22,6 +27,13 @@ class HelpCategory extends Model
         ],
     ];
 
+    /**
+     * Get all categories with published article counts.
+     *
+     * @since 1.0.0
+     *
+     * @return array[]
+     */
     public function findAll(): array
     {
         return static::rawQuery(
@@ -33,6 +45,13 @@ class HelpCategory extends Model
         );
     }
 
+    /**
+     * Get all categories with total article counts (admin).
+     *
+     * @since 1.0.0
+     *
+     * @return array[]
+     */
     public function findAllAdmin(): array
     {
         return static::rawQuery(
@@ -44,6 +63,14 @@ class HelpCategory extends Model
         );
     }
 
+    /**
+     * Create a new category.
+     *
+     * @since 1.0.0
+     *
+     * @param  array $data Category data.
+     * @return int   New category ID.
+     */
     public function create(array $data): int
     {
         $cat = new static();
@@ -58,6 +85,15 @@ class HelpCategory extends Model
         return (int) $cat->getId();
     }
 
+    /**
+     * Update a category by ID.
+     *
+     * @since 1.0.0
+     *
+     * @param  int   $id   Category ID.
+     * @param  array $data Fields to update.
+     * @return bool  False if not found.
+     */
     public function update(int $id, array $data): bool
     {
         $cat = static::find($id);
@@ -75,6 +111,14 @@ class HelpCategory extends Model
         return $cat->save();
     }
 
+    /**
+     * Delete a category if it has no articles.
+     *
+     * @since 1.0.0
+     *
+     * @param  ?int $id Category ID.
+     * @return bool False if category has articles or not found.
+     */
     public function delete(?int $id = null): bool
     {
         $deleteId = $id ?? $this->getId();

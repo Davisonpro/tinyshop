@@ -4,20 +4,45 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\Gateways;
 
+/**
+ * Payment gateway contract.
+ *
+ * @since 1.0.0
+ */
 interface GatewayInterface
 {
+    /** Gateway identifier (e.g. "stripe", "paypal"). */
     public function name(): string;
 
+    /**
+     * Create a payment with the provider.
+     *
+     * @since 1.0.0
+     *
+     * @param  PaymentRequest $request Payment details.
+     * @return PaymentResult
+     */
     public function createPayment(PaymentRequest $request): PaymentResult;
 
     /**
-     * @param array<string, string> $params Query params from the return URL
+     * Verify payment on return from the provider.
+     *
+     * @since 1.0.0
+     *
+     * @param  array<string, string> $params Return URL query params.
+     * @return PaymentVerification
      */
     public function verifyPayment(array $params): PaymentVerification;
 
     /**
-     * @param array<string, string> $params  Query params (Pesapal IPN sends GET params)
-     * @param array<string, string> $headers Request headers (Stripe uses Stripe-Signature)
+     * Parse a webhook notification from the provider.
+     *
+     * @since 1.0.0
+     *
+     * @param  string               $payload Raw request body.
+     * @param  array<string, string> $params  Query params.
+     * @param  array<string, string> $headers Request headers.
+     * @return PaymentVerification
      */
     public function parseWebhook(string $payload, array $params = [], array $headers = []): PaymentVerification;
 }

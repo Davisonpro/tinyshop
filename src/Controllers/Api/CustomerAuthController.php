@@ -20,6 +20,11 @@ use TinyShop\Services\Hooks;
 use TinyShop\Services\Mailer;
 use TinyShop\Services\Validation;
 
+/**
+ * Customer authentication API controller.
+ *
+ * @since 1.0.0
+ */
 final class CustomerAuthController
 {
     use JsonResponder;
@@ -43,6 +48,15 @@ final class CustomerAuthController
         $this->db = $database->pdo();
     }
 
+    /**
+     * Register a new customer.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function register(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -63,7 +77,7 @@ final class CustomerAuthController
         // Derive display name from the email local part
         $name = ucfirst(explode('@', $email)[0]);
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 255) {
             return $this->json($response, ['error' => true, 'message' => 'Invalid email address'], 422);
         }
 
@@ -94,6 +108,15 @@ final class CustomerAuthController
         return $this->json($response, ['success' => true], 201);
     }
 
+    /**
+     * Log in a customer.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function login(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -104,6 +127,11 @@ final class CustomerAuthController
 
         if ($shopId === 0 || $email === '' || $password === '') {
             return $this->json($response, ['error' => true, 'message' => 'Email and password are required'], 422);
+        }
+
+        // Cap input lengths: 255 for email (VARCHAR limit), 72 for bcrypt max
+        if (mb_strlen($email) > 255 || mb_strlen($password) > 72) {
+            return $this->json($response, ['error' => true, 'message' => 'Invalid email or password'], 401);
         }
 
         $lockRemaining = $this->checkLoginThrottle($shopId, $email);
@@ -135,12 +163,30 @@ final class CustomerAuthController
         return $this->json($response, ['success' => true]);
     }
 
+    /**
+     * Log out a customer.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function logout(Request $request, Response $response): Response
     {
         $this->customerAuth->logout();
         return $this->json($response, ['success' => true]);
     }
 
+    /**
+     * List the customer's orders.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function orders(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -173,6 +219,15 @@ final class CustomerAuthController
         return $this->json($response, ['success' => true, 'orders' => $orders]);
     }
 
+    /**
+     * Update the customer's profile.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function updateProfile(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -211,6 +266,15 @@ final class CustomerAuthController
         return $this->json($response, ['success' => true]);
     }
 
+    /**
+     * Change the customer's password.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function changePassword(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -243,6 +307,15 @@ final class CustomerAuthController
         return $this->json($response, ['success' => true]);
     }
 
+    /**
+     * Send a password-reset email.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function forgotPassword(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -282,6 +355,15 @@ final class CustomerAuthController
         return $this->json($response, ['success' => true, 'message' => 'If that email exists, we\'ll send a reset link']);
     }
 
+    /**
+     * Reset password using a token.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function resetPassword(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();

@@ -7,6 +7,11 @@ namespace TinyShop\Models;
 use PDO;
 use TinyShop\Services\DB;
 
+/**
+ * Theme customization options model.
+ *
+ * @since 1.0.0
+ */
 final class ThemeOption
 {
     private readonly PDO $db;
@@ -20,6 +25,17 @@ final class ThemeOption
         $this->db = $database->pdo();
     }
 
+    /**
+     * Get a single theme option value.
+     *
+     * @since 1.0.0
+     *
+     * @param  int     $userId    Seller ID.
+     * @param  string  $themeSlug Theme slug.
+     * @param  string  $name      Option name.
+     * @param  ?string $default   Fallback value.
+     * @return ?string
+     */
     public function get(int $userId, string $themeSlug, string $name, ?string $default = null): ?string
     {
         $all = $this->getAll($userId, $themeSlug);
@@ -27,7 +43,13 @@ final class ThemeOption
     }
 
     /**
-     * @return array<string, string|null>
+     * Get all theme options for a seller's theme.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId    Seller ID.
+     * @param  string $themeSlug Theme slug.
+     * @return array<string, ?string>
      */
     public function getAll(int $userId, string $themeSlug): array
     {
@@ -56,6 +78,16 @@ final class ThemeOption
         return $options;
     }
 
+    /**
+     * Set a single theme option (upsert).
+     *
+     * @since 1.0.0
+     *
+     * @param int     $userId    Seller ID.
+     * @param string  $themeSlug Theme slug.
+     * @param string  $name      Option name.
+     * @param ?string $value     Option value.
+     */
     public function set(int $userId, string $themeSlug, string $name, ?string $value): void
     {
         $stmt = $this->db->prepare(
@@ -68,7 +100,13 @@ final class ThemeOption
     }
 
     /**
-     * @param array<string, string|null> $data
+     * Set multiple theme options at once (upsert).
+     *
+     * @since 1.0.0
+     *
+     * @param int    $userId    Seller ID.
+     * @param string $themeSlug Theme slug.
+     * @param array  $data      Option name => value pairs.
      */
     public function setMany(int $userId, string $themeSlug, array $data): void
     {
@@ -83,6 +121,15 @@ final class ThemeOption
         self::$cache = null;
     }
 
+    /**
+     * Delete a single theme option.
+     *
+     * @since 1.0.0
+     *
+     * @param int    $userId    Seller ID.
+     * @param string $themeSlug Theme slug.
+     * @param string $name      Option name.
+     */
     public function delete(int $userId, string $themeSlug, string $name): void
     {
         $stmt = $this->db->prepare(

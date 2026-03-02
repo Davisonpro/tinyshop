@@ -23,6 +23,11 @@ use TinyShop\Services\View;
 use TinyShop\Services\Theme;
 use TinyShop\Services\Hooks;
 
+/**
+ * Public storefront controller.
+ *
+ * @since 1.0.0
+ */
 final class ShopController
 {
     use JsonResponder;
@@ -70,11 +75,31 @@ final class ShopController
 
     // ── Page Handlers ─────────────────────────────────────────
 
+    /**
+     * Render the shop homepage.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function show(Request $request, Response $response, array $args): Response
     {
         return $this->renderShop($request, $response, $args);
     }
 
+    /**
+     * Render a product detail page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function showProduct(Request $request, Response $response, array $args): Response
     {
         $shop = $this->resolveShop($args);
@@ -141,6 +166,16 @@ final class ShopController
         return $this->view->render($response, 'pages/shop/product.tpl', $viewData);
     }
 
+    /**
+     * Render the collections index page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function showCollections(Request $request, Response $response, array $args): Response
     {
         $shop = $this->resolveShop($args);
@@ -181,6 +216,16 @@ final class ShopController
         return $this->view->render($response, 'pages/shop/collections.tpl', $viewData);
     }
 
+    /**
+     * Render a single collection page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function showCollection(Request $request, Response $response, array $args): Response
     {
         $shop = $this->resolveShop($args);
@@ -234,6 +279,16 @@ final class ShopController
         return $this->view->render($response, 'pages/shop/collection.tpl', $viewData);
     }
 
+    /**
+     * Render the search results page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function showSearchPage(Request $request, Response $response, array $args): Response
     {
         $shop = $this->resolveShop($args);
@@ -289,6 +344,16 @@ final class ShopController
 
     // ── API Handlers ──────────────────────────────────────────
 
+    /**
+     * Search and filter products with pagination.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function searchProducts(Request $request, Response $response, array $args): Response
     {
         $shop = $this->resolveShop($args);
@@ -353,6 +418,16 @@ final class ShopController
         return $this->json($response, Hooks::applyFilter('shop.search_results', $result, $shop));
     }
 
+    /**
+     * Render the order tracking page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function orderTracking(Request $request, Response $response, array $args): Response
     {
         $shop = $this->resolveShop($args);
@@ -371,6 +446,16 @@ final class ShopController
         ]);
     }
 
+    /**
+     * Look up an order by email and order number.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function orderLookup(Request $request, Response $response, array $args): Response
     {
         $shop = $this->resolveShop($args);
@@ -417,6 +502,16 @@ final class ShopController
         return $this->json($response, ['success' => true, 'order' => $orderData]);
     }
 
+    /**
+     * Render the customer account page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function account(Request $request, Response $response, array $args): Response
     {
         $shop = $this->resolveShop($args);
@@ -472,6 +567,16 @@ final class ShopController
         ]);
     }
 
+    /**
+     * Serve the shop's PWA manifest.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function manifest(Request $request, Response $response, array $args): Response
     {
         $shop = $this->resolveShop($args);

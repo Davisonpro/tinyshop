@@ -11,14 +11,17 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 
 /**
- * CSRF protection via synchronizer token pattern.
+ * CSRF protection middleware.
  *
- * Token is generated at session start (index.php) and exposed to JS
- * via a <meta name="csrf-token"> tag. All mutation requests must send
- * the token as an X-CSRF-Token header or _csrf_token body field.
+ * @since 1.0.0
  */
 final class CsrfGuard implements MiddlewareInterface
 {
+    /**
+     * Validate the CSRF token on state-changing requests.
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $method = $request->getMethod();

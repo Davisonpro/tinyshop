@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\OAuth;
 
+/**
+ * HTTP helpers for OAuth flows.
+ *
+ * @since 1.0.0
+ */
 trait OAuthHttpTrait
 {
-    /** @return array<string, mixed>|null */
+    /** POST form data and decode the JSON response. */
     private function httpPost(string $url, array $data): ?array
     {
         $ctx = stream_context_create([
@@ -18,6 +23,7 @@ trait OAuthHttpTrait
             ],
         ]);
 
+        // Suppress warning — network failures are handled by the false check below.
         $result = @file_get_contents($url, false, $ctx);
         if ($result === false) {
             return null;
@@ -26,7 +32,7 @@ trait OAuthHttpTrait
         return json_decode($result, true);
     }
 
-    /** @return array<string, mixed>|null */
+    /** GET with a Bearer token and decode the JSON response. */
     private function httpGet(string $url, string $token): ?array
     {
         $ctx = stream_context_create([
@@ -37,6 +43,7 @@ trait OAuthHttpTrait
             ],
         ]);
 
+        // Suppress warning — network failures are handled by the false check below.
         $result = @file_get_contents($url, false, $ctx);
         if ($result === false) {
             return null;

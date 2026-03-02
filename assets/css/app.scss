@@ -1994,7 +1994,7 @@ a.product-whatsapp-cta:active { transform: scale(0.97); }
 }
 
 .product-variation-group {
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
 }
 .product-variation-group:last-child { margin-bottom: 0; }
 
@@ -2016,6 +2016,11 @@ a.product-whatsapp-cta:active { transform: scale(0.97); }
     color: var(--color-text-muted);
     font-size: 0.8125rem;
 }
+.variation-selected-value.variation-prompt {
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-weight: 400;
+}
 
 .product-variation-options {
     display: flex;
@@ -2029,22 +2034,23 @@ a.product-whatsapp-cta:active { transform: scale(0.97); }
     justify-content: center;
     gap: 4px;
     padding: 10px 18px;
-    border: 1.5px solid var(--color-border);
+    border: 2px solid var(--color-border);
     border-radius: var(--radius-lg);
     font-size: 0.875rem;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-text);
-    background: var(--color-bg);
+    background: var(--color-bg-secondary);
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
+    transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
     @include tap-reset;
     min-width: 48px;
     min-height: 48px;
     font-family: inherit;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .product-variation-option:active {
-    transform: scale(0.95);
+    transform: scale(0.97);
 }
 
 .product-variation-option.selected {
@@ -2052,6 +2058,7 @@ a.product-whatsapp-cta:active { transform: scale(0.97); }
     background: var(--color-accent);
     color: #fff;
     font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
 .variation-price-delta {
@@ -2067,20 +2074,44 @@ a.product-whatsapp-cta:active { transform: scale(0.97); }
     color: rgba(255,255,255,0.75);
 }
 
-/* Variation group needs-selection shake */
-.product-variation-group.needs-selection .product-variation-option {
-    animation: variationShake 0.4s ease;
+/* Variation error message */
+.variation-error-msg {
+    font-size: 0.8125rem;
+    color: $danger;
+    margin-top: 6px;
+    font-weight: 500;
+    min-height: 0;
+    overflow: hidden;
+    transition: opacity 0.2s;
+    opacity: 0;
 }
-@keyframes variationShake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    50% { transform: translateX(4px); }
-    75% { transform: translateX(-2px); }
+.variation-error-msg.visible {
+    opacity: 1;
 }
 
-/* CTA disabled when variations unselected */
+/* Variation group needs-selection state — persistent red border + highlight */
+.product-variation-group.needs-selection .product-variation-option {
+    border-color: $danger;
+    animation: variationPulse 0.5s ease;
+}
+.product-variation-group.needs-selection .product-variation-label {
+    color: $danger;
+}
+.product-variation-group.needs-selection .variation-selected-value {
+    color: $danger;
+    font-style: italic;
+}
+@keyframes variationPulse {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.03); }
+    50% { transform: scale(0.98); }
+    75% { transform: scale(1.01); }
+    100% { transform: scale(1); }
+}
+
+/* CTA button when variations need selection */
 #addToCartBtn.cta-needs-selection {
-    opacity: 0.7;
+    opacity: 0.6;
 }
 .cart-qty-disabled {
     opacity: 0.5;
@@ -3132,6 +3163,12 @@ a.cart-item-link {
     border-color: var(--color-text);
     background: var(--color-text);
     color: var(--color-bg);
+}
+.page-product .product-variation-group.needs-selection .product-variation-option {
+    border-color: $danger;
+}
+.page-product .product-variation-group.needs-selection .product-variation-option.selected {
+    border-color: var(--color-text);
 }
 
 /* Gallery dots — slightly larger */

@@ -12,6 +12,11 @@ use Slim\Psr7\Response;
 use TinyShop\Models\Setting;
 use TinyShop\Services\Auth;
 
+/**
+ * Maintenance mode gate.
+ *
+ * @since 1.0.0
+ */
 final class MaintenanceMode implements MiddlewareInterface
 {
     public function __construct(
@@ -19,6 +24,11 @@ final class MaintenanceMode implements MiddlewareInterface
         private readonly Auth $auth
     ) {}
 
+    /**
+     * Show 503 page if maintenance mode is on (admins bypass).
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         if ($this->setting->get('maintenance_mode', '0') !== '1') {

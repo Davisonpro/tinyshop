@@ -9,6 +9,11 @@ use DOMElement;
 use DOMXPath;
 use RuntimeException;
 
+/**
+ * WooCommerce product importer.
+ *
+ * @since 1.0.0
+ */
 final class WooCommerceImporter implements ImporterInterface
 {
     public function __construct(private readonly HttpClient $http)
@@ -18,6 +23,7 @@ final class WooCommerceImporter implements ImporterInterface
     private ?string $lastError = null;
     private string $sourceDomain = '';
 
+    /** {@inheritDoc} */
     public function supports(string $url): bool
     {
         $this->lastError = null;
@@ -34,14 +40,16 @@ final class WooCommerceImporter implements ImporterInterface
         }
     }
 
+    /** Get the last error from supports(), if any. */
     public function getLastError(): ?string
     {
         return $this->lastError;
     }
 
-    /** Cache HTML from supports() so fetch() doesn't re-download */
+    /** @var string|null Cached HTML from supports(). */
     private ?string $lastHtml = null;
 
+    /** {@inheritDoc} */
     public function fetch(string $url): ImportResult
     {
         // Reuse HTML from supports() if available, otherwise fetch fresh
@@ -51,12 +59,20 @@ final class WooCommerceImporter implements ImporterInterface
         return $this->parseHtml($html);
     }
 
-    /** Parse pre-supplied HTML (for paste-mode when server can't fetch the URL). */
+    /**
+     * Parse product data from pasted HTML.
+     *
+     * @since 1.0.0
+     *
+     * @param  string $html Raw HTML source.
+     * @return ImportResult
+     */
     public function fetchFromHtml(string $html): ImportResult
     {
         return $this->parseHtml($html);
     }
 
+    /** Parse WooCommerce product page HTML. */
     private function parseHtml(string $html): ImportResult
     {
         libxml_use_internal_errors(true);
@@ -101,12 +117,7 @@ final class WooCommerceImporter implements ImporterInterface
         );
     }
 
-    /**
-     * Extract Product JSON-LD from <script type="application/ld+json"> tags.
-     * Handles both top-level Product and Yoast/RankMath @graph arrays.
-     *
-     * @return array Product structured data, or empty array if not found
-     */
+    /** Extract Product JSON-LD from the page. */
     private function extractJsonLd(DOMXPath $xpath): array
     {
         $scripts = $xpath->query('//script[@type="application/ld+json"]');
@@ -136,6 +147,7 @@ final class WooCommerceImporter implements ImporterInterface
         return [];
     }
 
+    /** Extract the product title. */
     private function extractTitle(DOMXPath $xpath, array $ld): string
     {
         $nodes = $xpath->query('//h1[contains(@class,"product_title")]');
@@ -150,6 +162,7 @@ final class WooCommerceImporter implements ImporterInterface
         throw new RuntimeException('Could not find product title');
     }
 
+    /** Extract the short description. */
     private function extractShortDescription(DOMXPath $xpath, array $ld): string
     {
         $nodes = $xpath->query('//*[contains(@class,"woocommerce-product-details__short-description")]');
@@ -168,6 +181,7 @@ final class WooCommerceImporter implements ImporterInterface
         return $this->sanitizeNodeHtml($nodes->item(0));
     }
 
+    /** Extract the full product description. */
     private function extractFullDescription(DOMXPath $xpath, array $ld): string
     {
         // Try multiple WooCommerce description panel selectors
@@ -201,6 +215,7 @@ final class WooCommerceImporter implements ImporterInterface
         return $ldDesc !== '' ? '<p>' . htmlspecialchars(strip_tags($ldDesc)) . '</p>' : '';
     }
 
+    /** Detect the source site's domain. */
     private function extractSourceDomain(DOMXPath $xpath): string
     {
         // Try canonical URL
@@ -224,6 +239,7 @@ final class WooCommerceImporter implements ImporterInterface
         return '';
     }
 
+    /** Sanitize a DOM node's inner HTML for safe import. */
     private function sanitizeNodeHtml(\DOMNode $node): string
     {
         $inner = '';
@@ -258,6 +274,7 @@ final class WooCommerceImporter implements ImporterInterface
         return trim($clean);
     }
 
+    /** Check if the product is out of stock. */
     private function extractStockStatus(DOMXPath $xpath): bool
     {
         // WooCommerce adds "outofstock" class to the product wrapper
@@ -275,6 +292,7 @@ final class WooCommerceImporter implements ImporterInterface
         return false;
     }
 
+    /** Extract SEO title from meta tags. */
     private function extractMetaTitle(DOMXPath $xpath): string
     {
         // og:title is typically the cleanest product title for SEO
@@ -292,6 +310,7 @@ final class WooCommerceImporter implements ImporterInterface
         return '';
     }
 
+    /** Extract SEO description from meta tags. */
     private function extractMetaDescription(DOMXPath $xpath): string
     {
         // og:description
@@ -309,7 +328,11 @@ final class WooCommerceImporter implements ImporterInterface
         return '';
     }
 
-    /** @return array{float, float|null} [price, comparePrice] */
+    /**
+     * Extract current and compare-at prices.
+     *
+     * @return array{float, float|null} [price, comparePrice].
+     */
     private function extractPrices(DOMXPath $xpath, array $ld): array
     {
         // Try scoped inside .summary first, then unscoped p.price as fallback
@@ -351,6 +374,7 @@ final class WooCommerceImporter implements ImporterInterface
         throw new RuntimeException('Could not find product price');
     }
 
+    /** Parse a numeric price from a formatted string. */
     private function parsePrice(string $text): float
     {
         // Remove currency symbols, commas, whitespace — keep digits and dot
@@ -358,6 +382,7 @@ final class WooCommerceImporter implements ImporterInterface
         return (float) $clean;
     }
 
+    /** Detect the product currency. Defaults to "USD". */
     private function extractCurrency(DOMXPath $xpath, array $ld): string
     {
         // Try WooCommerce currency code from <span class="woocommerce-Price-currencySymbol">
@@ -388,6 +413,7 @@ final class WooCommerceImporter implements ImporterInterface
         return 'USD';
     }
 
+    /** Map a currency symbol to its ISO 4217 code. */
     private static function currencySymbolToCode(string $symbol): ?string
     {
         return match ($symbol) {
@@ -413,7 +439,11 @@ final class WooCommerceImporter implements ImporterInterface
         };
     }
 
-    /** @return string[] */
+    /**
+     * Extract product image URLs.
+     *
+     * @return string[] Image URLs.
+     */
     private function extractImages(DOMXPath $xpath, array $ld): array
     {
         $images = [];
@@ -464,10 +494,14 @@ final class WooCommerceImporter implements ImporterInterface
         return $images;
     }
 
-    /** Names that WooCommerce assigns by default — never useful as imported categories. */
+    /** WooCommerce default categories to skip. */
     private const JUNK_CATEGORIES = ['default category', 'uncategorized'];
 
-    /** @return string[] */
+    /**
+     * Extract product categories.
+     *
+     * @return string[] Category names.
+     */
     private function extractCategories(DOMXPath $xpath, array $ld): array
     {
         // 1. Breadcrumb containers — scoped per-container so nav/sidebar can't pollute
@@ -503,11 +537,7 @@ final class WooCommerceImporter implements ImporterInterface
         return [];
     }
 
-    /**
-     * Extract categories from breadcrumb containers.
-     * Checks each container individually and picks the one with 1–8 category links
-     * (breadcrumbs are small; nav/sidebar widgets have 10+).
-     */
+    /** Extract categories from breadcrumb links. */
     private function extractCategoriesFromBreadcrumbs(DOMXPath $xpath): array
     {
         $selectors = [
@@ -548,7 +578,7 @@ final class WooCommerceImporter implements ImporterInterface
         return [];
     }
 
-    /** Extract category from JSON-LD Product data. */
+    /** Extract categories from JSON-LD Product category field. */
     private function extractCategoriesFromLdProduct(array $ld): array
     {
         if (!isset($ld['category'])) {
@@ -572,7 +602,7 @@ final class WooCommerceImporter implements ImporterInterface
         return $categories;
     }
 
-    /** Extract category from inline JS tracking (WebEngage, GTM dataLayer). */
+    /** Extract categories from inline JS tracking data. */
     private function extractCategoriesFromTrackingJs(DOMXPath $xpath): array
     {
         $scripts = $xpath->query('//script[not(@src)]');
@@ -595,7 +625,7 @@ final class WooCommerceImporter implements ImporterInterface
         return [];
     }
 
-    /** Extract categories from .posted_in links, filtering out junk. */
+    /** Extract categories from .posted_in links. */
     private function extractCategoriesFromPostedIn(DOMXPath $xpath): array
     {
         // Try scoped to .summary first, then unscoped
@@ -626,18 +656,20 @@ final class WooCommerceImporter implements ImporterInterface
         return [];
     }
 
+    /** Check if a URL looks like an image. */
     private function looksLikeImageUrl(string $url): bool
     {
         $path = parse_url($url, PHP_URL_PATH) ?? '';
         return (bool) preg_match('/\.(jpe?g|png|webp|gif|avif|bmp|svg)/i', $path);
     }
 
+    /** Check if a category name is a junk default. */
     private function isJunkCategory(string $name): bool
     {
         return in_array(strtolower($name), self::JUNK_CATEGORIES, true);
     }
 
-    /** Extract categories from JSON-LD BreadcrumbList (Yoast/RankMath). */
+    /** Extract categories from JSON-LD BreadcrumbList. */
     private function extractCategoriesFromLdBreadcrumb(DOMXPath $xpath): array
     {
         $scripts = $xpath->query('//script[@type="application/ld+json"]');
@@ -696,7 +728,11 @@ final class WooCommerceImporter implements ImporterInterface
         return $categories;
     }
 
-    /** @return array[] */
+    /**
+     * Extract product variations from the variations form.
+     *
+     * @return array[] Variation data.
+     */
     private function extractVariations(DOMXPath $xpath): array
     {
         $nodes = $xpath->query('//form[contains(@class,"variations_form")]/@data-product_variations');
@@ -752,6 +788,7 @@ final class WooCommerceImporter implements ImporterInterface
         return $variations;
     }
 
+    /** Extract the display price from a variation. */
     private function extractVariationPrice(array $v): ?float
     {
         // Try display_price first, then price, then parse from price_html
@@ -767,6 +804,7 @@ final class WooCommerceImporter implements ImporterInterface
         return null;
     }
 
+    /** Extract the regular price from a variation. */
     private function extractVariationRegularPrice(array $v): ?float
     {
         if (isset($v['display_regular_price']) && $v['display_regular_price'] !== '') {
@@ -778,6 +816,7 @@ final class WooCommerceImporter implements ImporterInterface
         return null;
     }
 
+    /** Parse a price from a WooCommerce price_html snippet. */
     private function parsePriceFromHtml(string $html): ?float
     {
         // Extract price from WooCommerce price_html like "<span class="woocommerce-Price-amount">KES 150,000</span>"
@@ -787,12 +826,7 @@ final class WooCommerceImporter implements ImporterInterface
         return null;
     }
 
-    /**
-     * Build a map of attribute key → proper group label from <label> elements.
-     * e.g. ['attribute_pa_sim-card-slots' => 'SIM Card Slots']
-     *
-     * @return array<string, string>
-     */
+    /** Map attribute keys to their display labels from form labels. */
     private function buildAttributeGroupLabels(DOMXPath $xpath): array
     {
         $map = [];
@@ -819,12 +853,7 @@ final class WooCommerceImporter implements ImporterInterface
         return $map;
     }
 
-    /**
-     * Build a map of attribute slug → display label from variation <select> options.
-     * e.g. ['attribute_pa_sim-card-slots' => ['esim-only' => 'eSIM only']]
-     *
-     * @return array<string, array<string, string>>
-     */
+    /** Map attribute value slugs to display text from select options. */
     private function buildAttributeValueLabels(DOMXPath $xpath): array
     {
         $map = [];

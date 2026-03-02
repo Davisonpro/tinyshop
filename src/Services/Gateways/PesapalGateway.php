@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\Gateways;
 
+/**
+ * Pesapal v3 gateway.
+ *
+ * @since 1.0.0
+ */
 final class PesapalGateway implements GatewayInterface
 {
     private readonly string $baseUrl;
@@ -23,6 +28,7 @@ final class PesapalGateway implements GatewayInterface
         return 'pesapal';
     }
 
+    /** {@inheritDoc} */
     public function createPayment(PaymentRequest $request): PaymentResult
     {
         $token = $this->getToken();
@@ -100,6 +106,7 @@ final class PesapalGateway implements GatewayInterface
         );
     }
 
+    /** {@inheritDoc} */
     public function verifyPayment(array $params): PaymentVerification
     {
         $trackingId = $params['tracking_id'] ?? $params['OrderTrackingId'] ?? '';
@@ -110,6 +117,7 @@ final class PesapalGateway implements GatewayInterface
         return $this->getTransactionStatus($trackingId);
     }
 
+    /** {@inheritDoc} */
     public function parseWebhook(string $payload, array $params = [], array $headers = []): PaymentVerification
     {
         // Pesapal IPN sends GET params (OrderTrackingId, OrderNotificationType, OrderMerchantReference)
@@ -121,6 +129,7 @@ final class PesapalGateway implements GatewayInterface
         return $this->getTransactionStatus($trackingId);
     }
 
+    /** Query the Pesapal transaction status endpoint. */
     private function getTransactionStatus(string $orderTrackingId): PaymentVerification
     {
         $token = $this->getToken();
@@ -164,6 +173,7 @@ final class PesapalGateway implements GatewayInterface
         );
     }
 
+    /** Register an IPN callback URL and return the ipn_id. */
     private function registerIPN(string $token, string $ipnUrl): string
     {
         $payload = json_encode([
@@ -204,6 +214,7 @@ final class PesapalGateway implements GatewayInterface
         return $ipnId;
     }
 
+    /** Get a Pesapal bearer token. */
     private function getToken(): string
     {
         $payload = json_encode([

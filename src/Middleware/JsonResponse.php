@@ -9,8 +9,18 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * Default JSON headers for API responses.
+ *
+ * @since 1.0.0
+ */
 final class JsonResponse implements MiddlewareInterface
 {
+    /**
+     * Set JSON content type and disable caching.
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);

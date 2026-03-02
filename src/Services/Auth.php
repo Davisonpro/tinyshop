@@ -6,13 +6,19 @@ namespace TinyShop\Services;
 
 use TinyShop\Enums\UserRole;
 
+/**
+ * Authentication service.
+ *
+ * @since 1.0.0
+ */
 final class Auth
 {
     private const SESSION_TIMEOUT = 8 * 60 * 60; // 8 hours
 
     /**
-     * Ensure a PHP session is active. Call before accessing $_SESSION.
-     * Safe to call multiple times — only starts once.
+     * Ensure a PHP session is active.
+     *
+     * @since 1.0.0
      */
     public static function ensureSession(): void
     {
@@ -24,6 +30,15 @@ final class Auth
         }
     }
 
+    /**
+     * Log a user in and store identity in the session.
+     *
+     * @since 1.0.0
+     *
+     * @param int      $userId   User ID.
+     * @param string   $userName Display name.
+     * @param UserRole $role     User role.
+     */
     public function login(int $userId, string $userName, UserRole $role = UserRole::Seller): void
     {
         self::ensureSession();
@@ -41,6 +56,11 @@ final class Auth
         $_SESSION['created']   = time();
     }
 
+    /**
+     * Log the user out.
+     *
+     * @since 1.0.0
+     */
     public function logout(): void
     {
         $_SESSION = [];
@@ -51,6 +71,13 @@ final class Auth
         session_destroy();
     }
 
+    /**
+     * Check if a user is logged in with a valid session.
+     *
+     * @since 1.0.0
+     *
+     * @return bool
+     */
     public function check(): bool
     {
         if (empty($_SESSION['user_id'])) {
@@ -78,21 +105,39 @@ final class Auth
         return $_SESSION['user_name'] ?? null;
     }
 
+    /**
+     * Get the current user's role.
+     *
+     * @since 1.0.0
+     *
+     * @return UserRole Defaults to Seller if missing.
+     */
     public function role(): UserRole
     {
         return UserRole::tryFrom($_SESSION['user_role'] ?? '') ?? UserRole::Seller;
     }
 
+    /** Whether the current user is an admin. */
     public function isAdmin(): bool
     {
         return $this->check() && $this->role() === UserRole::Admin;
     }
 
+    /** Whether the current user is a seller. */
     public function isSeller(): bool
     {
         return $this->check() && $this->role() === UserRole::Seller;
     }
 
+    /**
+     * Impersonate another user (admin only).
+     *
+     * @since 1.0.0
+     *
+     * @param int      $userId   User to impersonate.
+     * @param string   $userName Display name.
+     * @param UserRole $role     User role.
+     */
     public function impersonate(int $userId, string $userName, UserRole $role = UserRole::Seller): void
     {
         $_SESSION['_impersonate_admin_id']   = $_SESSION['user_id'];
@@ -104,6 +149,11 @@ final class Auth
         $_SESSION['user_role'] = $role->value;
     }
 
+    /**
+     * Stop impersonating and restore the admin session.
+     *
+     * @since 1.0.0
+     */
     public function stopImpersonating(): void
     {
         if (!$this->isImpersonating()) {
@@ -121,11 +171,13 @@ final class Auth
         );
     }
 
+    /** Whether the admin is currently impersonating another user. */
     public function isImpersonating(): bool
     {
         return !empty($_SESSION['_impersonate_admin_id']);
     }
 
+    /** Get the real admin's user ID during impersonation. */
     public function realAdminId(): ?int
     {
         return isset($_SESSION['_impersonate_admin_id']) ? (int) $_SESSION['_impersonate_admin_id'] : null;

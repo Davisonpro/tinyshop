@@ -17,6 +17,11 @@ use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Upload;
 use TinyShop\Services\Validation;
 
+/**
+ * Product API controller.
+ *
+ * @since 1.0.0
+ */
 final class ProductController
 {
     use JsonResponder;
@@ -38,6 +43,15 @@ final class ProductController
 
     private const MAX_PAGE_SIZE = 100;
 
+    /**
+     * List the seller's products.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function list(Request $request, Response $response): Response
     {
         $params = $request->getQueryParams();
@@ -63,6 +77,15 @@ final class ProductController
         return $this->json($response, ['products' => $products, 'total' => $total]);
     }
 
+    /**
+     * Create a product.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function create(Request $request, Response $response): Response
     {
         // Plan limit check
@@ -156,6 +179,16 @@ final class ProductController
         return $this->json($response, ['success' => true, 'product' => $product], 201);
     }
 
+    /**
+     * Update a product.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -262,6 +295,16 @@ final class ProductController
         return $this->json($response, ['success' => true, 'product' => $product]);
     }
 
+    /**
+     * Delete a product.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function delete(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
@@ -300,6 +343,15 @@ final class ProductController
         return $this->json($response, ['success' => true]);
     }
 
+    /**
+     * Bulk archive products.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function bulkArchive(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -324,6 +376,15 @@ final class ProductController
         return $this->json($response, ['success' => true, 'archived' => $count]);
     }
 
+    /**
+     * Bulk delete products.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function bulkDelete(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
@@ -369,6 +430,16 @@ final class ProductController
         return $this->json($response, ['success' => true, 'deleted' => $count]);
     }
 
+    /**
+     * Duplicate a product.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
+     */
     public function duplicate(Request $request, Response $response, array $args): Response
     {
         // Plan limit check

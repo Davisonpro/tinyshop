@@ -6,10 +6,18 @@ namespace TinyShop\Services;
 
 use PDO;
 
+/**
+ * Database connection service.
+ *
+ * @since 1.0.0
+ */
 final class DB
 {
     private readonly PDO $pdo;
 
+    /**
+     * @param array{host: string, port: int, dbname: string, charset: string, username: string, password: string} $config Database credentials.
+     */
     public function __construct(array $config)
     {
         $dsn = sprintf(
@@ -27,6 +35,7 @@ final class DB
         ]);
     }
 
+    /** Get the PDO instance. */
     public function pdo(): PDO
     {
         return $this->pdo;

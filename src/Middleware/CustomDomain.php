@@ -13,11 +13,9 @@ use TinyShop\Models\User;
 use TinyShop\Services\Config;
 
 /**
- * Rewrites subdomain / custom-domain requests into internal shop routes.
+ * Subdomain and custom domain routing.
  *
- *   davis.tinyshop.com/           → /~shop/davis
- *   davis.tinyshop.com/blue-shirt → /~shop/davis/blue-shirt
- *   myshop.com/                   → /~shop/davis  (looked up by custom_domain)
+ * @since 1.0.0
  */
 final class CustomDomain implements MiddlewareInterface
 {
@@ -54,6 +52,11 @@ final class CustomDomain implements MiddlewareInterface
         $this->baseDomain = strtolower($config->baseDomain());
     }
 
+    /**
+     * Rewrite the URI for subdomain or custom-domain requests.
+     *
+     * @since 1.0.0
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $path = $request->getUri()->getPath();
@@ -84,6 +87,7 @@ final class CustomDomain implements MiddlewareInterface
         return $handler->handle($request);
     }
 
+    /** Check if path is a core app route. */
     private function isAppRoute(string $path): bool
     {
         foreach (self::APP_PREFIXES as $prefix) {
@@ -136,6 +140,7 @@ final class CustomDomain implements MiddlewareInterface
         return null;
     }
 
+    /** Check domain status based on plan expiry (7-day grace period). */
     private function getDomainStatus(array $shop): string
     {
         $planId = $shop['plan_id'] ?? null;
@@ -157,6 +162,7 @@ final class CustomDomain implements MiddlewareInterface
         return 'disconnected';
     }
 
+    /** Render the disconnected domain landing page. */
     private function renderDisconnectedPage(string $storeName, string $subdomain): ResponseInterface
     {
         $storeName = htmlspecialchars($storeName);
@@ -196,6 +202,7 @@ final class CustomDomain implements MiddlewareInterface
         return $response->withHeader('Content-Type', 'text/html');
     }
 
+    /** Strip port from hostname. */
     private static function stripPort(string $host): string
     {
         $pos = strrpos($host, ':');

@@ -1,11 +1,18 @@
-/* ============================================================
-   Login modal — shown when session expires (cross-tab logout)
-   ============================================================ */
+/**
+ * Login modal — shown when the user's session expires.
+ *
+ * Intercepts 401 responses on API calls and presents an
+ * inline sign-in form so the user can re-authenticate
+ * without losing their place.
+ *
+ * @since 1.0.0
+ */
 (function() {
     var _overlay = null;
     var _showing = false;
     var _pendingUrl = null;
 
+    /** Get or create the modal overlay element. */
     function getOverlay() {
         if (_overlay && _overlay.isConnected) return _overlay;
 
@@ -63,16 +70,13 @@
                 success: function(res) {
                     if (res.success) {
                         TinyShop.hideLoginModal();
-                        // Clear SPA cache — session changed
                         if (TinyShop.spa) TinyShop.spa._cache = {};
-                        // Update CSRF token if returned
                         if (res.csrf) {
                             TinyShop.csrfToken = res.csrf;
                             $.ajaxSetup({ headers: { 'X-CSRF-Token': res.csrf } });
                             var meta = document.querySelector('meta[name="csrf-token"]');
                             if (meta) meta.setAttribute('content', res.csrf);
                         }
-                        // Reload the page the user was trying to reach
                         var dest = _pendingUrl || location.pathname + location.search;
                         if (TinyShop.spa && TinyShop.spa._ready) {
                             TinyShop.spa.go(dest);
@@ -94,11 +98,20 @@
         return div;
     }
 
+    /**
+     * Show the login modal, optionally recording the URL the
+     * user was trying to reach so we can redirect after login.
+     *
+     * @since 1.0.0
+     *
+     * @param {string} [targetUrl] URL to navigate to after login.
+     */
     TinyShop.showLoginModal = function(targetUrl) {
         if (_showing) return;
         _showing = true;
         _pendingUrl = targetUrl || null;
         var overlay = getOverlay();
+
         // Reset form
         overlay.querySelector('#loginModalEmail').value = '';
         overlay.querySelector('#loginModalPassword').value = '';
@@ -116,15 +129,14 @@
             }
         });
 
-        // Show — CSS handles visibility via .active class
         overlay.classList.add('active');
         document.body.classList.add('login-modal-open');
-        // Focus email field
         setTimeout(function() {
             overlay.querySelector('#loginModalEmail').focus();
         }, 100);
     };
 
+    /** Hide the login modal. */
     TinyShop.hideLoginModal = function() {
         if (!_showing || !_overlay) return;
         _showing = false;
@@ -133,6 +145,7 @@
         document.body.classList.remove('login-modal-open');
     };
 
+    /** Check whether the login modal is currently visible. */
     TinyShop._isLoginModalShowing = function() {
         return _showing;
     };
@@ -140,7 +153,6 @@
     // Global AJAX handler — intercept 401 on API calls to show login modal
     $(document).ajaxError(function(event, xhr, settings) {
         if (xhr.status === 401 && settings.url && settings.url.indexOf('/api/') !== -1) {
-            // Don't show modal for login attempts themselves
             if (settings.url.indexOf('/api/auth/login') !== -1) return;
             if (_showing) return;
             TinyShop.showLoginModal();

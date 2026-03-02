@@ -1,6 +1,13 @@
-/* ============================================================
-   Shop page init — re-runnable on each page:init
-   ============================================================ */
+/**
+ * Shop page initialisation.
+ *
+ * Sets up the product catalogue with AJAX-powered category
+ * filtering, search, sort, pagination (load-more), URL state
+ * management, and a scroll-to-top button. Re-runnable on
+ * each page:init so it works with SPA navigation.
+ *
+ * @since 1.0.0
+ */
 TinyShop.initShop = function() {
     var $catalogue = $('#catalogue');
     if (!$catalogue.length) return;
@@ -30,10 +37,10 @@ TinyShop.initShop = function() {
         ajaxMode: false
     };
 
-    // API base URL — routed through /api group for proper cache/CSRF headers
     var apiBase = '/api/shop/' + encodeURIComponent(subdomain) + '/products';
     var _activeXhr = null;
 
+    /** Build a query string from state + overrides. */
     function buildQuery(overrides) {
         var o = overrides || {};
         var params = {
@@ -47,6 +54,7 @@ TinyShop.initShop = function() {
         return $.param(params);
     }
 
+    /** Update the "Showing X of Y products" label. */
     function updateCount(shown, total) {
         state.total = total;
         if (!$productCount.length) return;
@@ -59,9 +67,9 @@ TinyShop.initShop = function() {
         }
     }
 
+    /** Show or hide the "Load more" button. */
     function updateLoadMore(shown, total) {
         if (!$loadMoreWrap.length && shown < total) {
-            // Create load more if it doesn't exist yet
             var html = '<div class="load-more-wrap" id="loadMoreWrap">'
                 + '<button type="button" class="load-more-btn" id="loadMoreBtn">'
                 + 'Load more <span class="load-more-count" id="loadMoreCount"></span>'
@@ -83,6 +91,7 @@ TinyShop.initShop = function() {
         }
     }
 
+    /** Toggle between the catalogue grid and the empty-search state. */
     function showEmpty(show) {
         if (show) {
             $catalogue.hide();
@@ -93,7 +102,7 @@ TinyShop.initShop = function() {
         }
     }
 
-    // Fetch products from API — uses server-rendered HTML fragments
+    /** Fetch products from the API using server-rendered HTML fragments. */
     function fetchProducts(opts) {
         if (_activeXhr) {
             _activeXhr.abort();
@@ -124,10 +133,8 @@ TinyShop.initShop = function() {
 
                 if (append) {
                     $catalogue.append(html);
-                    // Count how many new cards were added
                     var newCount = $(html).filter('.product-card').length || $(html).find('.product-card').length || 0;
                     if (newCount === 0) {
-                        // Fallback: count by parsing the HTML
                         var tmp = $('<div>').html(html);
                         newCount = tmp.find('.product-card').addBack('.product-card').length;
                     }
@@ -169,6 +176,7 @@ TinyShop.initShop = function() {
             });
     }
 
+    /** Horizontally centre an element within its scroll container. */
     function scrollIntoCenter(el) {
         var container = el.parentElement;
         if (container) {
@@ -177,6 +185,7 @@ TinyShop.initShop = function() {
         }
     }
 
+    /** Sync category tab and card UI to the active category. */
     function syncCategoryUI(category) {
         $('#categoryTabs .category-tab').removeClass('active');
         $('#categoryTabs .category-tab').each(function() {
@@ -193,6 +202,7 @@ TinyShop.initShop = function() {
 
     // ── Subcategory tabs ──
 
+    /** Show the subcategory row for a parent category slug. */
     function showSubcategoryRow(parentSlug) {
         $('.subcategory-tabs').hide();
         if (parentSlug) {
@@ -204,6 +214,7 @@ TinyShop.initShop = function() {
         }
     }
 
+    /** Activate a specific subcategory by its slug. */
     function activateSubcategoryBySlug(childSlug) {
         var $subPill = $('.subcategory-tabs .category-tab-sub[data-slug="' + childSlug + '"]');
         if ($subPill.length) {
@@ -229,6 +240,7 @@ TinyShop.initShop = function() {
         return false;
     }
 
+    /** Filter products by category, resetting search and offset. */
     function filterByCategory(category, slug) {
         state.category = category;
         state.categorySlug = (category === 'all') ? '' : (slug || '');
@@ -381,6 +393,8 @@ TinyShop.initShop = function() {
     updateLoadMore(state.offset, state.total);
 
     // ── URL state management ──
+
+    /** Push current filter/search/sort state into the URL bar. */
     function updateUrl() {
         var params = new URLSearchParams();
         if (state.search) params.set('search', state.search);
@@ -418,8 +432,6 @@ TinyShop.initShop = function() {
             showSubcategoryRow(String(serverSlug));
         }
     }
-
-
 
     if (urlSearch && $searchInput.length) {
         $searchInput.val(urlSearch);
@@ -468,10 +480,13 @@ TinyShop.initShop = function() {
         document.body.appendChild(scrollBtn);
     }
     var scrollThrottle;
+
+    /** Check scroll position and toggle the scroll-to-top button. */
     function checkScroll() {
         var threshold = window.innerHeight * 2;
         scrollBtn.classList.toggle('visible', window.scrollY > threshold);
     }
+
     if (TinyShop._shopScrollHandler) {
         window.removeEventListener('scroll', TinyShop._shopScrollHandler);
     }

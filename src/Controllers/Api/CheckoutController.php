@@ -20,6 +20,11 @@ use TinyShop\Services\Gateways\PaymentRequest;
 use TinyShop\Services\Mailer;
 use TinyShop\Services\Validation;
 
+/**
+ * Checkout API controller.
+ *
+ * @since 1.0.0
+ */
 final class CheckoutController
 {
     use JsonResponder;
@@ -38,8 +43,13 @@ final class CheckoutController
     ) {}
 
     /**
-     * POST /api/checkout/validate
-     * Validate cart items: check stock, prices, availability.
+     * Validate cart items before checkout.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function validateCart(Request $request, Response $response): Response
     {
@@ -116,8 +126,13 @@ final class CheckoutController
     }
 
     /**
-     * POST /api/checkout/create
-     * Create order, decrement stock, initiate payment.
+     * Create an order and initiate payment.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function createOrder(Request $request, Response $response): Response
     {
@@ -130,12 +145,18 @@ final class CheckoutController
         $customerEmail = trim($data['customer_email'] ?? '');
         $notes = trim($data['notes'] ?? '');
 
-        // Validate required fields
-        if (empty($customerName)) {
-            return $this->json($response, ['error' => true, 'message' => 'Name is required'], 422);
+        // Validate required fields and enforce max lengths against DB column sizes
+        if (empty($customerName) || mb_strlen($customerName) > 200) {
+            return $this->json($response, ['error' => true, 'message' => 'Name is required (200 characters max)'], 422);
         }
-        if (empty($customerEmail) || !filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
+        if (empty($customerEmail) || !filter_var($customerEmail, FILTER_VALIDATE_EMAIL) || mb_strlen($customerEmail) > 255) {
             return $this->json($response, ['error' => true, 'message' => 'A valid email is required'], 422);
+        }
+        if (mb_strlen($notes) > 1000) {
+            return $this->json($response, ['error' => true, 'message' => 'Notes must be 1000 characters or less'], 422);
+        }
+        if ($customerPhone !== '' && mb_strlen($customerPhone) > 30) {
+            return $this->json($response, ['error' => true, 'message' => 'Phone number is too long'], 422);
         }
         if (!in_array($gateway, ['stripe', 'paypal', 'cod', 'mpesa', 'pesapal'], true)) {
             return $this->json($response, ['error' => true, 'message' => 'Please select a payment method'], 422);
@@ -419,8 +440,14 @@ final class CheckoutController
     }
 
     /**
-     * GET /checkout/return/{gateway}
-     * Payment return handler — verifies payment and redirects to confirmation.
+     * Handle payment gateway return redirect.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
      */
     public function handleReturn(Request $request, Response $response, array $args): Response
     {
@@ -477,8 +504,13 @@ final class CheckoutController
     }
 
     /**
-     * GET /api/checkout/status?order={orderNumber}
-     * Returns current order status for polling (used by M-Pesa flow).
+     * Check order payment status (polling endpoint).
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
      */
     public function checkStatus(Request $request, Response $response): Response
     {

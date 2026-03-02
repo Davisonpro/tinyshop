@@ -16,6 +16,11 @@ use TinyShop\Services\PlanGuard;
 use TinyShop\Services\View;
 use TinyShop\Services\Theme;
 
+/**
+ * Storefront checkout controller.
+ *
+ * @since 1.0.0
+ */
 final class CheckoutController
 {
     private const CURRENCY_SYMBOLS = [
@@ -50,7 +55,14 @@ final class CheckoutController
     ) {}
 
     /**
-     * GET /checkout — Checkout page (rendered client-side from cart data)
+     * Render the checkout page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
      */
     public function showCheckout(Request $request, Response $response, array $args): Response
     {
@@ -113,7 +125,14 @@ final class CheckoutController
     }
 
     /**
-     * GET /order/{orderNumber} — Order confirmation page
+     * Render the order confirmation page.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @param array    $args     Route arguments.
+     * @return Response
      */
     public function showConfirmation(Request $request, Response $response, array $args): Response
     {

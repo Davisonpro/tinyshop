@@ -1,7 +1,19 @@
-/* ============================================================
-   Theme card helpers — shared utilities for theme renderers
-   ============================================================ */
+/**
+ * Theme card helpers and product card rendering.
+ *
+ * Provides shared utilities (badge, price HTML, image src)
+ * and a default product card renderer that themes can
+ * override via window.TinyShopTheme.renderProductCard().
+ *
+ * @since 1.0.0
+ */
 TinyShop.cardHelpers = {
+    /**
+     * Compute the badge for a product (sold-out or sale).
+     *
+     * @param {Object} p Product data.
+     * @return {Object|null} Badge object with type, text, and pct, or null.
+     */
     badge: function(p) {
         if (p.is_sold == 1) return { type: 'sold', text: 'Sold out', pct: 0 };
         if (p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price)) {
@@ -10,17 +22,36 @@ TinyShop.cardHelpers = {
         }
         return null;
     },
+
+    /**
+     * Return badge HTML or empty string.
+     *
+     * @param {Object} p Product data.
+     * @return {string} Badge markup.
+     */
     badgeHtml: function(p) {
         var b = this.badge(p);
         if (!b) return '';
         return '<span class="product-badge product-badge-' + b.type + '">' + b.text + '</span>';
     },
+
+    /** HTML-escape a product name. */
     escapeName: function(name) {
         return $('<span>').text(name).html();
     },
+
+    /** Return the product image URL or placeholder. */
     imgSrc: function(p) {
         return p.image_url || '/public/img/placeholder.svg';
     },
+
+    /**
+     * Build the price HTML for a product card.
+     *
+     * @param {Object} p              Product data.
+     * @param {string} currencySymbol Currency prefix string.
+     * @return {Object} Object with compare, main, and full HTML strings.
+     */
     priceHtml: function(p, currencySymbol) {
         var compare = '';
         if (p.compare_price && parseFloat(p.compare_price) > parseFloat(p.price) && p.is_sold != 1) {
@@ -32,9 +63,16 @@ TinyShop.cardHelpers = {
     }
 };
 
-/* ============================================================
-   Render product card — delegates to theme renderer if set
-   ============================================================ */
+/**
+ * Render a product card. Delegates to the active theme's
+ * renderer if one is registered, otherwise uses the default.
+ *
+ * @since 1.0.0
+ *
+ * @param {Object} p              Product data.
+ * @param {string} currencySymbol Currency prefix string.
+ * @return {string} Card HTML.
+ */
 TinyShop.renderProductCard = function(p, currencySymbol) {
     if (window.TinyShopTheme && typeof window.TinyShopTheme.renderProductCard === 'function') {
         return window.TinyShopTheme.renderProductCard(p, currencySymbol);
@@ -42,6 +80,7 @@ TinyShop.renderProductCard = function(p, currencySymbol) {
     return TinyShop._defaultRenderProductCard(p, currencySymbol);
 };
 
+/** Default product card renderer. */
 TinyShop._defaultRenderProductCard = function(p, currencySymbol) {
     var h = TinyShop.cardHelpers;
     var slug = p.slug || p.id;
@@ -59,9 +98,14 @@ TinyShop._defaultRenderProductCard = function(p, currencySymbol) {
         + '</div></a>';
 };
 
-/* ============================================================
-   Render skeleton placeholders — delegates to theme if set
-   ============================================================ */
+/**
+ * Render skeleton loading placeholders for the product grid.
+ *
+ * @since 1.0.0
+ *
+ * @param {number} count Number of skeletons to render.
+ * @return {string} Skeleton HTML.
+ */
 TinyShop.renderSkeletons = function(count) {
     if (window.TinyShopTheme && typeof window.TinyShopTheme.renderSkeletons === 'function') {
         return window.TinyShopTheme.renderSkeletons(count);
@@ -69,6 +113,7 @@ TinyShop.renderSkeletons = function(count) {
     return TinyShop._defaultRenderSkeletons(count);
 };
 
+/** Default skeleton renderer. */
 TinyShop._defaultRenderSkeletons = function(count) {
     var html = '';
     for (var i = 0; i < count; i++) {

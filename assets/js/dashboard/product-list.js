@@ -1,6 +1,12 @@
-/* ============================================================
-   Product List Page (2-col card grid)
-   ============================================================ */
+/**
+ * Product list page (2-column card grid).
+ *
+ * Loads all products via the API, renders them client-side
+ * with category filter tabs, search, pagination, bulk select
+ * mode, and per-product share.
+ *
+ * @since 1.0.0
+ */
 TinyShop.initProductList = function() {
     var $grid = $('#productGrid');
     if (!$grid.length) return;
@@ -30,6 +36,7 @@ TinyShop.initProductList = function() {
     var _selectMode = false;
     var _selected = {};
 
+    /** Fetch all products from the API and render. */
     function loadProducts() {
         TinyShop.api('GET', '/api/products?limit=0').done(function(res) {
             _allProducts = res.products || [];
@@ -70,6 +77,7 @@ TinyShop.initProductList = function() {
         });
     }
 
+    /** Build the category filter pill tabs from product data. */
     function buildCategoryTabs(products) {
         var cats = {};
         products.forEach(function(p) {
@@ -86,11 +94,12 @@ TinyShop.initProductList = function() {
 
         var html = '<button class="category-tab active" data-cat="">All</button>';
         catIds.forEach(function(id) {
-            html += '<button class="category-tab" data-cat="' + id + '">' + escapeHtml(cats[id]) + '</button>';
+            html += '<button class="category-tab" data-cat="' + id + '">' + TinyShop.escapeHtml(cats[id]) + '</button>';
         });
         $filterBar.html(html).show();
     }
 
+    /** Apply active category filter and search query, then re-render. */
     function applyFilters() {
         _filteredProducts = _allProducts;
         if (_activeFilter) {
@@ -107,6 +116,7 @@ TinyShop.initProductList = function() {
         renderProducts();
     }
 
+    /** Update the "N products" summary label. */
     function updateSummary() {
         var total = _filteredProducts.length;
         if (total === 0 || _allProducts.length < 3) {
@@ -144,6 +154,7 @@ TinyShop.initProductList = function() {
         renderProducts();
     });
 
+    /** Render the product card grid from _filteredProducts. */
     function renderProducts() {
         var products = _filteredProducts;
         updateSummary();
@@ -151,7 +162,7 @@ TinyShop.initProductList = function() {
         if (products.length === 0) {
             var msg, hint;
             if (_searchQuery) {
-                msg = 'No results for "' + escapeHtml(_searchQuery) + '"';
+                msg = 'No results for "' + TinyShop.escapeHtml(_searchQuery) + '"';
                 hint = '<p>Try a different search term</p>';
             } else if (_activeFilter) {
                 msg = 'Nothing in this category';
@@ -200,22 +211,22 @@ TinyShop.initProductList = function() {
             } else {
                 priceHtml = TinyShop.formatPrice(p.price, _currency);
             }
-            var catLabel = p.category_name ? '<div class="product-card-category">' + escapeHtml(p.category_name) + '</div>' : '';
+            var catLabel = p.category_name ? '<div class="product-card-category">' + TinyShop.escapeHtml(p.category_name) + '</div>' : '';
             var checkHtml = _selectMode
                 ? '<span class="product-select-check' + (_selected[p.id] ? ' checked' : '') + '"><i class="fa-solid fa-check"></i></span>'
                 : '';
             var shareBtn = !_selectMode && !isHidden
-                ? '<button type="button" class="product-share-btn" data-slug="' + escapeHtml(p.slug || p.id) + '" data-name="' + escapeHtml(p.name) + '" title="Share"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>'
+                ? '<button type="button" class="product-share-btn" data-slug="' + TinyShop.escapeHtml(p.slug || p.id) + '" data-name="' + TinyShop.escapeHtml(p.name) + '" title="Share"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>'
                 : '';
             html += '<a href="/dashboard/products/' + p.id + '/edit" class="' + cardClass + '" data-id="' + p.id + '">' +
                 checkHtml +
                 '<div class="product-card-img-wrap">' +
                     badge +
                     shareBtn +
-                    '<img src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(p.name) + '" loading="lazy">' +
+                    '<img src="' + TinyShop.escapeHtml(imgSrc) + '" alt="' + TinyShop.escapeHtml(p.name) + '" loading="lazy">' +
                 '</div>' +
                 '<div class="product-card-body">' +
-                    '<h3>' + escapeHtml(p.name) + '</h3>' +
+                    '<h3>' + TinyShop.escapeHtml(p.name) + '</h3>' +
                     '<div class="product-price">' + priceHtml + '</div>' +
                     catLabel +
                 '</div>' +
@@ -233,6 +244,8 @@ TinyShop.initProductList = function() {
     }
 
     // --- Bulk select mode ---
+
+    /** Enter multi-select mode for bulk actions. */
     function enterSelectMode() {
         _selectMode = true;
         _selected = {};
@@ -243,6 +256,7 @@ TinyShop.initProductList = function() {
         renderProducts();
     }
 
+    /** Exit multi-select mode. */
     function exitSelectMode() {
         _selectMode = false;
         _selected = {};
@@ -253,6 +267,7 @@ TinyShop.initProductList = function() {
         renderProducts();
     }
 
+    /** Update the bulk action bar count label. */
     function updateBulkBar() {
         var count = Object.keys(_selected).length;
         if (count > 0) {
@@ -348,11 +363,11 @@ TinyShop.initProductList = function() {
             '<button type="button" class="share-quick-btn share-btn-email" data-channel="email" title="Email"><i class="fa-solid fa-envelope"></i></button>' +
         '</div>' +
         '<div class="share-link-row" style="margin-top:12px">' +
-            '<input type="text" value="' + escapeHtml(productUrl) + '" id="shareProductUrl" readonly>' +
+            '<input type="text" value="' + TinyShop.escapeHtml(productUrl) + '" id="shareProductUrl" readonly>' +
             '<button type="button" class="btn-copy" id="copyShareUrl">Copy</button>' +
         '</div>';
 
-        TinyShop.openModal('Share ' + escapeHtml(name), html);
+        TinyShop.openModal('Share ' + TinyShop.escapeHtml(name), html);
 
         var text = encodeURIComponent('Check out ' + name + '!');
         $('.share-quick-btns-modal .share-quick-btn').on('click', function() {

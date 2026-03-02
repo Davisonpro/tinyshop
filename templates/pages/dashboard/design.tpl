@@ -6,6 +6,39 @@
     <a href="/dashboard/shop" class="dash-topbar-avatar">{$user.store_name|escape|substr:0:1|upper}</a>
 </div>
 
+{* --- Theme Selector --- *}
+{if !empty($available_themes) && $available_themes|@count > 1}
+{assign var="currentTheme" value=$user.shop_theme|default:'classic'}
+{assign var="allowedThemes" value=$usage.allowed_themes}
+{assign var="allThemes" value=$usage.all_themes}
+<div class="dash-form">
+    <div class="form-section">
+        <div class="form-section-title">Theme</div>
+        <p class="form-hint" style="margin-bottom:12px">Choose a look for your storefront</p>
+        <div class="theme-picker" id="themePicker">
+            {foreach $available_themes as $theme}
+            {assign var="isAllowed" value=$allThemes || (is_array($allowedThemes) && in_array($theme.slug, $allowedThemes))}
+            <label class="theme-option{if $theme.slug == $currentTheme} active{/if}{if !$isAllowed} locked{/if}">
+                <input type="radio" name="shop_theme" value="{$theme.slug|escape}" {if $theme.slug == $currentTheme}checked{/if} {if !$isAllowed}disabled{/if}>
+                <div class="theme-option-info">
+                    <span class="theme-option-name">{$theme.name|escape}</span>
+                    <span class="theme-option-desc">{$theme.description|escape}</span>
+                </div>
+                {if !$isAllowed}
+                    <i class="fa-solid fa-lock theme-option-lock"></i>
+                {else}
+                    <div class="theme-option-check"><i class="fa-solid fa-check"></i></div>
+                {/if}
+            </label>
+            {/foreach}
+        </div>
+        {if !$allThemes && $usage.can_upgrade}
+        <p class="form-hint" style="margin-top:12px"><i class="fa-solid fa-lock" style="opacity:0.4"></i> Upgrade your plan to unlock more themes</p>
+        {/if}
+    </div>
+</div>
+{/if}
+
 {* --- Color Palette --- *}
 <div class="dash-form">
     <div class="form-section">
@@ -302,6 +335,23 @@
 {block name="extra_scripts"}
 <script>
 $(function() {ldelim}
+    // --- Theme Selector ---
+    $('#themePicker').on('change', 'input[name="shop_theme"]', function() {ldelim}
+        var theme = $(this).val();
+        var $opt = $(this).closest('.theme-option');
+        if ($opt.hasClass('locked')) return;
+        $('#themePicker .theme-option').removeClass('active');
+        $opt.addClass('active');
+        TinyShop.api('PUT', '/api/shop', {ldelim} shop_theme: theme {rdelim}).done(function() {ldelim}
+            TinyShop.toast('Theme updated! Reloading...');
+            setTimeout(function() {ldelim} window.location.reload(); {rdelim}, 600);
+        {rdelim}).fail(function(xhr) {ldelim}
+            var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to update';
+            TinyShop.toast(msg, 'error');
+            window.location.reload();
+        {rdelim});
+    {rdelim});
+
     // --- Color Palette ---
     $('#paletteGrid').on('change', 'input[name="color_palette"]', function() {ldelim}
         var palette = $(this).val();

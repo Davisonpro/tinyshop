@@ -1,8 +1,14 @@
-/* ============================================================
-   Navigate helper — uses SPA when available, else full load
-   ============================================================ */
+/**
+ * Navigate to a URL using SPA when available, else full page load.
+ *
+ * Closes any open modal before navigating to keep body scroll
+ * in a clean state.
+ *
+ * @since 1.0.0
+ *
+ * @param {string} url The destination URL.
+ */
 TinyShop.navigate = function(url) {
-    // Close any open modal/confirm before navigating
     if (typeof TinyShop.closeModal === 'function') TinyShop.closeModal();
     document.body.style.overflow = '';
     if (TinyShop.spa && TinyShop.spa._ready) {
@@ -10,12 +16,4 @@ TinyShop.navigate = function(url) {
     } else {
         window.location.href = url;
     }
-};
-
-/* ============================================================
-   Format price — matches PHP number_format(n, 2, '.', ',')
-   ============================================================ */
-TinyShop.formatPrice = function(n) {
-    var num = parseFloat(n) || 0;
-    return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };

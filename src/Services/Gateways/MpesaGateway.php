@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyShop\Services\Gateways;
 
+/**
+ * M-Pesa STK Push gateway.
+ *
+ * @since 1.0.0
+ */
 final class MpesaGateway implements GatewayInterface
 {
     private readonly string $baseUrl;
@@ -25,6 +30,7 @@ final class MpesaGateway implements GatewayInterface
         return 'mpesa';
     }
 
+    /** {@inheritDoc} */
     public function createPayment(PaymentRequest $request): PaymentResult
     {
         $token = $this->getToken();
@@ -78,12 +84,14 @@ final class MpesaGateway implements GatewayInterface
         );
     }
 
+    /** {@inheritDoc} M-Pesa uses callback only, no return-URL verification. */
     public function verifyPayment(array $params): PaymentVerification
     {
         // M-Pesa uses callback only — no return-URL verification
         return new PaymentVerification(paid: false);
     }
 
+    /** {@inheritDoc} */
     public function parseWebhook(string $payload, array $params = [], array $headers = []): PaymentVerification
     {
         $data = json_decode($payload, true);
@@ -126,6 +134,7 @@ final class MpesaGateway implements GatewayInterface
         );
     }
 
+    /** Get an M-Pesa OAuth token. */
     private function getToken(): string
     {
         $credentials = base64_encode($this->consumerKey . ':' . $this->consumerSecret);

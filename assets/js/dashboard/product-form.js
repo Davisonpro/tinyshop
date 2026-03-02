@@ -1,6 +1,12 @@
-/* ============================================================
-   Product Form Page (add / edit)
-   ============================================================ */
+/**
+ * Product form page (add / edit).
+ *
+ * Handles image gallery with drag-to-reorder, category picker,
+ * variations editor, SEO fields, localStorage draft persistence,
+ * unsaved-changes warning, and form submission.
+ *
+ * @since 1.0.0
+ */
 TinyShop.initProductForm = function() {
     var $form = $('#productForm');
     if (!$form.length || typeof _productFormConfig === 'undefined') return;
@@ -34,6 +40,7 @@ TinyShop.initProductForm = function() {
     var $addBtn = $('#addImageBtn');
     var $fileInput = $('#imageInput');
 
+    /** Collect all image URLs from the gallery. */
     function getImageUrls() {
         var urls = [];
         $gallery.find('.image-gallery-item').each(function() {
@@ -42,9 +49,10 @@ TinyShop.initProductForm = function() {
         return urls;
     }
 
+    /** Append a fully-uploaded image to the gallery. */
     function addImageToGallery(url) {
-        var $item = $('<div class="image-gallery-item" draggable="true" data-url="' + escapeHtml(url) + '">' +
-            '<img src="' + escapeHtml(url) + '" alt="">' +
+        var $item = $('<div class="image-gallery-item" draggable="true" data-url="' + TinyShop.escapeHtml(url) + '">' +
+            '<img src="' + TinyShop.escapeHtml(url) + '" alt="">' +
             '<button type="button" class="image-gallery-remove">&times;</button>' +
         '</div>');
         $addBtn.before($item);
@@ -52,12 +60,12 @@ TinyShop.initProductForm = function() {
         saveDraft();
     }
 
+    /** Show a local preview placeholder while uploading. */
     function addImagePlaceholder(file) {
         var $item = $('<div class="image-gallery-item image-gallery-uploading">' +
             '<div class="image-gallery-preview-img"></div>' +
             '<div class="image-gallery-loader"><span class="btn-spinner"></span></div>' +
         '</div>');
-        // Show local preview via FileReader
         var reader = new FileReader();
         reader.onload = function(e) {
             $item.find('.image-gallery-preview-img').css('background-image', 'url(' + e.target.result + ')');
@@ -78,16 +86,14 @@ TinyShop.initProductForm = function() {
             (function(file) {
                 var $placeholder = addImagePlaceholder(file);
                 TinyShop.uploadFile(file, function(url) {
-                    // Replace placeholder with real gallery item
-                    var $item = $('<div class="image-gallery-item" draggable="true" data-url="' + escapeHtml(url) + '">' +
-                        '<img src="' + escapeHtml(url) + '" alt="">' +
+                    var $item = $('<div class="image-gallery-item" draggable="true" data-url="' + TinyShop.escapeHtml(url) + '">' +
+                        '<img src="' + TinyShop.escapeHtml(url) + '" alt="">' +
                         '<button type="button" class="image-gallery-remove">&times;</button>' +
                     '</div>');
                     $placeholder.replaceWith($item);
                     bindDrag($item[0]);
                     saveDraft();
                 }, function() {
-                    // Remove placeholder on failure
                     $placeholder.remove();
                 });
             })(files[i]);
@@ -104,6 +110,7 @@ TinyShop.initProductForm = function() {
     // --- Drag to Reorder (desktop + touch) ---
     var _dragItem = null;
 
+    /** Bind desktop drag and touch reorder handlers to a gallery item. */
     function bindDrag(el) {
         el.addEventListener('dragstart', function(e) {
             _dragItem = el;
@@ -198,6 +205,7 @@ TinyShop.initProductForm = function() {
     // --- Category Picker (bottom sheet) ---
     var _categoryTree = _productFormConfig.categoryTree || [];
 
+    /** Open the category picker modal with search. */
     function openCategoryPicker() {
         var currentVal = $('#productCategory').val();
         var html = '<div class="category-picker-search">' +
@@ -211,14 +219,14 @@ TinyShop.initProductForm = function() {
         '</div>';
 
         _categoryTree.forEach(function(parent) {
-            html += '<div class="category-picker-group" data-search-parent="' + escapeHtml(parent.name.toLowerCase()) + '">';
-            html += '<div class="category-picker-item category-picker-item-parent' + (String(parent.id) === String(currentVal) ? ' selected' : '') + '" data-id="' + parent.id + '" data-search-name="' + escapeHtml(parent.name.toLowerCase()) + '">' +
-                '<span>' + escapeHtml(parent.name) + '</span>' +
+            html += '<div class="category-picker-group" data-search-parent="' + TinyShop.escapeHtml(parent.name.toLowerCase()) + '">';
+            html += '<div class="category-picker-item category-picker-item-parent' + (String(parent.id) === String(currentVal) ? ' selected' : '') + '" data-id="' + parent.id + '" data-search-name="' + TinyShop.escapeHtml(parent.name.toLowerCase()) + '">' +
+                '<span>' + TinyShop.escapeHtml(parent.name) + '</span>' +
                 '<span class="category-picker-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>' +
             '</div>';
             (parent.children || []).forEach(function(child) {
-                html += '<div class="category-picker-item category-picker-item-child' + (String(child.id) === String(currentVal) ? ' selected' : '') + '" data-id="' + child.id + '" data-search-name="' + escapeHtml(child.name.toLowerCase()) + '">' +
-                    '<span>' + escapeHtml(child.name) + '</span>' +
+                html += '<div class="category-picker-item category-picker-item-child' + (String(child.id) === String(currentVal) ? ' selected' : '') + '" data-id="' + child.id + '" data-search-name="' + TinyShop.escapeHtml(child.name.toLowerCase()) + '">' +
+                    '<span>' + TinyShop.escapeHtml(child.name) + '</span>' +
                     '<span class="category-picker-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>' +
                 '</div>';
             });
@@ -308,6 +316,7 @@ TinyShop.initProductForm = function() {
     var $varGroups = $('#variationGroups');
     var _varCounter = 0;
 
+    /** Collect all variation groups and their options from the DOM. */
     function getVariations() {
         var groups = [];
         $varGroups.find('.variation-group').each(function() {
@@ -329,20 +338,22 @@ TinyShop.initProductForm = function() {
         return groups;
     }
 
+    /** Build the HTML for a single variation option row. */
     function buildOptionRow(value, price) {
         var priceVal = (price !== null && price !== undefined) ? price : '';
         return '<div class="variation-option-row">' +
-            '<input type="text" class="variation-option-value" placeholder="Value name" value="' + escapeHtml(value || '') + '" autocomplete="off">' +
-            '<input type="text" class="variation-option-price price-input" placeholder="Price" inputmode="decimal" value="' + escapeHtml(String(priceVal)) + '" autocomplete="off">' +
+            '<input type="text" class="variation-option-value" placeholder="Value name" value="' + TinyShop.escapeHtml(value || '') + '" autocomplete="off">' +
+            '<input type="text" class="variation-option-price price-input" placeholder="Price" inputmode="decimal" value="' + TinyShop.escapeHtml(String(priceVal)) + '" autocomplete="off">' +
             '<button type="button" class="variation-option-remove" title="Remove">&times;</button>' +
         '</div>';
     }
 
+    /** Add a complete variation group to the editor. */
     function addVariationGroup(name, options) {
         var gid = _varCounter++;
         var html = '<div class="variation-group" data-gid="' + gid + '">' +
             '<div class="variation-group-header">' +
-                '<input type="text" class="variation-group-name" placeholder="Option name (e.g. Size)" value="' + escapeHtml(name || '') + '" autocomplete="off">' +
+                '<input type="text" class="variation-group-name" placeholder="Option name (e.g. Size)" value="' + TinyShop.escapeHtml(name || '') + '" autocomplete="off">' +
                 '<button type="button" class="variation-group-remove" title="Remove">&times;</button>' +
             '</div>' +
             '<div class="variation-options">';
@@ -432,6 +443,7 @@ TinyShop.initProductForm = function() {
         $seoToggle.addClass('open');
     }
 
+    /** Update the character count labels for SEO fields. */
     function updateSeoCounters() {
         $('#metaTitleCount').text($metaTitleInput.val().length);
         $('#metaDescCount').text($metaDescInput.val().length);
@@ -442,6 +454,8 @@ TinyShop.initProductForm = function() {
 
     // --- localStorage Draft (add mode only) ---
     var _draftTimer;
+
+    /** Debounced save of the current form state to localStorage. */
     function saveDraft() {
         if (isEdit) return;
         clearTimeout(_draftTimer);
@@ -462,6 +476,7 @@ TinyShop.initProductForm = function() {
         }, 500);
     }
 
+    /** Restore a previously saved draft from localStorage. */
     function restoreDraft() {
         if (isEdit) return;
         try {
@@ -505,6 +520,7 @@ TinyShop.initProductForm = function() {
         } catch(e) {}
     }
 
+    /** Remove the saved draft from localStorage. */
     function clearDraft() {
         try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
     }

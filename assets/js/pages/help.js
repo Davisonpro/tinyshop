@@ -1,5 +1,13 @@
-/* Help Center — client-side search */
-(function () {
+/**
+ * Help Center — client-side full-text search over articles.
+ *
+ * Reads article data from a hidden JSON element, scores
+ * results by title/keyword/summary match, and renders
+ * a ranked list. Also handles category card scroll-to.
+ *
+ * @since 1.0.0
+ */
+(function() {
     'use strict';
 
     var searchInput  = document.getElementById('helpSearchInput');
@@ -23,7 +31,7 @@
 
     var debounceTimer = null;
 
-    searchInput.addEventListener('input', function () {
+    searchInput.addEventListener('input', function() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(doSearch, 150);
 
@@ -34,13 +42,14 @@
         }
     });
 
-    searchClear.addEventListener('click', function () {
+    searchClear.addEventListener('click', function() {
         searchInput.value = '';
         searchWrap.classList.remove('has-query');
         doSearch();
         searchInput.focus();
     });
 
+    /** Run the search and render results. */
     function doSearch() {
         var raw = searchInput.value.trim().toLowerCase();
 
@@ -52,7 +61,7 @@
             return;
         }
 
-        var terms = raw.split(/\s+/).filter(function (t) { return t.length > 0; });
+        var terms = raw.split(/\s+/).filter(function(t) { return t.length > 0; });
         var scored = [];
 
         for (var i = 0; i < articles.length; i++) {
@@ -67,9 +76,9 @@
                 var t = terms[j];
                 var found = false;
 
-                if (title.indexOf(t) !== -1) { score += 10; found = true; }
-                if (kw.indexOf(t) !== -1)    { score += 5;  found = true; }
-                if (summary.indexOf(t) !== -1) { score += 1; found = true; }
+                if (title.indexOf(t) !== -1)   { score += 10; found = true; }
+                if (kw.indexOf(t) !== -1)      { score += 5;  found = true; }
+                if (summary.indexOf(t) !== -1) { score += 1;  found = true; }
 
                 if (!found) { matched = false; break; }
             }
@@ -79,7 +88,7 @@
             }
         }
 
-        scored.sort(function (a, b) { return b.score - a.score; });
+        scored.sort(function(a, b) { return b.score - a.score; });
 
         if (categories) categories.style.display = 'none';
         if (sections) sections.style.display = 'none';
@@ -113,16 +122,17 @@
         resultsList.innerHTML = html;
     }
 
+    /** Escape HTML entities (local to this IIFE). */
     function escHtml(str) {
         var div = document.createElement('div');
         div.appendChild(document.createTextNode(str));
         return div.innerHTML;
     }
 
-    /* Scroll to category section when clicking a category card */
+    // Scroll to category section when clicking a category card
     var catCards = document.querySelectorAll('.help-category-card[data-category]');
     for (var c = 0; c < catCards.length; c++) {
-        catCards[c].addEventListener('click', function (e) {
+        catCards[c].addEventListener('click', function(e) {
             e.preventDefault();
             var cat = this.getAttribute('data-category');
             var target = document.getElementById('section-' + cat);

@@ -10,6 +10,11 @@ use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Services\Upload;
 use RuntimeException;
 
+/**
+ * File upload API controller.
+ *
+ * @since 1.0.0
+ */
 final class UploadController
 {
     use JsonResponder;
@@ -18,6 +23,15 @@ final class UploadController
         private readonly Upload $upload
     ) {}
 
+    /**
+     * Store an uploaded file.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
     public function store(Request $request, Response $response): Response
     {
         $files = $request->getUploadedFiles();
