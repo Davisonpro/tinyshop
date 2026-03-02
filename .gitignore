@@ -12,6 +12,7 @@
 # Environment / secrets
 .env
 /config/env.php
+deploy.sh
 
 # Install lock
 /config/.installed
