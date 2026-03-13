@@ -12,6 +12,7 @@ use TinyShop\Models\AuditLog;
 use TinyShop\Models\ThemeOption;
 use TinyShop\Models\User;
 use TinyShop\Services\Auth;
+use TinyShop\Services\HestiaCP;
 use TinyShop\Services\Hooks;
 use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Theme;
@@ -37,7 +38,8 @@ final class ShopController
         private readonly ThemeOption $themeOptionModel,
         private readonly View $view,
         private readonly LoggerInterface $logger,
-        private readonly AuditLog $auditLog
+        private readonly AuditLog $auditLog,
+        private readonly HestiaCP $hestiaCP
     ) {}
 
     /**
@@ -188,6 +190,9 @@ final class ShopController
         }
 
         // Validate custom domain if being changed
+        $domainAdded = null;
+        $domainRemoved = null;
+
         if (array_key_exists('custom_domain', $data)) {
             $domain = trim($data['custom_domain'] ?? '');
             $currentUser = User::find($userId);
@@ -195,25 +200,44 @@ final class ShopController
 
             if ($domain === '') {
                 $data['custom_domain'] = null;
-            } else if ($domain !== $currentDomain && !$this->planGuard->canUseCustomDomain($userId)) {
-                return $this->json($response, ['error' => true, 'message' => 'Custom domains are available on paid plans.'], 403);
+                if ($currentDomain !== null) {
+                    $domainRemoved = $currentDomain;
+                }
             } else {
-                // Normalize: lowercase, strip protocol/trailing slashes
+                // Normalize first so all comparisons use the canonical form
                 $domain = strtolower($domain);
                 $domain = preg_replace('#^https?://#', '', $domain);
                 $domain = rtrim($domain, '/');
-                // Basic domain validation
+
                 if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z]{2,})+$/', $domain)) {
-                    return $this->json($response, ['error' => true, 'message' => 'Please enter a valid domain (e.g. shop.example.com)'], 422);
+                    return $this->json($response, ['error' => true, 'message' => 'Please enter a valid domain (e.g. myshop.com)'], 422);
+                }
+                if ($domain !== $currentDomain && !$this->planGuard->canUseCustomDomain($userId)) {
+                    return $this->json($response, ['error' => true, 'message' => 'Custom domains are available on paid plans.'], 403);
                 }
                 if (User::exists('custom_domain', $domain, $userId)) {
                     return $this->json($response, ['error' => true, 'message' => 'This domain is already in use'], 409);
                 }
+
                 $data['custom_domain'] = $domain;
+                if ($domain !== $currentDomain) {
+                    $domainAdded = $domain;
+                    if ($currentDomain !== null) {
+                        $domainRemoved = $currentDomain;
+                    }
+                }
             }
         }
 
         $this->userModel->update($userId, $data);
+
+        // Provision/deprovision domain aliases on the web server
+        if ($domainRemoved !== null) {
+            $this->hestiaCP->removeDomainAlias($domainRemoved);
+        }
+        if ($domainAdded !== null) {
+            $this->hestiaCP->addDomainAlias($domainAdded);
+        }
 
         Hooks::doAction('shop.updated', $userId, $data);
 
@@ -447,6 +471,11 @@ final class ShopController
         $hash = $this->userModel->getPasswordHash($userId);
         if (!$hash || !password_verify($password, $hash)) {
             return $this->json($response, ['error' => true, 'message' => 'Password is incorrect'], 403);
+        }
+
+        // Remove custom domain alias before account deletion
+        if (!empty($user['custom_domain'])) {
+            $this->hestiaCP->removeDomainAlias($user['custom_domain']);
         }
 
         $result = $this->userModel->deleteAccount($userId);

@@ -368,6 +368,7 @@ function togglePw(btn) {
     btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
 }
 var _baseDomain = '{$base_domain|escape:"javascript"}';
+var _nameservers = [{foreach $nameservers as $ns}'{$ns|escape:"javascript"}'{if !$ns@last},{/if}{/foreach}];
 function shopUrl(sub) {
     var port = window.location.port ? ':' + window.location.port : '';
     return window.location.protocol + '//' + sub + '.' + _baseDomain + port;
@@ -993,7 +994,7 @@ $(function() {
             html = '<form id="domainSetupForm" autocomplete="off">' +
                 '<div class="form-group">' +
                     '<label for="newDomain">Your domain</label>' +
-                    '<input type="text" class="form-control" id="newDomain" placeholder="e.g. shop.yourbrand.com" autocomplete="off" required autofocus>' +
+                    '<input type="text" class="form-control" id="newDomain" placeholder="e.g. myshop.com" autocomplete="off" required autofocus>' +
                 '</div>' +
                 '<ol class="domain-setup-steps">' +
                     '<li class="domain-setup-step">' +
@@ -1002,10 +1003,19 @@ $(function() {
                     '</li>' +
                     '<li class="domain-setup-step">' +
                         '<span class="domain-step-number">2</span>' +
-                        '<span class="domain-step-text">Add a <code>CNAME</code> record pointing to <code>' + escapeHtml(window.location.host) + '</code></span>' +
+                        '<span class="domain-step-text">Change your <strong>nameservers</strong> to:</span>' +
                     '</li>' +
+                '</ol>' +
+                '<div class="domain-ns-list">' +
+                    _nameservers.map(function(ns) {ldelim} return '<div class="domain-ns-item"><code>' + escapeHtml(ns) + '</code></div>'; {rdelim}).join('') +
+                '</div>' +
+                '<ol class="domain-setup-steps" start="3">' +
                     '<li class="domain-setup-step">' +
                         '<span class="domain-step-number">3</span>' +
+                        '<span class="domain-step-text">Wait a few minutes for the change to take effect</span>' +
+                    '</li>' +
+                    '<li class="domain-setup-step">' +
+                        '<span class="domain-step-number">4</span>' +
                         '<span class="domain-step-text">Enter your domain above and tap Connect</span>' +
                     '</li>' +
                 '</ol>' +
@@ -1029,7 +1039,7 @@ $(function() {
             // Confirmation prompt
             var confirmHtml = '<p style="margin-bottom:16px;color:var(--color-text-muted);font-size:0.9rem;line-height:1.5">You are connecting this domain to your shop:</p>' +
                 '<div style="padding:12px 14px;background:#EEF2FF;border-radius:10px;font-size:0.9375rem;font-weight:600;word-break:break-all;margin-bottom:20px;color:var(--color-accent)">' + escapeHtml(domain) + '</div>' +
-                '<p style="margin-bottom:20px;color:var(--color-text-muted);font-size:0.8125rem;line-height:1.4">Make sure you\'ve added the CNAME record at your domain provider before confirming.</p>' +
+                '<p style="margin-bottom:20px;color:var(--color-text-muted);font-size:0.8125rem;line-height:1.4">Make sure you\'ve updated your nameservers at your domain provider before confirming.</p>' +
                 '<div style="display:flex;gap:10px">' +
                     '<button type="button" class="btn-block btn-sm" id="domainConfirmCancel" style="flex:1;background:var(--color-bg-secondary);color:var(--color-text)">Cancel</button>' +
                     '<button type="button" class="btn-block btn-sm btn-primary" id="domainConfirmSave" style="flex:1">Connect</button>' +

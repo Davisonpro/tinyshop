@@ -4376,6 +4376,31 @@ a.top-product-row:active {
   margin: 2px 0;
 }
 
+.domain-ns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  background: var(--color-bg-secondary);
+  border-radius: 10px;
+}
+
+.domain-ns-item {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.domain-ns-item code {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--color-bg);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
 .domain-connected-card {
   display: flex;
   align-items: center;

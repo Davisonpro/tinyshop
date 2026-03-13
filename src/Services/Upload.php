@@ -17,6 +17,7 @@ use TinyShop\Models\Setting;
 final class Upload
 {
     private const WEBP_QUALITY = 82;
+    private const SAFE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
 
     private string $uploadDir;
     private string $uploadUrl;
@@ -64,9 +65,12 @@ final class Upload
         }
 
         // Move to temp location first, then verify real MIME from content
-        $ext = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
+        $ext = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+        if (!in_array($ext, self::SAFE_EXTENSIONS, true)) {
+            throw new RuntimeException('File extension not allowed');
+        }
         $baseName = bin2hex(random_bytes(16));
-        $name = $baseName . '.' . strtolower($ext);
+        $name = $baseName . '.' . $ext;
         $originalPath = $this->uploadDir . '/' . $name;
         $file->moveTo($originalPath);
 
@@ -460,6 +464,9 @@ final class Upload
         }
 
         $filename = basename($url);
+        if (!preg_match('/^[a-f0-9]{32}\.\w+$/', $filename)) {
+            return false;
+        }
         $path = $this->uploadDir . '/' . $filename;
         $deleted = false;
 

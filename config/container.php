@@ -16,6 +16,7 @@ use TinyShop\Services\Gateways\GatewayFactory;
 use TinyShop\Services\Validation;
 use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Theme;
+use TinyShop\Services\HestiaCP;
 use TinyShop\Services\ThemeCustomizer;
 use TinyShop\Models\Setting;
 use TinyShop\Models\Plan;
@@ -82,6 +83,18 @@ return function (Config $config, array $dbConfig): array {
 
         LoggerInterface::class => function () use ($config) {
             return new Logger($config->cacheDir() . '/logs');
+        },
+
+        HestiaCP::class => function ($container) {
+            $hestia = [
+                'api_url'      => $_ENV['HESTIA_API_URL'] ?? '',
+                'api_user'     => $_ENV['HESTIA_API_USER'] ?? '',
+                'api_password' => $_ENV['HESTIA_API_PASSWORD'] ?? '',
+                'domain'       => $_ENV['HESTIA_DOMAIN'] ?? '',
+                'user'         => $_ENV['HESTIA_USER'] ?? '',
+                'server_ip'    => $_ENV['HESTIA_SERVER_IP'] ?? '',
+            ];
+            return new HestiaCP($hestia, $container->get(LoggerInterface::class));
         },
     ];
 };

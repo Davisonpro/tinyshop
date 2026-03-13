@@ -16,7 +16,7 @@ use TinyShop\Models\Setting;
 final class View
 {
     /** Cache-busting version appended to CSS/JS URLs. */
-    public const ASSET_VERSION = '1.0.115';
+    public const ASSET_VERSION = '1.0.129';
 
     private readonly Smarty $smarty;
     private readonly string $baseTemplatesDir;

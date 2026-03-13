@@ -12,8 +12,13 @@
     }
     var nav = document.getElementById("mkNav");
     if (!nav) return;
+    var phone = document.querySelector(".land-phone");
     _scrollHandler = function() {
-      nav.classList.toggle("scrolled", window.scrollY > 10);
+      var y = window.scrollY;
+      nav.classList.toggle("scrolled", y > 10);
+      if (phone && y < 800) {
+        phone.style.transform = "translateY(" + y * -0.08 + "px)";
+      }
     };
     window.addEventListener("scroll", _scrollHandler, { passive: true });
     var els = document.querySelectorAll(".land-reveal");
@@ -26,7 +31,7 @@
             _observer.unobserve(e.target);
           }
         });
-      }, { threshold: 0.12, rootMargin: "0px 0px -30px 0px" });
+      }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
       els.forEach(function(el) {
         _observer.observe(el);
       });

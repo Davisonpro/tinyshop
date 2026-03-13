@@ -3,6 +3,7 @@
    Landing page — bold, colorful, flat (Linktree-inspired)
    Shared tokens, nav, and footer live in marketing.css
    ============================================================ */
+/* Easing curves */
 .page-landing {
   background: #fff;
 }
@@ -11,50 +12,58 @@
 @keyframes heroFade {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(28px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 @keyframes phoneFloat {
   0%, 100% {
-    transform: translateY(0);
+    transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-10px) rotate(0.5deg);
+  }
+}
+@keyframes phoneShadow {
+  0%, 100% {
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.25);
   }
 }
 .land-hero .land-badge {
-  animation: heroFade 0.5s ease-out 0.1s both;
+  animation: heroFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
 }
 
 .land-hero h1 {
-  animation: heroFade 0.5s ease-out 0.15s both;
+  animation: heroFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
 }
 
 .land-hero-sub {
-  animation: heroFade 0.5s ease-out 0.22s both;
+  animation: heroFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
 }
 
 .land-hero .land-cta {
-  animation: heroFade 0.5s ease-out 0.3s both;
+  animation: heroFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.44s both;
 }
 
 .land-hero-small {
-  animation: heroFade 0.5s ease-out 0.36s both;
+  animation: heroFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.52s both;
 }
 
 .land-phone {
-  animation: heroFade 0.6s ease-out 0.25s both;
+  animation: heroFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
 }
 
 /* Scroll reveal */
 .land-reveal {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  transform: translateY(24px);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .land-reveal.revealed {
@@ -63,31 +72,40 @@
 }
 
 .land-reveal.revealed.d1 {
-  transition-delay: 0.06s;
+  transition-delay: 0.08s;
 }
 
 .land-reveal.revealed.d2 {
-  transition-delay: 0.12s;
+  transition-delay: 0.16s;
 }
 
 .land-reveal.revealed.d3 {
-  transition-delay: 0.18s;
-}
-
-.land-reveal.revealed.d4 {
   transition-delay: 0.24s;
 }
 
+.land-reveal.revealed.d4 {
+  transition-delay: 0.32s;
+}
+
 .land-reveal.revealed.d5 {
-  transition-delay: 0.3s;
+  transition-delay: 0.4s;
 }
 
 .land-reveal.revealed.d6 {
-  transition-delay: 0.36s;
+  transition-delay: 0.48s;
 }
 
 .land-reveal.revealed.d7 {
-  transition-delay: 0.42s;
+  transition-delay: 0.56s;
+}
+
+/* Feature cards get a scale variant for extra premium feel */
+.land-feature-card.land-reveal {
+  transform: translateY(24px) scale(0.97);
+}
+
+.land-feature-card.land-reveal.revealed {
+  transform: translateY(0) scale(1);
 }
 
 /* ── Hero ── */
@@ -147,11 +165,28 @@
   text-decoration: none;
   border: none;
   cursor: pointer;
-  transition: background 0.15s ease;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s ease;
+}
+
+.land-cta::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  transition: left 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .land-cta:hover {
   background: #c8de1f;
+}
+
+.land-cta:hover::after {
+  left: 100%;
 }
 
 .land-cta:active {
@@ -160,6 +195,11 @@
 
 .land-cta i {
   font-size: 16px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.land-cta:hover i {
+  transform: translateX(3px);
 }
 
 .land-hero-small {
@@ -190,6 +230,8 @@
   padding: 10px;
   position: relative;
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+  animation: phoneShadow 7s ease-in-out infinite;
+  animation-delay: 2s;
 }
 
 .land-phone-notch {
@@ -426,11 +468,12 @@
   color: rgba(255, 255, 255, 0.5);
   font-family: var(--font-mono);
   letter-spacing: -0.01em;
-  transition: background 0.15s ease;
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .land-url:hover {
   background: rgba(255, 255, 255, 0.14);
+  transform: scale(1.03);
 }
 
 .land-url b {
@@ -454,7 +497,7 @@
   font-weight: 800;
   color: var(--land-shade);
   letter-spacing: -0.03em;
-  margin: 0 0 8px;
+  margin: 0 0 12px;
 }
 
 .land-steps-sub {
@@ -474,11 +517,13 @@
   padding: 24px;
   border-radius: 22px;
   background: #fff;
-  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .land-step:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
 }
 
 .land-step-icon {
@@ -567,7 +612,7 @@
   font-weight: 800;
   color: var(--land-shade);
   letter-spacing: -0.03em;
-  margin: 0 0 8px;
+  margin: 0 0 28px;
 }
 
 .land-features-sub {
@@ -586,11 +631,13 @@
 .land-feature-card {
   padding: 24px;
   border-radius: 22px;
-  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .land-feature-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
 }
 
 /* Distinct solid backgrounds per card */
@@ -690,7 +737,7 @@
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.03em;
-  margin: 0 0 8px;
+  margin: 0 0 28px;
 }
 
 .land-usecases-sub {
@@ -713,11 +760,12 @@
   padding: 20px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.08);
-  transition: background 0.15s ease;
+  transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .land-usecase:hover {
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .land-usecase-icon {
@@ -793,11 +841,13 @@
 .land-voice {
   padding: 28px 24px;
   border-radius: 22px;
-  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .land-voice:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
 }
 
 /* Each voice block gets a bold solid color */
@@ -865,6 +915,11 @@
   max-width: 420px;
   margin: 0 auto;
   border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.land-bottom-form:hover {
+  box-shadow: 0 4px 20px rgba(210, 232, 35, 0.15);
 }
 
 .land-bottom-url {
@@ -899,7 +954,7 @@
   font-family: inherit;
   text-decoration: none;
   white-space: nowrap;
-  transition: background 0.15s ease;
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s ease;
 }
 
 .land-bottom-btn:hover {

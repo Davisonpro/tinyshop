@@ -17,6 +17,7 @@ use TinyShop\Models\Subscription;
 use TinyShop\Models\ThemeOption;
 use TinyShop\Models\User;
 use TinyShop\Services\Auth;
+use TinyShop\Services\HestiaCP;
 use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Theme;
 use TinyShop\Services\View;
@@ -42,7 +43,8 @@ final class DashboardController
         private readonly PlanGuard $planGuard,
         private readonly Theme $themeService,
         private readonly Setting $settingModel,
-        private readonly ThemeOption $themeOptionModel
+        private readonly ThemeOption $themeOptionModel,
+        private readonly HestiaCP $hestiaCP
     ) {}
 
     /**
@@ -135,6 +137,7 @@ final class DashboardController
             'active_page'       => 'shop',
             'usage'             => $usage,
             'available_themes'  => $availableThemes,
+            'nameservers'       => $this->hestiaCP->getNameservers(),
         ]);
     }
 

@@ -4,6 +4,7 @@ TinyShop.escapeHtml = function(str) {
   div.appendChild(document.createTextNode(str));
   return div.innerHTML;
 };
+var escapeHtml = TinyShop.escapeHtml;
 TinyShop.formatPrice = function(amount, currency) {
   currency = currency || "KES";
   var num = parseFloat(amount);

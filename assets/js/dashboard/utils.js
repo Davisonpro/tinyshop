@@ -16,6 +16,9 @@ TinyShop.escapeHtml = function(str) {
     return div.innerHTML;
 };
 
+/* Global alias so inline <script> blocks in templates can call escapeHtml() directly. */
+var escapeHtml = TinyShop.escapeHtml;
+
 /**
  * Format a numeric amount as a currency string.
  *

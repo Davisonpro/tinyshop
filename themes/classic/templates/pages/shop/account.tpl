@@ -157,31 +157,6 @@
                 <div class="account-auth-footer">
                     Don't have an account? <button type="button" class="account-auth-link" data-switch="register">Create one</button>
                 </div>
-                <div class="account-auth-footer account-owner-signin">
-                    <i class="fa-solid fa-store"></i> Shop owner? <button type="button" class="account-auth-link" data-switch="seller">Sign in here</button>
-                </div>
-            </div>
-
-            {* --- Seller login view --- *}
-            <div class="account-tab-content" id="tab-seller" style="display:none">
-                <form class="account-form" id="sellerLoginForm" novalidate>
-                    <div class="account-field">
-                        <input type="email" id="sellerEmail" name="email" placeholder="Seller email" required autocomplete="email">
-                    </div>
-                    <div class="account-field">
-                        <div class="account-password-field">
-                            <input type="password" id="sellerPassword" name="password" placeholder="Password" required autocomplete="current-password">
-                            <button type="button" class="account-password-toggle" aria-label="Show password">
-                                <i class="fa-solid fa-eye eye-open"></i>
-                                <i class="fa-solid fa-eye-slash eye-closed" style="display:none"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <button type="submit" class="account-submit" id="sellerLoginSubmit">Sign In</button>
-                </form>
-                <div class="account-auth-footer">
-                    <button type="button" class="account-auth-link" data-switch="login">Back to customer sign in</button>
-                </div>
             </div>
 
             {* --- Register view --- *}
@@ -261,7 +236,6 @@
         register: {ldelim} title: 'Create account',   sub: 'Join to track your orders' {rdelim},
         forgot:   {ldelim} title: 'Forgot password?',  sub: 'We\'ll email you a reset link' {rdelim},
         reset:    {ldelim} title: 'Reset password',    sub: 'Choose a new password' {rdelim},
-        seller:   {ldelim} title: 'Shop owner',        sub: 'Sign in to manage your shop' {rdelim}
     {rdelim};
 
     // View switching via footer links
@@ -303,18 +277,32 @@
             btn.disabled = true;
             btn.textContent = 'Signing in...';
 
+            var email = document.getElementById('loginEmail').value.trim();
+            var password = document.getElementById('loginPassword').value;
+
+            // Try customer login first
             apiCall('/api/customer/login', 'POST', {ldelim}
                 shop_id: parseInt(shopId),
-                email: document.getElementById('loginEmail').value.trim(),
-                password: document.getElementById('loginPassword').value
+                email: email,
+                password: password
             {rdelim}).then(function(data) {ldelim}
                 if (data.success) {ldelim}
                     window.location.reload();
-                {rdelim} else {ldelim}
-                    TinyShop.toast(data.message || 'Login failed', 'error');
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
+                    return;
                 {rdelim}
+                // Customer login failed — try seller login
+                return apiCall('/api/auth/login', 'POST', {ldelim}
+                    email: email,
+                    password: password
+                {rdelim}).then(function(sellerData) {ldelim}
+                    if (sellerData.success) {ldelim}
+                        window.location.href = sellerData.redirect || '/dashboard';
+                    {rdelim} else {ldelim}
+                        TinyShop.toast(sellerData.message || 'Invalid email or password', 'error');
+                        btn.disabled = false;
+                        btn.textContent = 'Sign In';
+                    {rdelim}
+                {rdelim});
             {rdelim}).catch(function() {ldelim}
                 TinyShop.toast('Something went wrong. Please try again.', 'error');
                 btn.disabled = false;
@@ -406,34 +394,6 @@
                 btn.disabled = false;
                 btn.textContent = 'Reset Password';
                 TinyShop.toast('Something went wrong. Please try again.', 'error');
-            {rdelim});
-        {rdelim});
-    {rdelim}
-
-    // Seller login
-    var sellerForm = document.getElementById('sellerLoginForm');
-    if (sellerForm) {ldelim}
-        sellerForm.addEventListener('submit', function(e) {ldelim}
-            e.preventDefault();
-            var btn = document.getElementById('sellerLoginSubmit');
-            btn.disabled = true;
-            btn.textContent = 'Signing in...';
-
-            apiCall('/api/auth/login', 'POST', {ldelim}
-                email: document.getElementById('sellerEmail').value.trim(),
-                password: document.getElementById('sellerPassword').value
-            {rdelim}).then(function(data) {ldelim}
-                if (data.success) {ldelim}
-                    window.location.href = data.redirect || '/dashboard';
-                {rdelim} else {ldelim}
-                    TinyShop.toast(data.message || 'Login failed', 'error');
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                {rdelim}
-            {rdelim}).catch(function() {ldelim}
-                TinyShop.toast('Something went wrong', 'error');
-                btn.disabled = false;
-                btn.textContent = 'Sign In';
             {rdelim});
         {rdelim});
     {rdelim}

@@ -1,5 +1,5 @@
 /**
- * Landing page — nav scroll effect and reveal animations.
+ * Landing page — nav scroll effect, reveal animations, and hero parallax.
  *
  * Uses page:init so it re-initialises on SPA navigation.
  * Cleans up window listeners when leaving the landing page
@@ -25,9 +25,17 @@
         var nav = document.getElementById('mkNav');
         if (!nav) return;
 
-        // Nav scroll effect
+        var phone = document.querySelector('.land-phone');
+
+        // Nav scroll effect + hero parallax
         _scrollHandler = function() {
-            nav.classList.toggle('scrolled', window.scrollY > 10);
+            var y = window.scrollY;
+            nav.classList.toggle('scrolled', y > 10);
+
+            // Subtle parallax on phone mockup
+            if (phone && y < 800) {
+                phone.style.transform = 'translateY(' + (y * -0.08) + 'px)';
+            }
         };
         window.addEventListener('scroll', _scrollHandler, { passive: true });
 
@@ -43,7 +51,7 @@
                         _observer.unobserve(e.target);
                     }
                 });
-            }, { threshold: 0.12, rootMargin: '0px 0px -30px 0px' });
+            }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
             els.forEach(function(el) { _observer.observe(el); });
         } else {
             els.forEach(function(el) { el.classList.add('revealed'); });
