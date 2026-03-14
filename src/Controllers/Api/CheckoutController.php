@@ -7,6 +7,7 @@ namespace TinyShop\Controllers\Api;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
+use TinyShop\App;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Models\Coupon;
 use TinyShop\Models\Order;
@@ -243,7 +244,7 @@ final class CheckoutController
 
         $subtotal = round($subtotal, 2);
         $orderNumber = Order::generateOrderNumber();
-        $currency = $shop['currency'] ?? 'KES';
+        $currency = $shop['currency'] ?? App::DEFAULT_CURRENCY;
 
         // Apply coupon if provided
         $couponCode = strtoupper(trim($data['coupon_code'] ?? ''));

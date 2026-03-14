@@ -220,6 +220,63 @@ final class OrderController
      * @param array    $args     Route arguments.
      * @return Response
      */
+    public function update(Request $request, Response $response, array $args): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $userId = $this->auth->userId();
+        $orderId = (int) $args['id'];
+
+        $order = Order::find($orderId);
+        if (!$order || (int) $order['user_id'] !== $userId) {
+            return $this->json($response, ['error' => true, 'message' => 'Order not found'], 404);
+        }
+
+        $updateData = [];
+        if (array_key_exists('customer_name', $data)) {
+            $updateData['customer_name'] = trim((string) ($data['customer_name'] ?? ''));
+        }
+        if (array_key_exists('customer_phone', $data)) {
+            $updateData['customer_phone'] = trim((string) ($data['customer_phone'] ?? ''));
+        }
+        if (array_key_exists('notes', $data)) {
+            $updateData['notes'] = trim((string) ($data['notes'] ?? ''));
+        }
+        if (array_key_exists('amount', $data)) {
+            $updateData['total'] = (float) $data['amount'];
+        }
+
+        if (!empty($updateData)) {
+            Order::rawExecute(
+                'UPDATE orders SET ' . implode(', ', array_map(fn($k) => "$k = ?", array_keys($updateData))) . ' WHERE id = ?',
+                [...array_values($updateData), $orderId]
+            );
+        }
+
+        // Update items if provided
+        if (!empty($data['items']) && is_array($data['items'])) {
+            // Remove existing items
+            Order::rawExecute('DELETE FROM order_items WHERE order_id = ?', [$orderId]);
+            // Insert new items
+            foreach ($data['items'] as $item) {
+                $productId = (int) ($item['product_id'] ?? 0);
+                $qty = max(1, (int) ($item['quantity'] ?? 1));
+                if ($productId <= 0) continue;
+                $product = \TinyShop\Models\Product::find($productId);
+                if (!$product) continue;
+                Order::rawExecute(
+                    'INSERT INTO order_items (order_id, product_id, product_name, product_image, price, quantity, total) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [$orderId, $productId, $product['name'], $product['image_url'] ?? '', (float) $product['price'], $qty, (float) $product['price'] * $qty]
+                );
+            }
+            // Recalculate total
+            $newTotal = Order::rawScalar('SELECT COALESCE(SUM(total), 0) FROM order_items WHERE order_id = ?', [$orderId]);
+            Order::rawExecute('UPDATE orders SET total = ? WHERE id = ?', [(float) $newTotal, $orderId]);
+        }
+
+        $updated = Order::find($orderId);
+        return $this->json($response, ['success' => true, 'order' => $updated]);
+    }
+
     public function updateStatus(Request $request, Response $response, array $args): Response
     {
         $data = (array) $request->getParsedBody();

@@ -1,0 +1,29 @@
+{
+    "name": "Starter",
+    "slug": "starter",
+    "version": "1.0.0",
+    "description": "Boutique editorial. Serif headlines, pill buttons, borderless cards. Warm, crafted, confident.",
+    "author": "TinyShop",
+    "fonts": [
+        {
+            "family": "DM Serif Display",
+            "weights": [400],
+            "provider": "google"
+        },
+        {
+            "family": "Inter",
+            "weights": [400, 500, 600],
+            "provider": "google"
+        }
+    ],
+    "styles": ["assets/css/theme.css"],
+    "scripts": ["assets/js/theme.js"],
+    "supports": {
+        "trust_badges": true,
+        "product_sliders": true,
+        "collection_banners": true,
+        "category_band": true,
+        "search_overlay": true,
+        "color_palettes": true
+    }
+}

@@ -6,6 +6,7 @@
 </script>
 <meta name="description" content="{$meta_description|default:$app_name}">
 <title>{$page_title|default:$app_name}</title>
+{if !empty($canonical_url)}<link rel="canonical" href="{$canonical_url|escape}">{/if}
 <link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +37,7 @@
 <meta property="og:title" content="{$og_title|escape}">
 <meta property="og:description" content="{$og_description|escape}">
 <meta property="og:type" content="{$og_type|default:'website'}">
-<meta property="og:url" content="{$base_url}{$og_url|escape}">
+<meta property="og:url" content="{if !empty($canonical_url)}{$canonical_url|escape}{else}{$base_url}{$og_url|escape}{/if}">
 {if $og_image}<meta property="og:image" content="{$og_image|escape}">{/if}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{$og_title|escape}">

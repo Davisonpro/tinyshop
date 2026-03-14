@@ -16,6 +16,7 @@ use TinyShop\Models\PageView;
 use TinyShop\Models\Setting;
 use TinyShop\Models\ShopView;
 use TinyShop\Services\Auth;
+use TinyShop\Services\IndexNow;
 use TinyShop\Services\Mailer;
 use TinyShop\Services\Upload;
 use TinyShop\Services\View;
@@ -41,13 +42,14 @@ final class AdminController
         'smtp_encryption', 'mail_from_email', 'mail_from_name',
         'google_verification', 'bing_verification',
         'google_analytics_id', 'facebook_pixel_id',
-        'robots_extra',
+        'robots_extra', 'indexnow_api_key',
         'platform_stripe_public_key', 'platform_stripe_secret_key', 'platform_stripe_mode', 'platform_stripe_enabled',
         'platform_paypal_client_id', 'platform_paypal_secret', 'platform_paypal_mode', 'platform_paypal_enabled',
         'platform_mpesa_shortcode', 'platform_mpesa_consumer_key',
         'platform_mpesa_consumer_secret', 'platform_mpesa_passkey', 'platform_mpesa_mode', 'platform_mpesa_enabled',
         'platform_pesapal_consumer_key', 'platform_pesapal_consumer_secret', 'platform_pesapal_mode', 'platform_pesapal_enabled',
         's3_bucket', 's3_region', 's3_access_key', 's3_secret_key', 's3_endpoint', 's3_cdn_url',
+        'ai_enabled', 'ai_api_key',
     ];
 
     public function __construct(
@@ -61,6 +63,7 @@ final class AdminController
         private readonly PageView $pageViewModel,
         private readonly Mailer $mailer,
         private readonly Upload $upload,
+        private readonly IndexNow $indexNow,
         private readonly LoggerInterface $logger,
     ) {}
 
@@ -379,25 +382,19 @@ final class AdminController
      */
     public function pingSitemap(Request $request, Response $response): Response
     {
-        $baseDomain = $this->settingModel->get('base_domain', '');
-        if ($baseDomain === '') {
-            return $this->json($response, ['error' => true, 'message' => 'Base domain not configured'], 422);
-        }
-
-        $sitemapUrl = 'https://' . $baseDomain . '/sitemap.xml';
-        $results = [];
-
-        $results['google'] = $this->httpPing(
-            'https://www.google.com/ping?sitemap=' . urlencode($sitemapUrl)
-        );
-
-        $results['bing'] = $this->httpPing(
-            'https://www.bing.com/ping?sitemap=' . urlencode($sitemapUrl)
-        );
+        $results = $this->indexNow->pingSitemap();
 
         $messages = [];
         $messages[] = $results['google'] ? 'Google notified' : 'Google ping failed';
         $messages[] = $results['bing'] ? 'Bing notified' : 'Bing ping failed';
+
+        // Also submit platform URL to IndexNow if configured
+        $apiKey = trim($this->settingModel->get('indexnow_api_key', ''));
+        if ($apiKey !== '') {
+            $baseDomain = $this->settingModel->get('base_domain', '');
+            $this->indexNow->submit(['https://' . $baseDomain]);
+            $messages[] = 'IndexNow notified';
+        }
 
         $this->logger->info('admin.sitemap_ping', [
             'admin_id' => $this->auth->userId(),
@@ -408,21 +405,5 @@ final class AdminController
             'success' => true,
             'message' => implode('. ', $messages),
         ]);
-    }
-
-    private function httpPing(string $url): bool
-    {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_USERAGENT      => 'TinyShop/1.0',
-        ]);
-        curl_exec($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        return $code >= 200 && $code < 400;
     }
 }

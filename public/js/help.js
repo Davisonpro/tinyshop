@@ -6,8 +6,7 @@
   var resultsWrap = document.getElementById("helpSearchResults");
   var resultsList = document.getElementById("helpResultsList");
   var resultsTitle = document.getElementById("helpResultsTitle");
-  var categories = document.getElementById("helpCategories");
-  var sections = document.getElementById("helpSections");
+  var helpMain = document.getElementById("helpMain");
   var bottom = document.getElementById("helpBottom");
   var emptyState = document.getElementById("helpSearchEmpty");
   if (!searchInput || !resultsWrap) return;
@@ -37,8 +36,7 @@
     var raw = searchInput.value.trim().toLowerCase();
     if (!raw) {
       resultsWrap.style.display = "none";
-      if (categories) categories.style.display = "";
-      if (sections) sections.style.display = "";
+      if (helpMain) helpMain.style.display = "";
       if (bottom) bottom.style.display = "";
       return;
     }
@@ -80,8 +78,7 @@
     scored.sort(function(a2, b) {
       return b.score - a2.score;
     });
-    if (categories) categories.style.display = "none";
-    if (sections) sections.style.display = "none";
+    if (helpMain) helpMain.style.display = "none";
     if (bottom) bottom.style.display = "none";
     resultsWrap.style.display = "block";
     if (scored.length === 0) {
@@ -113,16 +110,30 @@
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
   }
-  var catCards = document.querySelectorAll(".help-category-card[data-category]");
-  for (var c = 0; c < catCards.length; c++) {
-    catCards[c].addEventListener("click", function(e) {
-      e.preventDefault();
-      var cat = this.getAttribute("data-category");
-      var target = document.getElementById("section-" + cat);
-      if (target) {
-        var y = target.getBoundingClientRect().top + window.pageYOffset - 80;
-        window.scrollTo({ top: y, behavior: "smooth" });
+  var headers = document.querySelectorAll(".help-topic-header");
+  for (var h = 0; h < headers.length; h++) {
+    headers[h].addEventListener("click", function() {
+      var topic = this.parentElement;
+      var isOpen = topic.classList.contains("open");
+      var allTopics = document.querySelectorAll(".help-topic.open");
+      for (var t = 0; t < allTopics.length; t++) {
+        if (allTopics[t] !== topic) {
+          allTopics[t].classList.remove("open");
+          allTopics[t].querySelector(".help-topic-header").setAttribute("aria-expanded", "false");
+        }
       }
+      topic.classList.toggle("open", !isOpen);
+      this.setAttribute("aria-expanded", !isOpen ? "true" : "false");
     });
+  }
+  if (window.location.hash) {
+    var target = document.getElementById("topic-" + window.location.hash.slice(1).replace("section-", ""));
+    if (target) {
+      target.classList.add("open");
+      target.querySelector(".help-topic-header").setAttribute("aria-expanded", "true");
+      setTimeout(function() {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   }
 })();

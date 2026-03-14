@@ -54,6 +54,22 @@ final class Subscription extends Model
     }
 
     /**
+     * Find a current (active or cancelled-but-not-expired) subscription for a user.
+     */
+    public function findCurrentByUser(int $userId): ?array
+    {
+        $rows = static::rawQuery(
+            'SELECT s.*, p.name AS plan_name, p.slug AS plan_slug
+             FROM subscriptions s
+             JOIN plans p ON p.id = s.plan_id
+             WHERE s.user_id = ? AND s.status IN ("active", "cancelled") AND s.expires_at > NOW()
+             ORDER BY s.created_at DESC LIMIT 1',
+            [$userId]
+        );
+        return $rows[0] ?? null;
+    }
+
+    /**
      * Get subscription history for a user.
      *
      * @since 1.0.0
@@ -131,20 +147,26 @@ final class Subscription extends Model
      */
     public function expireOverdue(): int
     {
-        // Mark expired subscriptions
+        // Mark expired active subscriptions
         $count = static::rawExecute(
             'UPDATE subscriptions SET status = "expired"
              WHERE status = "active" AND expires_at < NOW()'
         );
 
-        // Clear plan_id/plan_expires_at for users whose subscriptions just expired
+        // Mark expired cancelled subscriptions (period ended, no renewal)
+        $count += static::rawExecute(
+            'UPDATE subscriptions SET status = "expired"
+             WHERE status = "cancelled" AND expires_at < NOW()'
+        );
+
+        // Clear plan_id/plan_expires_at for users with no remaining active/cancelled-but-valid subscriptions
         static::rawExecute(
             'UPDATE users u
              SET u.plan_id = NULL, u.plan_expires_at = NULL
              WHERE u.plan_expires_at IS NOT NULL AND u.plan_expires_at < NOW()
                AND NOT EXISTS (
                    SELECT 1 FROM subscriptions s
-                   WHERE s.user_id = u.id AND s.status = "active" AND s.expires_at > NOW()
+                   WHERE s.user_id = u.id AND s.status IN ("active", "cancelled") AND s.expires_at > NOW()
                )'
         );
 

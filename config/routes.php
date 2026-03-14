@@ -27,6 +27,8 @@ use TinyShop\Controllers\Api\CheckoutController as ApiCheckoutController;
 use TinyShop\Controllers\Api\CouponController as ApiCouponController;
 use TinyShop\Controllers\Api\BillingController as ApiBillingController;
 use TinyShop\Controllers\Api\ImportController as ApiImportController;
+use TinyShop\Controllers\Api\SmartImportController as ApiSmartImportController;
+use TinyShop\Controllers\Api\AnalyticsController as ApiAnalyticsController;
 use TinyShop\Controllers\Api\CustomerAuthController as ApiCustomerAuthController;
 use TinyShop\Middleware\AuthGuard;
 use TinyShop\Middleware\AdminGuard;
@@ -59,6 +61,7 @@ return function (App $app): void {
     $app->get('/sitemap-pages.xml', [SitemapController::class, 'pages']);
     $app->get('/sitemap-shops.xml', [SitemapController::class, 'shops']);
     $app->get('/robots.txt', [SitemapController::class, 'robots']);
+    $app->get('/indexnow-key.txt', [SitemapController::class, 'indexNowKey']);
 
     // ── Public pages ──
 
@@ -141,6 +144,8 @@ return function (App $app): void {
         $group->get('/help/articles/add', [AdminHelpController::class, 'helpArticleForm']);
         $group->get('/help/articles/{id}/edit', [AdminHelpController::class, 'helpArticleForm']);
         $group->get('/import', [AdminImportController::class, 'import']);
+        $group->get('/import-sources', [AdminImportController::class, 'importSources']);
+        $group->get('/product-catalog', [AdminImportController::class, 'productCatalog']);
         $group->get('/pages', [AdminPageCtrl::class, 'pages']);
         $group->get('/pages/add', [AdminPageCtrl::class, 'pageForm']);
         $group->get('/pages/{id}/edit', [AdminPageCtrl::class, 'pageForm']);
@@ -188,6 +193,7 @@ return function (App $app): void {
 
             $protected->get('/orders', [ApiOrderController::class, 'list']);
             $protected->post('/orders', [ApiOrderController::class, 'create']);
+            $protected->put('/orders/{id}', [ApiOrderController::class, 'update']);
             $protected->put('/orders/{id}/status', [ApiOrderController::class, 'updateStatus']);
             $protected->delete('/orders/{id}', [ApiOrderController::class, 'delete']);
 
@@ -198,9 +204,12 @@ return function (App $app): void {
             $protected->put('/coupons/{id}', [ApiCouponController::class, 'update']);
             $protected->delete('/coupons/{id}', [ApiCouponController::class, 'delete']);
 
+            $protected->get('/billing/plans', [ApiBillingController::class, 'getPlans']);
             $protected->post('/billing/subscribe', [ApiBillingController::class, 'subscribe']);
             $protected->post('/billing/cancel', [ApiBillingController::class, 'cancel']);
             $protected->get('/billing/status', [ApiBillingController::class, 'checkBillingStatus']);
+
+            $protected->get('/analytics', [ApiAnalyticsController::class, 'get']);
 
             $protected->get('/theme-options', [ApiShopController::class, 'getThemeOptions']);
             $protected->put('/theme-options', [ApiShopController::class, 'saveThemeOptions']);
@@ -209,6 +218,10 @@ return function (App $app): void {
             $protected->post('/import/save', [ApiImportController::class, 'save']);
             $protected->get('/import/categories', [ApiImportController::class, 'categories']);
             $protected->post('/import/save-category', [ApiImportController::class, 'saveCategory']);
+
+            $protected->post('/import/smart-parse', [ApiSmartImportController::class, 'parse']);
+            $protected->post('/import/smart-resolve', [ApiSmartImportController::class, 'resolve']);
+            $protected->post('/import/smart-save', [ApiSmartImportController::class, 'save']);
         })->add(AuthGuard::class)->add(new RateLimit(maxAttempts: 60, windowSeconds: 60));
 
         // Public shop API (product search, no auth required)
@@ -262,6 +275,15 @@ return function (App $app): void {
             $admin->post('/import/save', [AdminImportController::class, 'saveImport']);
             $admin->get('/import/categories/{seller_id}', [AdminImportController::class, 'importCategories']);
             $admin->post('/import/save-category', [AdminImportController::class, 'importSaveCategory']);
+
+            $admin->get('/import-sources', [AdminImportController::class, 'listImportSources']);
+            $admin->post('/import-sources', [AdminImportController::class, 'createImportSource']);
+            $admin->put('/import-sources/{id}', [AdminImportController::class, 'updateImportSource']);
+            $admin->delete('/import-sources/{id}', [AdminImportController::class, 'deleteImportSource']);
+
+            $admin->get('/product-catalog', [AdminImportController::class, 'listProductCatalog']);
+            $admin->put('/product-catalog/{id}', [AdminImportController::class, 'updateProductCatalog']);
+            $admin->delete('/product-catalog/{id}', [AdminImportController::class, 'deleteProductCatalog']);
 
             $admin->get('/pages', [AdminPageCtrl::class, 'listPages']);
             $admin->post('/pages', [AdminPageCtrl::class, 'createPage']);

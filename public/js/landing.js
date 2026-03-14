@@ -21,6 +21,21 @@
       }
     };
     window.addEventListener("scroll", _scrollHandler, { passive: true });
+    var faqItems = document.querySelectorAll(".land-faq-item");
+    for (var i = 0; i < faqItems.length; i++) {
+      faqItems[i].querySelector(".land-faq-q").addEventListener("click", function() {
+        var item = this.parentElement;
+        var isOpen = item.classList.contains("open");
+        for (var j = 0; j < faqItems.length; j++) {
+          if (faqItems[j] !== item) {
+            faqItems[j].classList.remove("open");
+            faqItems[j].querySelector(".land-faq-q").setAttribute("aria-expanded", "false");
+          }
+        }
+        item.classList.toggle("open", !isOpen);
+        this.setAttribute("aria-expanded", !isOpen ? "true" : "false");
+      });
+    }
     var els = document.querySelectorAll(".land-reveal");
     if (!els.length) return;
     if ("IntersectionObserver" in window) {

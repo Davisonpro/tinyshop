@@ -72,6 +72,21 @@ final class CustomDomain implements MiddlewareInterface
             return $handler->handle($request);
         }
 
+        // Subdomain has a custom domain — 301 redirect for SEO
+        if ($result['status'] === 'redirect') {
+            $scheme = $request->getUri()->getScheme() ?: 'https';
+            $target = $scheme . '://' . $result['redirect_to'] . $path;
+            $query = $request->getUri()->getQuery();
+            if ($query !== '') {
+                $target .= '?' . $query;
+            }
+
+            $response = new Response(301);
+            return $response
+                ->withHeader('Location', $target)
+                ->withHeader('Cache-Control', 'public, max-age=86400');
+        }
+
         // Domain found but plan expired past grace period — show disconnected page
         if ($result['status'] === 'disconnected') {
             return $this->renderDisconnectedPage($result['store_name'], $result['subdomain']);
@@ -111,6 +126,18 @@ final class CustomDomain implements MiddlewareInterface
         if (str_ends_with($host, $suffix)) {
             $sub = substr($host, 0, -strlen($suffix));
             if ($sub !== '' && !in_array($sub, self::RESERVED_SUBDOMAINS, true)) {
+                // Check if this shop has a custom domain — flag for redirect
+                $shop = $this->userModel->findBySubdomain($sub);
+                $customDomain = $shop['custom_domain'] ?? '';
+                if ($customDomain !== '') {
+                    return [
+                        'subdomain' => $sub,
+                        'status' => 'redirect',
+                        'store_name' => '',
+                        'redirect_to' => $customDomain,
+                    ];
+                }
+
                 return ['subdomain' => $sub, 'status' => 'active', 'store_name' => ''];
             }
         }
@@ -121,7 +148,13 @@ final class CustomDomain implements MiddlewareInterface
                 return self::$domainCache[$host];
             }
 
-            $shop = $this->userModel->findByCustomDomain($host);
+            // Try exact match first, then without www prefix
+            $lookupHost = $host;
+            $shop = $this->userModel->findByCustomDomain($lookupHost);
+            if ($shop === null && str_starts_with($lookupHost, 'www.')) {
+                $lookupHost = substr($lookupHost, 4);
+                $shop = $this->userModel->findByCustomDomain($lookupHost);
+            }
             if ($shop === null) {
                 self::$domainCache[$host] = null;
                 return null;
@@ -129,6 +162,20 @@ final class CustomDomain implements MiddlewareInterface
 
             $subdomain = $shop['subdomain'];
             $storeName = $shop['store_name'] ?? $subdomain;
+            $canonicalDomain = $shop['custom_domain'];
+
+            // www.example.com → 301 to example.com (canonical)
+            if (str_starts_with($host, 'www.') && $host !== 'www.' . $base) {
+                $result = [
+                    'subdomain' => $subdomain,
+                    'status' => 'redirect',
+                    'store_name' => $storeName,
+                    'redirect_to' => $canonicalDomain,
+                ];
+                self::$domainCache[$host] = $result;
+                return $result;
+            }
+
             $status = $this->getDomainStatus($shop);
 
             $result = ['subdomain' => $subdomain, 'status' => $status, 'store_name' => $storeName];

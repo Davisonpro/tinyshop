@@ -352,6 +352,43 @@ final class ShopView
     }
 
     /**
+     * Get daily views for a specific date range.
+     *
+     * @since 1.0.0
+     */
+    public function getDailyViewsRange(int $userId, string $startDate, string $endDate): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT DATE(created_at) AS day, COUNT(*) AS views
+                FROM shop_views
+                WHERE user_id = ? AND DATE(created_at) BETWEEN ? AND ?
+                GROUP BY DATE(created_at)
+                ORDER BY day ASC"
+            );
+            $stmt->execute([$userId, $startDate, $endDate]);
+            $map = array_column($stmt->fetchAll(), 'views', 'day');
+        } catch (\Throwable) {
+            $map = [];
+        }
+
+        $result = [];
+        $current = new \DateTimeImmutable($startDate);
+        $end = new \DateTimeImmutable($endDate);
+        while ($current <= $end) {
+            $date = $current->format('Y-m-d');
+            $result[] = [
+                'day'   => $date,
+                'label' => $current->format('M j'),
+                'views' => (int) ($map[$date] ?? 0),
+            ];
+            $current = $current->modify('+1 day');
+        }
+
+        return $result;
+    }
+
+    /**
      * Top products by views for a seller (last 30 days).
      *
      * @since 1.0.0

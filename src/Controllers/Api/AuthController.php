@@ -22,6 +22,9 @@ use TinyShop\Models\Setting;
 /**
  * Authentication API controller.
  *
+ * Handles login, registration, password reset, and session checks.
+ * Supports both session-based (web) and bearer-token (mobile) auth.
+ *
  * @since 1.0.0
  */
 final class AuthController
@@ -30,7 +33,7 @@ final class AuthController
 
     private readonly \PDO $db;
 
-    private const LOGIN_MAX_ATTEMPTS = 5;
+    private const LOGIN_MAX_ATTEMPTS    = 5;
     private const LOGIN_LOCKOUT_SECONDS = 900; // 15 minutes
 
     public function __construct(
@@ -42,73 +45,54 @@ final class AuthController
         private readonly Setting $setting,
         private readonly LoggerInterface $logger,
         private readonly AuditLog $auditLog,
-        DB $database
+        DB $database,
     ) {
         $this->db = $database->pdo();
     }
 
-    /**
-     * Register a new seller account.
-     *
-     * @since 1.0.0
-     *
-     * @param Request  $request  PSR-7 request.
-     * @param Response $response PSR-7 response.
-     * @return Response
-     */
+    // ── Registration ─────────────────────────────────────────
+
     public function register(Request $request, Response $response): Response
     {
         if ($this->setting->get('allow_registration', '1') !== '1') {
             return $this->json($response, ['error' => true, 'message' => 'Registration is currently disabled'], 403);
         }
 
-        $data = (array) $request->getParsedBody();
-
+        $data      = (array) $request->getParsedBody();
         $email     = trim($data['email'] ?? '');
         $password  = $data['password'] ?? '';
         $storeName = trim($data['store_name'] ?? '');
+        $ip        = $this->ip($request);
 
+        // ── Validation ──
         if ($email === '' || $password === '') {
             return $this->json($response, ['error' => true, 'message' => 'Email and password are required'], 422);
         }
-
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->json($response, ['error' => true, 'message' => 'Invalid email address'], 422);
         }
-
         if ($err = $this->validation->maxLength($email, 'email')) {
             return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
-
-        $passwordError = $this->validation->password($password);
-        if ($passwordError !== null) {
-            return $this->json($response, ['error' => true, 'message' => $passwordError], 422);
+        if ($err = $this->validation->password($password)) {
+            return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
-
         if ($storeName !== '' && ($err = $this->validation->maxLength($storeName, 'store_name'))) {
             return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
-
         if (User::findBy('email', $email)) {
             return $this->json($response, ['error' => true, 'message' => 'Email already registered'], 409);
         }
 
+        // ── Defaults ──
         if ($storeName === '') {
-            $emailPrefix = strstr($email, '@', true);
-            $storeName = ucfirst(preg_replace('/[^a-zA-Z0-9]/', ' ', $emailPrefix)) . "'s Shop";
+            $prefix    = strstr($email, '@', true);
+            $storeName = ucfirst(preg_replace('/[^a-zA-Z0-9]/', ' ', $prefix)) . "'s Shop";
         }
 
-        $subdomain = $this->validation->slug($storeName);
-        [$subdomain, $subdomainError] = $this->validation->subdomain($subdomain);
-        if ($subdomainError !== null) {
-            $subdomain = $subdomain . '-' . bin2hex(random_bytes(2));
-        }
-        $baseSubdomain = $subdomain;
-        $counter = 1;
-        while (User::exists('subdomain', $subdomain)) {
-            $subdomain = $baseSubdomain . '-' . $counter++;
-        }
+        $subdomain = $this->resolveUniqueSubdomain($storeName);
 
+        // ── Create user ──
         $userId = $this->userModel->create([
             'email'         => $email,
             'password_hash' => password_hash($password, PASSWORD_BCRYPT),
@@ -119,49 +103,44 @@ final class AuthController
 
         $this->auth->login($userId, $storeName, UserRole::Seller);
 
-        $this->logger->info('auth.register', [
-            'user_id' => $userId,
-            'email'   => $email,
-            'ip'      => $request->getServerParams()['REMOTE_ADDR'] ?? '',
-        ]);
-
+        $this->logger->info('auth.register', ['user_id' => $userId, 'email' => $email, 'ip' => $ip]);
         $this->auditLog->log('user.register', $userId, 'user', $userId, ['email' => $email]);
-
         Hooks::doAction('user.registered', $userId);
+
+        $user = [
+            'id'         => $userId,
+            'email'      => $email,
+            'role'       => UserRole::Seller->value,
+            'store_name' => $storeName,
+            'subdomain'  => $subdomain,
+        ];
 
         return $this->json($response, [
             'success'  => true,
             'redirect' => '/dashboard',
+            'token'    => $this->userModel->generateApiToken($userId),
+            'user'     => $user,
         ], 201);
     }
 
-    /**
-     * Log in a seller.
-     *
-     * @since 1.0.0
-     *
-     * @param Request  $request  PSR-7 request.
-     * @param Response $response PSR-7 response.
-     * @return Response
-     */
+    // ── Login ────────────────────────────────────────────────
+
     public function login(Request $request, Response $response): Response
     {
-        $data = (array) $request->getParsedBody();
-
+        $data     = (array) $request->getParsedBody();
         $email    = trim($data['email'] ?? '');
         $password = $data['password'] ?? '';
-        $ip       = $request->getServerParams()['REMOTE_ADDR'] ?? '';
+        $ip       = $this->ip($request);
 
+        // ── Validation ──
         if ($email === '' || $password === '') {
             return $this->json($response, ['error' => true, 'message' => 'Email and password are required'], 422);
         }
-
-        // Cap input lengths: 255 for email (VARCHAR limit), 72 for bcrypt max
         if (mb_strlen($email) > 255 || mb_strlen($password) > 72) {
             return $this->json($response, ['error' => true, 'message' => 'Invalid credentials'], 401);
         }
 
-        // Per-email brute force check
+        // ── Brute-force throttle ──
         $lockRemaining = $this->checkLoginThrottle($email);
         if ($lockRemaining !== null) {
             $this->logger->warning('auth.login_blocked', ['email' => $email, 'ip' => $ip, 'locked_for' => $lockRemaining]);
@@ -172,6 +151,7 @@ final class AuthController
             ], 429);
         }
 
+        // ── Credential check ──
         $user = User::findBy('email', $email);
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
@@ -185,142 +165,125 @@ final class AuthController
             return $this->json($response, ['error' => true, 'message' => 'Account suspended'], 403);
         }
 
-        // Clear throttle on successful login
+        // ── Success ──
         $this->clearLoginThrottle($email);
 
-        $role = UserRole::tryFrom($user['role'] ?? '') ?? UserRole::Seller;
-        $this->auth->login((int) $user['id'], $user['store_name'] ?? '', $role);
-        $this->userModel->recordLogin((int) $user['id']);
+        $role   = UserRole::tryFrom($user['role'] ?? '') ?? UserRole::Seller;
+        $userId = (int) $user['id'];
 
-        $this->logger->info('auth.login_success', ['user_id' => $user['id'], 'ip' => $ip]);
+        $this->auth->login($userId, $user['store_name'] ?? '', $role);
+        $this->userModel->recordLogin($userId);
 
-        $this->auditLog->log('user.login', (int) $user['id'], 'user', (int) $user['id'], ['email' => $email]);
-
-        Hooks::doAction('user.logged_in', (int) $user['id']);
-
-        $redirect = $role === UserRole::Admin ? '/admin' : '/dashboard';
+        $this->logger->info('auth.login_success', ['user_id' => $userId, 'ip' => $ip]);
+        $this->auditLog->log('user.login', $userId, 'user', $userId, ['email' => $email]);
+        Hooks::doAction('user.logged_in', $userId);
 
         return $this->json($response, [
             'success'  => true,
-            'redirect' => $redirect,
+            'redirect' => $role === UserRole::Admin ? '/admin' : '/dashboard',
+            'token'    => $this->userModel->generateApiToken($userId),
+            'user'     => [
+                'id'         => $userId,
+                'email'      => $user['email'],
+                'role'       => $role->value,
+                'store_name' => $user['store_name'] ?? '',
+                'subdomain'  => $user['subdomain'] ?? '',
+            ],
         ]);
     }
 
-    /**
-     * Log out.
-     *
-     * @since 1.0.0
-     *
-     * @param Request  $request  PSR-7 request.
-     * @param Response $response PSR-7 response.
-     * @return Response
-     */
+    // ── Logout ───────────────────────────────────────────────
+
     public function logout(Request $request, Response $response): Response
     {
         $userId = $this->auth->userId();
-        $this->auditLog->log('user.logout', $userId, 'user', $userId);
+
+        if ($userId !== null) {
+            $this->userModel->clearApiToken($userId);
+            $this->auditLog->log('user.logout', $userId, 'user', $userId);
+        }
+
         $this->auth->logout();
+
         return $this->json($response, ['success' => true]);
     }
 
-    /**
-     * Return auth state and CSRF token.
-     *
-     * @since 1.0.0
-     *
-     * @param Request  $request  PSR-7 request.
-     * @param Response $response PSR-7 response.
-     * @return Response
-     */
+    // ── Auth check ───────────────────────────────────────────
+
     public function check(Request $request, Response $response): Response
     {
         Auth::ensureSession();
-        $loggedIn = $this->auth->check();
 
-        // Always return a fresh CSRF token so callers can update stale tokens
+        // Resolve identity: bearer token first, then session
+        $user     = $this->resolveBearerUser($request);
+        $loggedIn = $user !== null || $this->auth->check();
+
         if (!isset($_SESSION['_csrf_token'])) {
             $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
         }
 
-        return $this->json($response, [
+        $result = [
             'logged_in' => $loggedIn,
             'csrf'      => $_SESSION['_csrf_token'],
-        ]);
+        ];
+
+        // Attach user data when authenticated via bearer
+        if ($user !== null) {
+            $result['user'] = $this->serializeUser($user);
+        }
+
+        return $this->json($response, $result);
     }
 
-    /**
-     * Send a password-reset email.
-     *
-     * @since 1.0.0
-     *
-     * @param Request  $request  PSR-7 request.
-     * @param Response $response PSR-7 response.
-     * @return Response
-     */
+    // ── Forgot password ──────────────────────────────────────
+
     public function forgotPassword(Request $request, Response $response): Response
     {
-        $data = (array) $request->getParsedBody();
+        $data  = (array) $request->getParsedBody();
         $email = trim($data['email'] ?? '');
 
         if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 255) {
             return $this->json($response, ['error' => true, 'message' => 'Please enter a valid email address'], 422);
         }
 
-        // Purge expired tokens on every request (lightweight cleanup)
+        // Purge expired tokens
         $this->db->prepare(
             'DELETE FROM password_resets WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 HOUR) AND used_at IS NULL'
         )->execute();
 
-        // Always return success to avoid email enumeration
+        // Always return success to prevent email enumeration
         $user = User::findBy('email', $email);
         if ($user) {
-            $plainToken = bin2hex(random_bytes(32));
+            $plainToken  = bin2hex(random_bytes(32));
             $hashedToken = hash('sha256', $plainToken);
 
-            $stmt = $this->db->prepare('DELETE FROM password_resets WHERE email = ?');
-            $stmt->execute([$email]);
-
-            $stmt = $this->db->prepare('INSERT INTO password_resets (email, token) VALUES (?, ?)');
-            $stmt->execute([$email, $hashedToken]);
+            $this->db->prepare('DELETE FROM password_resets WHERE email = ?')->execute([$email]);
+            $this->db->prepare('INSERT INTO password_resets (email, token) VALUES (?, ?)')->execute([$email, $hashedToken]);
 
             $resetUrl = $this->config->url() . '/reset-password?token=' . $plainToken;
-
             $this->mailer->sendPasswordReset($email, $user['store_name'] ?? '', $resetUrl);
 
-            $this->logger->info('auth.forgot_password', [
-                'email' => $email,
-                'ip'    => $request->getServerParams()['REMOTE_ADDR'] ?? '',
-            ]);
+            $this->logger->info('auth.forgot_password', ['email' => $email, 'ip' => $this->ip($request)]);
         }
 
         return $this->json($response, ['success' => true, 'message' => 'If that email exists, we sent a reset link']);
     }
 
-    /**
-     * Reset password using a token.
-     *
-     * @since 1.0.0
-     *
-     * @param Request  $request  PSR-7 request.
-     * @param Response $response PSR-7 response.
-     * @return Response
-     */
+    // ── Reset password ───────────────────────────────────────
+
     public function resetPassword(Request $request, Response $response): Response
     {
-        $data = (array) $request->getParsedBody();
-        $plainToken = $data['token'] ?? '';
-        $password = $data['password'] ?? '';
+        $data            = (array) $request->getParsedBody();
+        $plainToken      = $data['token'] ?? '';
+        $password        = $data['password'] ?? '';
         $passwordConfirm = $data['password_confirm'] ?? '';
 
         if (!$plainToken || mb_strlen($plainToken) > 128) {
             return $this->json($response, ['error' => true, 'message' => 'Invalid or missing token'], 422);
         }
-
-        $passwordError = $this->validation->password($password);
-        if ($passwordError !== null) {
-            return $this->json($response, ['error' => true, 'message' => $passwordError], 422);
+        if ($err = $this->validation->password($password)) {
+            return $this->json($response, ['error' => true, 'message' => $err], 422);
         }
-
         if ($password !== $passwordConfirm) {
             return $this->json($response, ['error' => true, 'message' => 'Passwords do not match'], 422);
         }
@@ -342,23 +305,74 @@ final class AuthController
             return $this->json($response, ['error' => true, 'message' => 'Account not found'], 404);
         }
 
-        $this->userModel->updatePassword((int) $user['id'], password_hash($password, PASSWORD_BCRYPT));
+        $userId = (int) $user['id'];
+        $this->userModel->updatePassword($userId, password_hash($password, PASSWORD_BCRYPT));
 
-        $stmt = $this->db->prepare('UPDATE password_resets SET used_at = NOW() WHERE id = ?');
-        $stmt->execute([$reset['id']]);
+        $this->db->prepare('UPDATE password_resets SET used_at = NOW() WHERE id = ?')->execute([$reset['id']]);
 
-        $this->logger->info('auth.password_reset', [
-            'user_id' => $user['id'],
-            'email'   => $reset['email'],
-            'ip'      => $request->getServerParams()['REMOTE_ADDR'] ?? '',
-        ]);
-
-        $this->auditLog->log('user.password_reset', (int) $user['id'], 'user', (int) $user['id'], ['email' => $reset['email']]);
+        $this->logger->info('auth.password_reset', ['user_id' => $userId, 'email' => $reset['email'], 'ip' => $this->ip($request)]);
+        $this->auditLog->log('user.password_reset', $userId, 'user', $userId, ['email' => $reset['email']]);
 
         return $this->json($response, ['success' => true, 'message' => 'Password reset successfully']);
     }
 
-    // ── Per-email login throttle (file-based) ──
+    // ── Private helpers ──────────────────────────────────────
+
+    private function ip(Request $request): string
+    {
+        return $request->getServerParams()['REMOTE_ADDR'] ?? '';
+    }
+
+    private function resolveBearerUser(Request $request): ?array
+    {
+        $header = $request->getHeaderLine('Authorization');
+        if (!str_starts_with($header, 'Bearer ')) {
+            return null;
+        }
+
+        $token = substr($header, 7);
+        if ($token === '' || strlen($token) !== 64) {
+            return null;
+        }
+
+        return $this->userModel->findByApiToken($token);
+    }
+
+    /**
+     * Serialize a user row into a safe public shape.
+     *
+     * @param array<string, mixed> $user Raw DB row.
+     * @return array<string, mixed>
+     */
+    private function serializeUser(array $user): array
+    {
+        return [
+            'id'         => (int) $user['id'],
+            'email'      => $user['email'],
+            'role'       => $user['role'] ?? UserRole::Seller->value,
+            'store_name' => $user['store_name'] ?? '',
+            'subdomain'  => $user['subdomain'] ?? '',
+        ];
+    }
+
+    private function resolveUniqueSubdomain(string $storeName): string
+    {
+        $subdomain = $this->validation->slug($storeName);
+        [$subdomain, $error] = $this->validation->subdomain($subdomain);
+        if ($error !== null) {
+            $subdomain .= '-' . bin2hex(random_bytes(2));
+        }
+
+        $base    = $subdomain;
+        $counter = 1;
+        while (User::exists('subdomain', $subdomain)) {
+            $subdomain = $base . '-' . $counter++;
+        }
+
+        return $subdomain;
+    }
+
+    // ── Per-email login throttle (file-based) ────────────────
 
     private function throttleDir(): string
     {
@@ -382,7 +396,6 @@ final class AuthController
             return $lockUntil - time();
         }
 
-        // Lock expired — clear
         if (($data['attempts'] ?? 0) >= self::LOGIN_MAX_ATTEMPTS) {
             @unlink($file);
         }

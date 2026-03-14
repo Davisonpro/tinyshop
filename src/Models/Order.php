@@ -346,6 +346,49 @@ final class Order extends Model
         return $result;
     }
 
+    /**
+     * Daily paid-order totals for a seller within a date range, zero-filled.
+     *
+     * @since 1.0.0
+     *
+     * @param  int    $userId    Seller ID.
+     * @param  string $startDate Start date (Y-m-d).
+     * @param  string $endDate   End date (Y-m-d).
+     * @return list<array{day: string, label: string, orders: int, revenue: float}>
+     */
+    public function getDailySalesRange(int $userId, string $startDate, string $endDate): array
+    {
+        $rows = static::rawQuery(
+            "SELECT DATE(created_at) AS day, COUNT(*) AS orders, COALESCE(SUM(amount), 0) AS revenue
+             FROM orders
+             WHERE user_id = ? AND status = ? AND DATE(created_at) BETWEEN ? AND ?
+             GROUP BY DATE(created_at)
+             ORDER BY day ASC",
+            [$userId, OrderStatus::Paid->value, $startDate, $endDate]
+        );
+
+        $map = [];
+        foreach ($rows as $r) {
+            $map[$r['day']] = ['orders' => (int) $r['orders'], 'revenue' => (float) $r['revenue']];
+        }
+
+        $result = [];
+        $current = new \DateTimeImmutable($startDate);
+        $end = new \DateTimeImmutable($endDate);
+        while ($current <= $end) {
+            $date = $current->format('Y-m-d');
+            $result[] = [
+                'day'     => $date,
+                'label'   => $current->format('M j'),
+                'orders'  => $map[$date]['orders'] ?? 0,
+                'revenue' => $map[$date]['revenue'] ?? 0,
+            ];
+            $current = $current->modify('+1 day');
+        }
+
+        return $result;
+    }
+
     // ── Admin queries ──
 
     /**

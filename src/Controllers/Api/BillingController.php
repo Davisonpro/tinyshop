@@ -7,6 +7,7 @@ namespace TinyShop\Controllers\Api;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
+use TinyShop\App;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Models\Plan;
 use TinyShop\Models\Setting;
@@ -41,6 +42,70 @@ final class BillingController
         DB $database
     ) {
         $this->db = $database->pdo();
+    }
+
+    /**
+     * Get available plans, current subscription, history, and gateways.
+     *
+     * @since 1.0.0
+     *
+     * @param Request  $request  PSR-7 request.
+     * @param Response $response PSR-7 response.
+     * @return Response
+     */
+    public function getPlans(Request $request, Response $response): Response
+    {
+        $userId = $this->auth->userId();
+        $settings = $this->settingModel->all();
+
+        // Get all active plans
+        $plans = $this->planModel->findAll();
+        foreach ($plans as &$plan) {
+            // Decode JSON features
+            if (is_string($plan['features'] ?? null)) {
+                $plan['features'] = json_decode($plan['features'], true) ?: [];
+            }
+            if (is_string($plan['allowed_themes'] ?? null)) {
+                $plan['allowed_themes'] = json_decode($plan['allowed_themes'], true) ?: [];
+            }
+            // Map field names for mobile compatibility
+            $plan['feature_list'] = $plan['features'] ?? [];
+            $plan['max_products'] = (int) ($plan['max_products'] ?? 0);
+            $plan['custom_domain'] = (bool) ($plan['custom_domain_allowed'] ?? false);
+            $plan['coupons'] = (bool) ($plan['coupons_allowed'] ?? false);
+            $plan['all_themes'] = !empty($plan['allowed_themes']) && $plan['allowed_themes'] === ['*'];
+        }
+        unset($plan);
+
+        // Get subscription history
+        $history = $this->subscriptionModel->findByUser($userId, 20);
+
+        // Determine available payment gateways
+        $gateways = [];
+        if (!empty($settings['platform_stripe_enabled']) && !empty($settings['platform_stripe_secret_key'])) {
+            $gateways[] = 'stripe';
+        }
+        if (!empty($settings['platform_paypal_enabled']) && !empty($settings['platform_paypal_client_id'])) {
+            $gateways[] = 'paypal';
+        }
+        if (!empty($settings['platform_mpesa_enabled']) && !empty($settings['platform_mpesa_consumer_key'])) {
+            $gateways[] = 'mpesa';
+        }
+        if (!empty($settings['platform_pesapal_enabled']) && !empty($settings['platform_pesapal_consumer_key'])) {
+            $gateways[] = 'pesapal';
+        }
+
+        return $this->json($response, [
+            'plans' => $plans,
+            'history' => array_map(fn(array $h) => [
+                'plan_name' => $h['plan_name'] ?? '',
+                'starts_at' => $h['starts_at'] ?? null,
+                'expires_at' => $h['expires_at'] ?? null,
+                'amount_paid' => $h['amount_paid'] ?? 0,
+                'status' => $h['status'] ?? '',
+            ], $history),
+            'gateways' => $gateways,
+        ]);
     }
 
     /**
@@ -84,7 +149,7 @@ final class BillingController
         $customerEmail = $user['email'] ?? '';
 
         $config = $this->buildBillingGatewayConfig($gateway, $settings);
-        $currency = $plan['currency'] ?? 'KES';
+        $currency = $plan['currency'] ?? App::DEFAULT_CURRENCY;
         $ref = 'SUB-' . $userId . '-' . $planId . '-' . $cycle . '-' . time();
         $description = $plan['name'] . ' Plan (' . ucfirst($cycle) . ')';
 
@@ -462,20 +527,34 @@ final class BillingController
         $userId = $this->auth->userId();
         $active = $this->subscriptionModel->findActiveByUser($userId);
 
-        if (!$active) {
-            return $this->json($response, ['error' => true, 'message' => 'No active subscription found'], 404);
+        if ($active) {
+            // Mark as cancelled — user keeps the plan until expires_at,
+            // then expireOverdue() will clean up when the period ends.
+            $this->subscriptionModel->updateStatus((int) $active['id'], 'cancelled');
+
+            $this->logger->info('billing.subscription_cancelled', [
+                'user_id' => $userId,
+                'subscription_id' => $active['id'],
+            ]);
+
+            $expiryMsg = 'Your plan will remain active until ' . date('M j, Y', strtotime($active['expires_at']));
+        } else {
+            // No subscription row but user may have a plan assigned directly
+            $user = \TinyShop\Models\User::find($userId)?->toArray();
+            if (!$user || empty($user['plan_id'])) {
+                return $this->json($response, ['error' => true, 'message' => 'No active subscription found'], 404);
+            }
+
+            // No subscription row — clear immediately
+            $stmt = $this->db->prepare('UPDATE users SET plan_id = NULL, plan_expires_at = NULL WHERE id = ?');
+            $stmt->execute([$userId]);
+
+            $expiryMsg = 'Your plan has been cancelled';
         }
-
-        $this->subscriptionModel->updateStatus((int) $active['id'], 'cancelled');
-
-        $this->logger->info('billing.subscription_cancelled', [
-            'user_id' => $userId,
-            'subscription_id' => $active['id'],
-        ]);
 
         return $this->json($response, [
             'success' => true,
-            'message' => 'Your plan will remain active until ' . date('M j, Y', strtotime($active['expires_at'])),
+            'message' => $expiryMsg,
         ]);
     }
 

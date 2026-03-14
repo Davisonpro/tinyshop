@@ -48,6 +48,7 @@ const jsBundles = {
   help:    ['assets/js/pages/help.js'],
   landing: ['assets/js/pages/landing.js'],
   pricing: ['assets/js/pages/pricing.js'],
+  import:  ['assets/js/pages/import.js'],
 };
 
 const jsEntries = Object.entries(jsBundles).map(([name, files]) => ({

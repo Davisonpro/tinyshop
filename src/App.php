@@ -15,6 +15,7 @@ use TinyShop\Services\AddonLoader;
 use TinyShop\Services\Config;
 use TinyShop\Services\DB;
 use TinyShop\Services\Hooks;
+use TinyShop\Services\IndexNow;
 use TinyShop\Services\Logger;
 use TinyShop\Services\View;
 
@@ -25,6 +26,8 @@ use TinyShop\Services\View;
  */
 final class App
 {
+    public const DEFAULT_CURRENCY = 'KES';
+
     /**
      * Build and return the Slim application.
      *
@@ -56,6 +59,12 @@ final class App
         Model::boot($container->get(DB::class)->pdo());
 
         Hooks::doAction('tinyshop.boot', $app, $container);
+
+        // IndexNow — auto-notify search engines on content changes
+        $indexNow = $container->get(IndexNow::class);
+        Hooks::addAction('product.created', static fn(array $product) => $indexNow->notifyProductChange($product));
+        Hooks::addAction('product.updated', static fn(array $product) => $indexNow->notifyProductChange($product));
+        Hooks::addAction('shop.updated', static fn(int $userId) => $indexNow->notifyShopChange($userId));
 
         // Expire overdue subscriptions (lightweight — single query, no-ops if nothing to expire)
         $container->get(\TinyShop\Models\Subscription::class)->expireOverdue();
@@ -134,10 +143,8 @@ final class App
                     || $request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest'
                     || str_starts_with($request->getUri()->getPath(), '/api/')
                 ) {
-                    $payload = ['error' => true, 'message' => 'Something went wrong'];
-                    if ($displayErrorDetails) {
-                        $payload['detail'] = $exception->getMessage();
-                    }
+                    $payload = ['error' => true, 'message' => $exception->getMessage() ?: 'Something went wrong'];
+
                     $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_SLASHES));
                     return $response->withHeader('Content-Type', 'application/json');
                 }

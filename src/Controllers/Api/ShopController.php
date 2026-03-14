@@ -53,9 +53,60 @@ final class ShopController
      */
     public function get(Request $request, Response $response): Response
     {
-        $user = User::find($this->auth->userId());
+        $userId = $this->auth->userId();
+        $user = User::find($userId)?->toArray() ?? [];
         unset($user['password_hash']);
+
+        $user = $this->enrichWithPlan($user, $userId);
+
         return $this->json($response, ['shop' => $user]);
+    }
+
+    /**
+     * Enrich a user array with plan details, subscription status, and product count.
+     */
+    private function enrichWithPlan(array $user, int $userId): array
+    {
+        $plan = $this->planGuard->getUserPlan($userId);
+        $features = $plan['features'] ?? [];
+        if (is_string($features)) {
+            $features = json_decode($features, true) ?: [];
+        }
+
+        $expiresAt = $user['plan_expires_at'] ?? null;
+        $isActive = $expiresAt && strtotime($expiresAt) >= time();
+        $planPrice = (float) ($plan['price_monthly'] ?? 0);
+        $isFreePlan = !$isActive || $planPrice === 0.0;
+
+        $user['plan'] = [
+            'id'            => $plan['id'] ?? null,
+            'name'          => $plan['name'] ?? 'Free',
+            'slug'          => $plan['slug'] ?? 'free',
+            'product_limit' => $plan['max_products'] ?? null,
+            'features'      => $features,
+        ];
+
+        // Check if subscription is cancelled (still active until period ends)
+        $isCancelled = false;
+        if ($isActive) {
+            $subStatus = User::rawScalar(
+                'SELECT status FROM subscriptions WHERE user_id = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+                [$userId]
+            );
+            $isCancelled = $subStatus === 'cancelled';
+        }
+
+        $user['subscription_status'] = $isActive ? ($isCancelled ? 'cancelled' : 'active') : 'free';
+        $user['is_free_plan'] = $isFreePlan;
+        $user['days_left'] = $isActive ? max(0, (int) ceil((strtotime($expiresAt) - time()) / 86400)) : null;
+        $user['subscription_end'] = $isActive ? $expiresAt : null;
+
+        $user['product_count'] = (int) User::rawScalar(
+            'SELECT COUNT(*) FROM products WHERE user_id = ?',
+            [$userId]
+        );
+
+        return $user;
     }
 
     /**
@@ -71,6 +122,18 @@ final class ShopController
     {
         $data = (array) $request->getParsedBody();
         $userId = $this->auth->userId();
+
+        // Ensure all values are scalar strings (JSON parsing may produce non-string types)
+        foreach ($data as $key => $value) {
+            if ($value === null) {
+                continue;
+            }
+            if (!is_scalar($value)) {
+                unset($data[$key]);
+                continue;
+            }
+            $data[$key] = (string) $value;
+        }
 
         // Input length checks
         foreach (['store_name' => 'store_name', 'shop_tagline' => 'shop_tagline', 'name' => 'name'] as $field => $rule) {
@@ -212,6 +275,18 @@ final class ShopController
                 if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z]{2,})+$/', $domain)) {
                     return $this->json($response, ['error' => true, 'message' => 'Please enter a valid domain (e.g. myshop.com)'], 422);
                 }
+
+                // Reject subdomains (3+ parts, but allow two-part TLDs like .co.ke)
+                $parts = explode('.', $domain);
+                $twoPartTlds = ['co', 'com', 'net', 'org', 'ac', 'gov'];
+                $isSubdomain = count($parts) > 2
+                    && !(count($parts) === 3 && in_array($parts[1], $twoPartTlds, true));
+                if ($isSubdomain) {
+                    return $this->json($response, [
+                        'error' => true,
+                        'message' => 'Subdomains (like shop.example.com) are not supported. Please use a main domain like example.com.',
+                    ], 422);
+                }
                 if ($domain !== $currentDomain && !$this->planGuard->canUseCustomDomain($userId)) {
                     return $this->json($response, ['error' => true, 'message' => 'Custom domains are available on paid plans.'], 403);
                 }
@@ -231,22 +306,54 @@ final class ShopController
 
         $this->userModel->update($userId, $data);
 
-        // Provision/deprovision domain aliases on the web server
-        if ($domainRemoved !== null) {
-            $this->hestiaCP->removeDomainAlias($domainRemoved);
-        }
-        if ($domainAdded !== null) {
-            $this->hestiaCP->addDomainAlias($domainAdded);
-        }
-
         Hooks::doAction('shop.updated', $userId, $data);
 
         $this->auditLog->log('shop.update', $userId, 'user', $userId, ['fields' => array_keys($data)]);
 
-        $user = User::find($userId);
+        $user = User::find($userId)?->toArray() ?? [];
         unset($user['password_hash']);
 
-        return $this->json($response, ['success' => true, 'shop' => $user]);
+        // Enrich with plan details (same as get())
+        $user = $this->enrichWithPlan($user, $userId);
+
+        $jsonResponse = $this->json($response, ['success' => true, 'shop' => $user]);
+
+        // Run HestiaCP provisioning after flushing the response to the client
+        // so the user sees instant success while DNS/SSL setup runs (~30-60s)
+        if ($domainRemoved !== null || $domainAdded !== null) {
+            ignore_user_abort(true);
+            set_time_limit(300);
+
+            // Flush the JSON response to the client immediately
+            $body = (string) $jsonResponse->getBody();
+            header('HTTP/1.1 200 OK');
+            header('Content-Type: application/json');
+            header('Content-Length: ' . strlen($body));
+            header('Connection: close');
+            echo $body;
+
+            // Flush all output buffers
+            while (ob_get_level() > 0) {
+                ob_end_flush();
+            }
+            flush();
+
+            if (function_exists('fastcgi_finish_request')) {
+                fastcgi_finish_request();
+            }
+
+            // Now provision in the background — client has already received response
+            if ($domainRemoved !== null) {
+                $this->hestiaCP->removeDomainAlias($domainRemoved);
+            }
+            if ($domainAdded !== null) {
+                $this->hestiaCP->addDomainAlias($domainAdded);
+            }
+
+            exit(0);
+        }
+
+        return $jsonResponse;
     }
 
     /**
@@ -360,14 +467,27 @@ final class ShopController
         $this->themeService->activate($themeSlug, $this->view);
 
         $customizer = $this->themeService->getCustomizer();
-        $schema = $customizer->getSchema();
+        $sections = $customizer->getSchema();
         $saved = $this->themeOptionModel->getAll($userId, $themeSlug);
         $resolved = $customizer->resolveOptions($saved);
 
+        // Get available themes with lock status based on user's plan
+        $allThemes = $this->themeService->listAvailable();
+        $themes = array_map(function (array $t) use ($userId) {
+            $slug = $t['id'] ?? $t['slug'] ?? '';
+            return [
+                'id'          => $slug,
+                'name'        => $t['name'] ?? '',
+                'description' => $t['description'] ?? '',
+                'locked'      => !$this->planGuard->canUseTheme($userId, $slug),
+            ];
+        }, $allThemes);
+
         return $this->json($response, [
-            'success' => true,
-            'schema'  => $schema,
-            'values'  => $resolved,
+            'success'  => true,
+            'sections' => $sections,
+            'values'   => $resolved,
+            'themes'   => $themes,
         ]);
     }
 

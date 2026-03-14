@@ -16,7 +16,7 @@ use TinyShop\Models\Setting;
 final class View
 {
     /** Cache-busting version appended to CSS/JS URLs. */
-    public const ASSET_VERSION = '1.0.129';
+    public const ASSET_VERSION = '1.0.183';
 
     private readonly Smarty $smarty;
     private readonly string $baseTemplatesDir;
@@ -96,6 +96,13 @@ final class View
         $this->smarty->assign('bing_verification', $setting->get('bing_verification', ''));
         $this->smarty->assign('google_analytics_id', $setting->get('google_analytics_id', ''));
         $this->smarty->assign('facebook_pixel_id', $setting->get('facebook_pixel_id', ''));
+
+        // Canonical URL — strip query string, use current request path
+        // Shop pages (/~shop/) set their own canonical via subdomain in ShopController
+        $requestUri = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
+        if (!str_starts_with($requestUri, '/~shop/')) {
+            $this->smarty->assign('canonical_url', $appUrl . rtrim($requestUri, '/'));
+        }
     }
 
     /**

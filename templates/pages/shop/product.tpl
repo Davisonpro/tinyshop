@@ -222,7 +222,7 @@
         {ldelim}
             "@type": "Product",
             "name": "{$product.name|escape:'javascript'}",
-            "url": "{$base_url}/{$product.slug|default:$product.id}",
+            "url": "{$canonical_url|escape:'javascript'}",
             "sku": "PROD-{$product.id}"
             {if $product.description},"description": "{$product.description|strip_tags|escape:'javascript'}"{/if}
             {if $product.category_name},"category": "{$product.category_name|escape:'javascript'}"{/if}
@@ -233,7 +233,7 @@
             ,"image": [{if $images|@count > 0}{foreach $images as $img}"{$img.image_url|escape:'javascript'}"{if !$img@last},{/if}{/foreach}{elseif $product.image_url}"{$product.image_url|escape:'javascript'}"{/if}]
             ,"offers": {ldelim}
                 "@type": "Offer",
-                "url": "{$base_url}/{$product.slug|default:$product.id}",
+                "url": "{$canonical_url|escape:'javascript'}",
                 "price": "{$product.price|string_format:"%.2f"}",
                 "priceCurrency": "{$currency|escape:'javascript'}",
                 "availability": "https://schema.org/{if $product.is_sold}SoldOut{elseif $product.stock_quantity !== null && $product.stock_quantity == 0}OutOfStock{elseif $product.stock_quantity !== null && $product.stock_quantity <= 5}LimitedAvailability{else}InStock{/if}",
@@ -254,7 +254,7 @@
                     "@type": "ListItem",
                     "position": 1,
                     "name": "{$shop.store_name|escape:'javascript'}",
-                    "item": "{$base_url}/"
+                    "item": "{if !empty($shop_base_url)}{$shop_base_url}{else}{$base_url}{/if}/"
                 {rdelim}
                 {if $product.category_name}
                 ,{ldelim}

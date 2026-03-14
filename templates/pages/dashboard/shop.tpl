@@ -995,6 +995,11 @@ $(function() {
                 '<div class="form-group">' +
                     '<label for="newDomain">Your domain</label>' +
                     '<input type="text" class="form-control" id="newDomain" placeholder="e.g. myshop.com" autocomplete="off" required autofocus>' +
+                    '<div id="domainSubdomainWarn" style="display:none;margin-top:8px;padding:10px 12px;background:#FFF3CD;border-radius:10px;font-size:0.8125rem;line-height:1.4;color:#856404">' +
+                        '<i class="fa-solid fa-triangle-exclamation" style="margin-right:4px"></i> ' +
+                        'This looks like a subdomain (e.g. shop.example.com). Custom domains only work with main domains like <strong>example.com</strong>. ' +
+                        'You need to buy your own domain name to use this feature.' +
+                    '</div>' +
                 '</div>' +
                 '<ol class="domain-setup-steps">' +
                     '<li class="domain-setup-step">' +
@@ -1019,15 +1024,28 @@ $(function() {
                         '<span class="domain-step-text">Enter your domain above and tap Connect</span>' +
                     '</li>' +
                 '</ol>' +
+                '<p style="margin:0 0 12px;font-size:0.75rem;color:var(--color-text-muted);line-height:1.4">' +
+                    '<i class="fa-solid fa-lock" style="margin-right:3px"></i> SSL certificate (HTTPS) is set up automatically after connecting. ' +
+                    '<a href="/help/connecting-a-custom-domain" target="_blank" style="color:var(--color-accent)">Learn more</a>' +
+                '</p>' +
                 '<button type="submit" class="btn-block btn-primary mt-sm" id="saveDomainBtn" disabled>Connect Domain</button>' +
             '</form>';
         }
 
         TinyShop.openModal('Custom Domain', html);
 
-        // Enable button only when domain is entered
+        // Enable button + detect subdomains
         $('#newDomain').on('input', function() {
-            $('#saveDomainBtn').prop('disabled', $(this).val().trim() === '');
+            var val = $(this).val().trim().toLowerCase()
+                .replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+            var isEmpty = val === '';
+            // A subdomain has 3+ dot-separated parts (e.g. shop.example.com)
+            // But allow two-part TLDs like .co.ke, .co.uk, .com.au
+            var twoPartTlds = /\.(co|com|net|org|ac|gov)\.[a-z]{2}$/;
+            var dotCount = (val.match(/\./g) || []).length;
+            var isSubdomain = dotCount >= 3 || (dotCount === 2 && !twoPartTlds.test(val));
+            $('#domainSubdomainWarn').toggle(isSubdomain && !isEmpty);
+            $('#saveDomainBtn').prop('disabled', isEmpty);
         });
 
         // Connect domain

@@ -9,7 +9,9 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Models\Category;
+use TinyShop\Models\ImportSource;
 use TinyShop\Models\Product;
+use TinyShop\Models\ProductCatalog;
 use TinyShop\Models\ProductImage;
 use TinyShop\Models\User;
 use TinyShop\Services\Auth;
@@ -36,6 +38,8 @@ final class AdminImportController
         private readonly Product $productModel,
         private readonly ProductImage $productImageModel,
         private readonly Category $categoryModel,
+        private readonly ImportSource $importSourceModel,
+        private readonly ProductCatalog $productCatalogModel,
         private readonly ImporterFactory $importerFactory,
         private readonly WooCommerceImporter $wooImporter,
         private readonly HttpClient $httpClient,
@@ -294,6 +298,136 @@ final class AdminImportController
             'message'       => $msg,
             'failed_images' => $failedImages,
         ], 201);
+    }
+
+    // ── Import Sources CRUD ──
+
+    /**
+     * Render the import sources management page.
+     */
+    public function importSources(Request $request, Response $response): Response
+    {
+        return $this->view->render($response, 'pages/admin/import-sources.tpl', [
+            'page_title'  => 'Import Sources',
+            'active_page' => 'import-sources',
+            'sources'     => $this->importSourceModel->findAll(),
+        ]);
+    }
+
+    /**
+     * List all import sources (API).
+     */
+    public function listImportSources(Request $request, Response $response): Response
+    {
+        return $this->json($response, ['sources' => $this->importSourceModel->findAll()]);
+    }
+
+    /**
+     * Create an import source.
+     */
+    public function createImportSource(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $name = trim($data['name'] ?? '');
+        $baseUrl = trim($data['base_url'] ?? '');
+
+        if ($name === '' || $baseUrl === '') {
+            return $this->json($response, ['error' => true, 'message' => 'Name and base URL are required'], 422);
+        }
+
+        $id = $this->importSourceModel->create($data);
+        return $this->json($response, ['success' => true, 'id' => $id], 201);
+    }
+
+    /**
+     * Update an import source.
+     */
+    public function updateImportSource(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $data = (array) $request->getParsedBody();
+        $this->importSourceModel->update($id, $data);
+        return $this->json($response, ['success' => true]);
+    }
+
+    /**
+     * Delete an import source.
+     */
+    public function deleteImportSource(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $this->importSourceModel->delete($id);
+        return $this->json($response, ['success' => true]);
+    }
+
+    // ── Product Catalog CRUD ──
+
+    /**
+     * Render the product catalog (PKB) management page.
+     */
+    public function productCatalog(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $search = trim($params['search'] ?? '');
+        $page = max(1, (int) ($params['page'] ?? 1));
+        $limit = 50;
+        $offset = ($page - 1) * $limit;
+
+        $entries = $this->productCatalogModel->paginate($offset, $limit, $search !== '' ? $search : null);
+
+        return $this->view->render($response, 'pages/admin/product-catalog.tpl', [
+            'page_title'  => 'Product Catalog',
+            'active_page' => 'product-catalog',
+            'entries'     => $entries,
+            'search'      => $search,
+            'page_num'    => $page,
+        ]);
+    }
+
+    /**
+     * List product catalog entries (API).
+     */
+    public function listProductCatalog(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $search = trim($params['search'] ?? '');
+        $page = max(1, (int) ($params['page'] ?? 1));
+        $limit = 50;
+        $offset = ($page - 1) * $limit;
+
+        $entries = $this->productCatalogModel->paginate($offset, $limit, $search !== '' ? $search : null);
+        return $this->json($response, ['entries' => $entries]);
+    }
+
+    /**
+     * Update a product catalog entry.
+     */
+    public function updateProductCatalog(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $entry = $this->productCatalogModel->findById($id);
+
+        if ($entry === null) {
+            return $this->json($response, ['error' => true, 'message' => 'Entry not found'], 404);
+        }
+
+        $data = (array) $request->getParsedBody();
+        $this->productCatalogModel->upsert(array_merge([
+            'brand' => $entry['brand'],
+            'model' => $entry['model'],
+        ], $data));
+
+        return $this->json($response, ['success' => true]);
+    }
+
+    /**
+     * Delete a product catalog entry.
+     */
+    public function deleteProductCatalog(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $this->productCatalogModel->delete($id);
+        return $this->json($response, ['success' => true]);
     }
 
     /**

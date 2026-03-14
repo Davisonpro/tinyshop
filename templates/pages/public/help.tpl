@@ -23,52 +23,71 @@
     </div>
 </header>
 
-{* ── Category grid ── *}
-<div class="help-categories" id="helpCategories">
-    {foreach $categories as $slug => $cat}
-    <a href="#section-{$slug}" class="help-category-card" data-category="{$slug}">
-        <div class="help-category-icon">
-            <i class="fa-solid {$cat.icon}"></i>
-        </div>
-        <div class="help-category-name">{$cat.name|escape}</div>
-        <div class="help-category-count">{$cat.article_count} {if $cat.article_count == 1}article{else}articles{/if}</div>
-    </a>
-    {/foreach}
-</div>
-
 {* ── Search results (hidden until search) ── *}
 <div class="help-search-results" id="helpSearchResults">
     <div class="help-search-results-title" id="helpResultsTitle"></div>
     <div class="help-search-empty" id="helpSearchEmpty" style="display:none">
         <i class="fa-solid fa-magnifying-glass"></i>
         <p>No results found</p>
-        <p>Try a different search term or browse the topics above.</p>
+        <p>Try a different search term or browse the topics below.</p>
     </div>
     <div class="help-article-list" id="helpResultsList"></div>
 </div>
 
-{* ── Article sections (title-only — compact) ── *}
-<div id="helpSections">
-{foreach $categories as $slug => $cat}
-{if isset($articles_grouped[$slug])}
-<section class="help-section" id="section-{$slug}">
-    <h2 class="help-section-title">
-        <span class="help-section-icon"><i class="fa-solid {$cat.icon}"></i></span>
-        {$cat.name|escape}
-    </h2>
-    <div class="help-article-list">
-        {foreach $articles_grouped[$slug] as $article}
-        <a href="/help/{$article.slug}" class="help-article-link">
-            <div class="help-article-link-body">
-                <p class="help-article-link-title">{$article.title|escape}</p>
-            </div>
-            <i class="fa-solid fa-chevron-right help-article-link-arrow"></i>
+{* ── Main content (hidden during search) ── *}
+<div id="helpMain">
+
+{* ── Popular questions ── *}
+<section class="help-popular">
+    <h2 class="help-popular-title">Common questions</h2>
+    <div class="help-popular-grid">
+        {foreach $articles_all as $article}
+        {if $article.slug == 'what-is-myduka'
+            || $article.slug == 'quick-start-guide'
+            || $article.slug == 'connecting-a-custom-domain'
+            || $article.slug == 'site-not-secure'
+            || $article.slug == 'setting-up-payment-methods'
+            || $article.slug == 'is-myduka-free'}
+        <a href="/help/{$article.slug}" class="help-popular-card">
+            <span class="help-popular-card-cat">{$article.category_name|escape}</span>
+            <span class="help-popular-card-title">{$article.title|escape}</span>
+            <span class="help-popular-card-summary">{$article.summary|escape}</span>
         </a>
+        {/if}
         {/foreach}
     </div>
 </section>
-{/if}
-{/foreach}
+
+{* ── Browse by topic (accordion) ── *}
+<section class="help-topics">
+    <h2 class="help-topics-title">Browse by topic</h2>
+    <div class="help-topic-list">
+        {foreach $categories as $slug => $cat}
+        {if isset($articles_grouped[$slug])}
+        <div class="help-topic" id="topic-{$slug}">
+            <button type="button" class="help-topic-header" aria-expanded="false" aria-controls="topic-body-{$slug}">
+                <span class="help-topic-icon"><i class="fa-solid {$cat.icon}"></i></span>
+                <span class="help-topic-name">{$cat.name|escape}</span>
+                <span class="help-topic-count">{$cat.article_count}</span>
+                <i class="fa-solid fa-chevron-down help-topic-arrow"></i>
+            </button>
+            <div class="help-topic-body" id="topic-body-{$slug}">
+                {foreach $articles_grouped[$slug] as $article}
+                <a href="/help/{$article.slug}" class="help-article-link">
+                    <div class="help-article-link-body">
+                        <p class="help-article-link-title">{$article.title|escape}</p>
+                        {if $article.summary}<p class="help-article-link-summary">{$article.summary|escape}</p>{/if}
+                    </div>
+                    <i class="fa-solid fa-chevron-right help-article-link-arrow"></i>
+                </a>
+                {/foreach}
+            </div>
+        </div>
+        {/if}
+        {/foreach}
+    </div>
+</section>
+
 </div>
 
 {* ── Bottom CTA ── *}
@@ -76,7 +95,7 @@
     <div class="help-bottom-inner">
         <h2>Still need help?</h2>
         <p>Can't find what you're looking for? Reach out and we'll get back to you.</p>
-        <a href="mailto:{if $support_email}{$support_email|escape}{else}hello@{$base_domain|default:'tinyshop.com'}{/if}" class="help-bottom-btn">
+        <a href="mailto:{if $support_email}{$support_email|escape}{else}support@{$base_domain|default:'tinyshop.com'}{/if}" class="help-bottom-btn">
             <i class="fa-solid fa-envelope"></i>
             Contact support
         </a>

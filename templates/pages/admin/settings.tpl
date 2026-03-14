@@ -202,7 +202,7 @@
                 <i class="fa-solid fa-paper-plane icon-sm"></i>
                 Notify Search Engines
             </button>
-            <p class="form-hint">Ping Google and Bing to crawl your updated sitemap</p>
+            <p class="form-hint">Ping Google, Bing, and IndexNow to crawl your updated sitemap</p>
         </div>
 
         <div class="form-group">
@@ -215,6 +215,12 @@
             <label for="bingVerification">Bing Verification Code</label>
             <input type="text" class="form-control" id="bingVerification" value="{$settings.bing_verification|escape}" data-key="bing_verification" placeholder="e.g. 1234ABCD" autocomplete="off">
             <p class="form-hint">The content value from your Bing Webmaster meta tag</p>
+        </div>
+
+        <div class="form-group">
+            <label for="indexNowApiKey">IndexNow API Key</label>
+            <input type="text" class="form-control" id="indexNowApiKey" value="{$settings.indexnow_api_key|escape}" data-key="indexnow_api_key" placeholder="e.g. a1b2c3d4e5f6" autocomplete="off">
+            <p class="form-hint">Search engines are automatically notified when shops or products change. <a href="https://www.indexnow.org/documentation" target="_blank" rel="noopener">Get a key</a> or generate any alphanumeric string</p>
         </div>
 
         <div class="form-group">
@@ -240,6 +246,39 @@
         <div class="form-group">
             <label for="facebookPixelId">Facebook Pixel ID</label>
             <input type="text" class="form-control" id="facebookPixelId" value="{$settings.facebook_pixel_id|escape}" data-key="facebook_pixel_id" placeholder="e.g. 123456789" autocomplete="off">
+        </div>
+    </div>
+
+    {* --- AI / Smart Import --- *}
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="fa-solid fa-wand-magic-sparkles icon-sm"></i>
+            AI / Smart Import
+        </div>
+
+        <div class="form-group">
+            <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                    <span class="settings-toggle-label">Enable AI Enrichment</span>
+                    <span class="settings-toggle-desc">Use AI to fill in product details when catalog and web lookups miss</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="aiEnabled" data-key="ai_enabled" {if $settings.ai_enabled == '1'}checked{/if}>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="aiApiKey">Google Gemini API Key</label>
+            <div class="password-field">
+                <input type="password" class="form-control" id="aiApiKey" value="{$settings.ai_api_key|escape}" data-key="ai_api_key" placeholder="AIza..." autocomplete="new-password">
+                <button type="button" class="password-toggle" onclick="togglePw(this)" aria-label="Show password">
+                    <i class="fa-solid fa-eye eye-open"></i>
+                    <i class="fa-solid fa-eye-slash eye-closed d-none"></i>
+                </button>
+            </div>
+            <p class="form-hint">Used for Quick Add AI enrichment. Uses Gemini 2.5 Flash Lite (free tier). <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Get a free API key</a></p>
         </div>
     </div>
 

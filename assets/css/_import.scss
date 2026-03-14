@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use 'variables' as *;
 @use 'mixins' as *;
 
@@ -134,10 +135,373 @@
     font-size: 0.75rem;
 }
 
-/* Dark mode */
+/* ── Smart Import (Quick Add) ── */
+
+.smart-import-progress {
+    padding: 32px 16px;
+    text-align: center;
+}
+.sip-icon {
+    font-size: 2rem;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+    animation: sip-pulse 2s ease-in-out infinite;
+}
+@keyframes sip-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.08); }
+}
+.sip-status {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 20px;
+}
+.sip-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 24px;
+}
+.sip-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 56px;
+}
+.sip-step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-border);
+    transition: background 0.3s, box-shadow 0.3s;
+}
+.sip-step.active .sip-step-dot {
+    background: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb, 79, 70, 229), 0.2);
+}
+.sip-step.done .sip-step-dot {
+    background: $success;
+}
+.sip-step-label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    transition: color 0.3s;
+}
+.sip-step.active .sip-step-label {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+.sip-step.done .sip-step-label {
+    color: $success;
+}
+.sip-step-line {
+    flex: 0 0 32px;
+    height: 2px;
+    background: var(--color-border);
+    margin: 0 4px;
+    margin-bottom: 20px;
+    transition: background 0.3s;
+}
+.sip-step-line.done {
+    background: $success;
+}
+.sip-cancel {
+    margin-top: 16px;
+    width: 100%;
+}
+.smart-import-skeletons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.smart-import-skeleton {
+    height: 72px;
+    border-radius: $radius-card;
+    background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-bg-alt, #eee) 50%, var(--color-bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.sip-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: $radius-card;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    margin-bottom: 12px;
+    i { flex-shrink: 0; }
+    &[data-type="info"] {
+        background: rgba(var(--color-primary-rgb, 79, 70, 229), 0.08);
+        color: var(--color-primary);
+    }
+    &[data-type="warning"] {
+        background: rgba(245, 158, 11, 0.1);
+        color: #b45309;
+    }
+}
+
+.smart-import-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: $radius-pill;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.smart-import-badge-source {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-muted);
+}
+.smart-import-bulk-bar {
+    padding: 12px 0;
+}
+.smart-import-bulk-bar .btn {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: $radius-card;
+    gap: 8px;
+}
+
+/* ── Quick Add Accordion ── */
+
+.qi-item {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: $radius-card;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+.qi-item.qi-expanded {
+    border-color: var(--color-primary);
+}
+.qi-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    &:active { opacity: 0.7; }
+}
+.qi-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--color-bg-secondary);
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+.qi-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: 1.125rem;
+}
+.qi-header-info {
+    flex: 1;
+    min-width: 0;
+}
+.qi-header-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.qi-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+.qi-price-tag {
+    font-weight: 600;
+    color: var(--color-text);
+}
+.qi-chevron {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    transition: transform 0.2s;
+}
+.qi-expanded .qi-chevron {
+    transform: rotate(180deg);
+}
+.qi-body {
+    padding: 0 16px 16px;
+    .form-section {
+        margin-bottom: 0;
+        padding: 16px 0 12px;
+        background: none;
+        border: none;
+        border-radius: 0;
+        border-top: 1px solid var(--color-border);
+    }
+    .form-section-title {
+        font-size: 0.8125rem;
+        margin-bottom: 10px;
+    }
+    .form-group {
+        margin-bottom: 14px;
+    }
+    .form-hint {
+        margin-top: 6px;
+        margin-bottom: 4px;
+    }
+    .form-hint.mb-md {
+        margin-bottom: 12px;
+    }
+    label {
+        font-size: 0.8125rem;
+    }
+    .category-select-row {
+        padding-bottom: 4px;
+    }
+}
+.qi-images {
+    margin-bottom: 8px;
+}
+.qi-categories {
+    margin-bottom: 8px;
+}
+.qi-var-section {
+    .variation-group {
+        margin-bottom: 12px;
+    }
+}
+.qi-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--color-border);
+    margin-top: 14px;
+}
+.qi-save-btn {
+    flex: 1;
+    min-height: 44px;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.qi-remove-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: $danger;
+    font-size: 0.875rem;
+    &:active { opacity: 0.6; }
+}
+
+/* ── Quick Add Empty State ── */
+.qi-empty {
+    text-align: center;
+    padding: 48px 20px 32px;
+}
+.qi-empty-icon {
+    font-size: 2.5rem;
+    color: var(--color-text-muted);
+    margin-bottom: 12px;
+}
+.qi-empty-text {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.qi-empty-hint {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-bottom: 24px;
+}
+
+/* ── Quick Add Success State ── */
+.qi-success {
+    text-align: center;
+    padding: 48px 20px 32px;
+}
+.qi-success-icon {
+    font-size: 3rem;
+    color: $success;
+    margin-bottom: 12px;
+}
+.qi-success-text {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+.qi-success-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: $radius-card;
+    margin-bottom: 10px;
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .qi-item {
+    background: $dark-elevated;
+    border-color: $dark-tertiary;
+    &.qi-expanded { border-color: var(--color-primary); }
+}
+[data-theme="dark"] .qi-thumb {
+    background: $dark-tertiary;
+}
+[data-theme="dark"] .qi-body .form-section {
+    border-top-color: $dark-tertiary;
+}
+[data-theme="dark"] .qi-actions {
+    border-top-color: $dark-tertiary;
+}
 [data-theme="dark"] .import-cat-chip {
     background: $dark-elevated;
 }
 [data-theme="dark"] .import-picker-sub {
     color: $tab-hover;
+}
+[data-theme="dark"] .smart-import-skeleton {
+    background: linear-gradient(90deg, $dark-elevated 25%, $dark-tertiary 50%, $dark-elevated 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+[data-theme="dark"] .smart-import-badge-source {
+    background: $dark-tertiary;
+}
+[data-theme="dark"] .sip-notice[data-type="warning"] {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
 }

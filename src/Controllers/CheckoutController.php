@@ -6,6 +6,7 @@ namespace TinyShop\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use TinyShop\App;
 use TinyShop\Models\Customer;
 use TinyShop\Models\Order;
 use TinyShop\Models\OrderItem;
@@ -90,7 +91,7 @@ final class CheckoutController
             return $response->withHeader('Location', '/')->withStatus(302);
         }
 
-        $currency = $shop['currency'] ?? 'KES';
+        $currency = $shop['currency'] ?? App::DEFAULT_CURRENCY;
         $currencySymbol = self::CURRENCY_SYMBOLS[$currency] ?? $currency . ' ';
 
         $this->activateTheme($shop);
@@ -158,7 +159,7 @@ final class CheckoutController
         }
 
         $items = $this->orderItemModel->findByOrder((int) $order['id']);
-        $currency = $shop['currency'] ?? 'KES';
+        $currency = $shop['currency'] ?? App::DEFAULT_CURRENCY;
         $currencySymbol = self::CURRENCY_SYMBOLS[$currency] ?? $currency . ' ';
 
         $this->activateTheme($shop);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace TinyShop\Models;
 
+use TinyShop\App;
 use TinyShop\Enums\FieldType;
 
 /**
@@ -100,7 +101,7 @@ final class Plan extends Model
             'description'           => $data['description'] ?? null,
             'price_monthly'         => $data['price_monthly'] ?? 0,
             'price_yearly'          => $data['price_yearly'] ?? 0,
-            'currency'              => $data['currency'] ?? 'KES',
+            'currency'              => $data['currency'] ?? App::DEFAULT_CURRENCY,
             'max_products'          => $data['max_products'] ?? null,
             'allowed_themes'        => $data['allowed_themes'] ?? null,
             'custom_domain_allowed' => $data['custom_domain_allowed'] ?? 0,

@@ -17,6 +17,7 @@ use TinyShop\Models\ThemeOption;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Models\Customer;
 use TinyShop\Services\Auth;
+use TinyShop\Services\Config;
 use TinyShop\Services\CustomerAuth;
 use TinyShop\Services\PlanGuard;
 use TinyShop\Services\View;
@@ -58,6 +59,7 @@ final class ShopController
 
     public function __construct(
         private readonly View $view,
+        private readonly Config $config,
         private readonly Theme $theme,
         private readonly User $userModel,
         private readonly Product $productModel,
@@ -724,6 +726,27 @@ final class ShopController
         Auth::ensureSession();
         $customerLoggedIn = $this->customerAuth->check($shopId);
 
+        // Canonical URL — always use the shop's own domain (subdomain or custom)
+        $subdomain = $shop['subdomain'] ?? '';
+        $customDomain = $shop['custom_domain'] ?? '';
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+
+        // Determine the canonical host for this shop
+        if ($customDomain !== '') {
+            $canonicalHost = $customDomain;
+        } else {
+            $canonicalHost = $subdomain . '.' . $this->config->baseDomain();
+        }
+
+        // Resolve clean path — strip internal /~shop/{subdomain} prefix
+        $requestPath = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
+        $internalPrefix = '/~shop/' . $subdomain;
+        if (str_starts_with($requestPath, $internalPrefix)) {
+            $requestPath = substr($requestPath, strlen($internalPrefix)) ?: '/';
+        }
+        $shopBaseUrl = $scheme . '://' . $canonicalHost;
+        $shopCanonicalUrl = $shopBaseUrl . rtrim($requestPath, '/');
+
         return [
             'currency'           => $currency,
             'currency_symbol'    => $currencySymbol,
@@ -733,6 +756,8 @@ final class ShopController
             'product_image_fit'  => $shop['product_image_fit'] ?? 'cover',
             'customer_logged_in' => $customerLoggedIn,
             'customer_name'      => $customerLoggedIn ? $this->customerAuth->customerName() : null,
+            'canonical_url'      => $shopCanonicalUrl,
+            'shop_base_url'      => $shopBaseUrl,
         ];
     }
 

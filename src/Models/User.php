@@ -103,6 +103,53 @@ final class User extends Model
     }
 
     /**
+     * Find a user by API token (mobile app auth).
+     *
+     * @param  string $token API token.
+     * @return array|null
+     */
+    public function findByApiToken(string $token): ?array
+    {
+        if ($token === '') {
+            return null;
+        }
+        $rows = static::rawQuery(
+            'SELECT * FROM users WHERE api_token = ? LIMIT 1',
+            [$token]
+        );
+        return $rows[0] ?? null;
+    }
+
+    /**
+     * Generate and store a new API token for a user.
+     *
+     * @param  int $userId User ID.
+     * @return string The generated token.
+     */
+    public function generateApiToken(int $userId): string
+    {
+        $token = bin2hex(random_bytes(32));
+        static::rawQuery(
+            'UPDATE users SET api_token = ? WHERE id = ?',
+            [$token, $userId]
+        );
+        return $token;
+    }
+
+    /**
+     * Clear the API token for a user (logout from mobile).
+     *
+     * @param int $userId User ID.
+     */
+    public function clearApiToken(int $userId): void
+    {
+        static::rawQuery(
+            'UPDATE users SET api_token = NULL WHERE id = ?',
+            [$userId]
+        );
+    }
+
+    /**
      * Find an active seller by subdomain.
      *
      * @since 1.0.0
@@ -410,7 +457,7 @@ final class User extends Model
     {
         $db = static::db();
         $stmt = $db->prepare(
-            'SELECT id, store_name, subdomain, shop_logo, shop_tagline
+            'SELECT id, store_name, subdomain, custom_domain, shop_logo, shop_tagline
              FROM users
              WHERE is_showcased = 1 AND is_active = 1 AND subdomain IS NOT NULL
              ORDER BY RAND()

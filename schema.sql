@@ -13,6 +13,7 @@ CREATE TABLE `users` (
     `name` VARCHAR(100) NOT NULL DEFAULT '',
     `email` VARCHAR(255) NOT NULL,
     `password_hash` VARCHAR(255) DEFAULT NULL,
+    `api_token` VARCHAR(64) DEFAULT NULL,
     `oauth_provider` VARCHAR(20) DEFAULT NULL,
     `oauth_id` VARCHAR(255) DEFAULT NULL,
     `role` ENUM('admin','seller') NOT NULL DEFAULT 'seller',
@@ -81,7 +82,8 @@ CREATE TABLE `users` (
     UNIQUE KEY `uniq_custom_domain` (`custom_domain`),
     KEY `idx_role` (`role`),
     KEY `idx_active` (`is_active`),
-    KEY `idx_oauth` (`oauth_provider`, `oauth_id`)
+    KEY `idx_oauth` (`oauth_provider`, `oauth_id`),
+    UNIQUE KEY `idx_users_api_token` (`api_token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -183,6 +185,7 @@ CREATE TABLE `orders` (
     `coupon_code` VARCHAR(50) NULL DEFAULT NULL,
     `discount_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `idx_order_user` (`user_id`),
     KEY `idx_customer_id` (`customer_id`),
@@ -739,3 +742,45 @@ INSERT INTO `help_articles` (`category_id`, `title`, `slug`, `summary`, `content
  'What payment options your customers can use at checkout.',
  '<p>The payment methods available at checkout depend on what you''ve enabled in your shop settings.</p><h3>Available methods</h3><ul><li><strong>Credit/Debit cards</strong> &mdash; Via Stripe. Supports Visa, Mastercard, American Express, and more.</li><li><strong>PayPal</strong> &mdash; Customers can pay with their PayPal balance or linked bank account.</li><li><strong>M-Pesa</strong> &mdash; Mobile money payments for customers in supported regions.</li><li><strong>Cash on Delivery</strong> &mdash; Pay in cash when the order arrives.</li></ul><p>Customers will only see the payment methods that you have enabled and configured. We recommend enabling at least two options to give customers flexibility.</p>',
  'payment methods, credit card, paypal, mpesa, customer', 3, 1);
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Product Catalog (Shared Product Knowledge Base)
+-- ══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE `product_catalog` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `brand` VARCHAR(100) NOT NULL,
+    `model` VARCHAR(255) NOT NULL,
+    `canonical_name` VARCHAR(255) NOT NULL,
+    `description` TEXT,
+    `full_description` LONGTEXT,
+    `specs` JSON,
+    `images` JSON,
+    `category_hint` VARCHAR(255),
+    `source_url` VARCHAR(500),
+    `source_site` VARCHAR(255),
+    `quality_score` TINYINT UNSIGNED DEFAULT 0,
+    `lookup_count` INT UNSIGNED DEFAULT 0,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uq_brand_model` (`brand`, `model`),
+    INDEX `idx_brand` (`brand`),
+    FULLTEXT INDEX `ft_catalog_search` (`canonical_name`, `brand`, `model`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Import Sources (Admin-managed whitelisted sites)
+-- ══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE `import_sources` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL,
+    `base_url` VARCHAR(500) NOT NULL,
+    `search_url_template` VARCHAR(500),
+    `selectors` JSON NOT NULL,
+    `is_active` TINYINT(1) DEFAULT 1,
+    `priority` TINYINT UNSIGNED DEFAULT 10,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uq_source_url` (`base_url`(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

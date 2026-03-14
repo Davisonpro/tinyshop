@@ -7,6 +7,7 @@ namespace TinyShop\Services;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use Smarty\Smarty;
+use TinyShop\App;
 use TinyShop\Models\Setting;
 
 /**
@@ -106,7 +107,7 @@ final class Mailer
         }
 
         $storeName = $shop['store_name'] ?? 'Shop';
-        $currency = $shop['currency'] ?? 'USD';
+        $currency = $shop['currency'] ?? App::DEFAULT_CURRENCY;
 
         $this->smarty->assign('store_name', $storeName);
         $this->smarty->assign('customer_name', $customerName);
@@ -143,7 +144,7 @@ final class Mailer
             return false;
         }
 
-        $currency = $shop['currency'] ?? 'USD';
+        $currency = $shop['currency'] ?? App::DEFAULT_CURRENCY;
 
         $this->smarty->assign('app_name', $this->appName);
         $this->smarty->assign('seller_name', $sellerName);

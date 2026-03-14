@@ -93,6 +93,8 @@ final class SitemapController
     public function shops(Request $request, Response $response): Response
     {
         $baseUrl = $this->config->url();
+        $scheme = str_starts_with($baseUrl, 'https') ? 'https' : 'http';
+        $baseDomain = $this->config->baseDomain();
 
         $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
@@ -110,10 +112,16 @@ final class SitemapController
                 continue;
             }
 
-            $shopUrl = $baseUrl . '/~shop/' . rawurlencode($subdomain);
+            $products = $this->productModel->findActiveByUser((int) $seller['id']);
+
+            // Skip shops with no active products — empty pages hurt sitemap quality
+            if (empty($products)) {
+                continue;
+            }
+
+            $shopUrl = $scheme . '://' . rawurlencode($subdomain) . '.' . $baseDomain;
             $xml .= $this->urlEntry($shopUrl, $seller['updated_at'] ?? null, 'daily', '0.8');
 
-            $products = $this->productModel->findActiveByUser((int) $seller['id']);
             foreach ($products as $product) {
                 $slug = $product['slug'] ?? (string) $product['id'];
                 $productUrl = $shopUrl . '/' . rawurlencode($slug);
@@ -150,7 +158,8 @@ final class SitemapController
         if ($customDomain !== '') {
             $shopBaseUrl = 'https://' . $customDomain;
         } else {
-            $shopBaseUrl = $this->config->url() . '/~shop/' . rawurlencode($subdomain);
+            $scheme = str_starts_with($this->config->url(), 'https') ? 'https' : 'http';
+            $shopBaseUrl = $scheme . '://' . rawurlencode($subdomain) . '.' . $this->config->baseDomain();
         }
 
         $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
@@ -190,6 +199,7 @@ final class SitemapController
         $txt .= "Disallow: /admin\n";
         $txt .= "Disallow: /api/\n";
         $txt .= "Disallow: /checkout\n";
+        $txt .= "Disallow: /~shop/\n";
 
         if ($extra !== '') {
             $txt .= "\n" . $extra . "\n";
@@ -198,6 +208,22 @@ final class SitemapController
         $txt .= "\nSitemap: " . $baseUrl . "/sitemap.xml\n";
 
         $response->getBody()->write($txt);
+        return $response->withHeader('Content-Type', 'text/plain; charset=UTF-8');
+    }
+
+    /**
+     * Serve the IndexNow API key verification file.
+     *
+     * @since 1.0.0
+     */
+    public function indexNowKey(Request $request, Response $response): Response
+    {
+        $apiKey = trim($this->settingModel->get('indexnow_api_key', ''));
+        if ($apiKey === '') {
+            return $response->withStatus(404);
+        }
+
+        $response->getBody()->write($apiKey);
         return $response->withHeader('Content-Type', 'text/plain; charset=UTF-8');
     }
 

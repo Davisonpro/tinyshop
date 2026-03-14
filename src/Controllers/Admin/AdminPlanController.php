@@ -7,6 +7,7 @@ namespace TinyShop\Controllers\Admin;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
+use TinyShop\App;
 use TinyShop\Controllers\Traits\JsonResponder;
 use TinyShop\Models\Plan;
 use TinyShop\Models\Subscription;
@@ -123,7 +124,7 @@ final class AdminPlanController
             'description'            => trim($data['description'] ?? ''),
             'price_monthly'          => (float) ($data['price_monthly'] ?? 0),
             'price_yearly'           => (float) ($data['price_yearly'] ?? 0),
-            'currency'               => $data['currency'] ?? 'KES',
+            'currency'               => $data['currency'] ?? App::DEFAULT_CURRENCY,
             'max_products'           => isset($data['max_products']) && $data['max_products'] !== '' ? (int) $data['max_products'] : null,
             'allowed_themes'         => $allowedThemes,
             'custom_domain_allowed'  => !empty($data['custom_domain_allowed']) ? 1 : 0,

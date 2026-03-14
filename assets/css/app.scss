@@ -294,7 +294,7 @@ a {
     text-decoration: none;
     transition: color 0.15s;
 }
-a:not(.btn):hover { color: var(--color-accent-hover); }
+a:not(.btn):not(.mk-footer-link):not(.land-url):not(.land-cta):not(.land-bottom-btn):hover { color: var(--color-accent-hover); }
 
 ul, ol { list-style: none; }
 
@@ -4021,12 +4021,14 @@ a.cart-item-link {
 
 /* ── Footer ── */
 .mk-footer {
-    background: var(--land-dahlia);
+    background: #0a0a0a;
     padding: 48px 20px 20px;
 }
 .mk-footer-card {
     max-width: 680px; margin: 0 auto;
-    background: #fff; border-radius: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
     padding: 40px 32px 24px;
 }
 .mk-footer-cols {
@@ -4034,7 +4036,7 @@ a.cart-item-link {
     margin-bottom: 32px;
 }
 .mk-footer-col-title {
-    font-size: 0.875rem; font-weight: 800; color: var(--land-shade);
+    font-size: 0.875rem; font-weight: 800; color: #fff;
     letter-spacing: -0.02em;
     margin-bottom: 12px;
 }
@@ -4042,15 +4044,15 @@ a.cart-item-link {
     display: flex; flex-direction: column; gap: 6px;
 }
 .mk-footer-link {
-    font-size: 0.875rem; color: var(--land-concrete);
+    font-size: 0.875rem; color: rgba(255,255,255,0.4);
     text-decoration: none; font-weight: 500;
     transition: color 0.15s ease;
 }
-.mk-footer-link:hover { color: var(--land-shade); }
+.mk-footer-link:hover { color: rgba(255,255,255,0.7); }
 .mk-footer-bar {
     padding-top: 20px;
-    border-top: 1px solid rgba(0,0,0,0.06);
-    font-size: 0.75rem; color: #bbb; font-weight: 500;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.75rem; color: rgba(255,255,255,0.2); font-weight: 500;
     text-align: center;
 }
 
@@ -4114,12 +4116,12 @@ a.cart-item-link {
 [data-theme="dark"] .mk-mobile-btn--secondary:hover { background: rgba(255,255,255,0.12); }
 
 /* Footer */
-[data-theme="dark"] .mk-footer { background: #2a1240; }
-[data-theme="dark"] .mk-footer-card { background: $near-black; }
+[data-theme="dark"] .mk-footer { background: #050505; }
+[data-theme="dark"] .mk-footer-card { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.05); }
 [data-theme="dark"] .mk-footer-col-title { color: #eee; }
-[data-theme="dark"] .mk-footer-link { color: #888; }
-[data-theme="dark"] .mk-footer-link:hover { color: #ccc; }
-[data-theme="dark"] .mk-footer-bar { border-color: rgba(255,255,255,0.06); color: #555; }
+[data-theme="dark"] .mk-footer-link { color: rgba(255,255,255,0.35); }
+[data-theme="dark"] .mk-footer-link:hover { color: rgba(255,255,255,0.6); }
+[data-theme="dark"] .mk-footer-bar { border-color: rgba(255,255,255,0.05); color: rgba(255,255,255,0.15); }
 
 /* ============================================================
    Dynamic Pages — Public page display

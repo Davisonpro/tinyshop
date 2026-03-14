@@ -59,10 +59,12 @@ final class HestiaCP
      *
      * Steps:
      * 1. Create a DNS zone so our nameservers resolve the domain
-     * 2. Add as a standalone web domain in HestiaCP
-     * 3. Point its document root to the main app
-     * 4. Issue a free Let's Encrypt SSL certificate
-     * 5. Restart web/proxy so the new cert takes effect
+     * 2. Restart DNS so the zone is immediately active
+     * 3. Add as a standalone web domain in HestiaCP
+     * 4. Add www alias, point document root to the main app
+     * 5. Restart web/proxy so the vhost is active
+     * 6. Issue Let's Encrypt SSL via schedule + immediate processing
+     * 7. Restart web/proxy for SSL to take effect
      *
      * @since 1.0.0
      *
@@ -76,6 +78,13 @@ final class HestiaCP
             return false;
         }
 
+        if (!$this->isValidDomain($domain)) {
+            $this->logger->error('hestia.invalid_domain', ['domain' => $domain]);
+            return false;
+        }
+
+        $wwwAlias = 'www.' . $domain;
+
         // 1. DNS zone (best-effort, code 4 = already exists)
         if ($this->serverIp !== '') {
             $code = $this->call('v-add-dns-domain', [
@@ -88,6 +97,9 @@ final class HestiaCP
                     'domain' => $domain, 'return_code' => $code,
                 ]);
             }
+
+            // Restart DNS so BIND serves the new zone immediately
+            $this->call('v-restart-dns', []);
         }
 
         // 2. Add as standalone web domain
@@ -106,7 +118,19 @@ final class HestiaCP
 
         $this->logger->info('hestia.domain_added', ['domain' => $domain]);
 
-        // 3. Point document root to the main app
+        // 3. Add www alias so SSL covers both bare and www
+        $code = $this->call('v-add-web-domain-alias', [
+            $this->hestiaUser,
+            $domain,
+            $wwwAlias,
+        ]);
+        if ($code !== 0 && $code !== 4) {
+            $this->logger->warning('hestia.www_alias_add_failed', [
+                'domain' => $domain, 'alias' => $wwwAlias, 'return_code' => $code,
+            ]);
+        }
+
+        // 4. Point document root to the main app
         $code = $this->call('v-change-web-domain-docroot', [
             $this->hestiaUser,
             $domain,
@@ -118,21 +142,83 @@ final class HestiaCP
             ]);
         }
 
-        // 4. Issue Let's Encrypt SSL
-        $code = $this->call('v-add-letsencrypt-domain', [
+        // 5. Restart web/proxy so vhost is active for HTTP-01 challenge
+        $this->restartServices();
+        sleep(3); // Give nginx time to fully reload
+
+        // 6. Issue Let's Encrypt SSL (handles enabling SSL automatically)
+        $this->provisionSsl($domain);
+
+        // 7. Force HTTPS redirect
+        $this->call('v-add-web-domain-ssl-force', [
             $this->hestiaUser,
             $domain,
         ]);
-        if ($code !== 0) {
-            $this->logger->warning('hestia.ssl_provision_failed', [
-                'domain' => $domain, 'return_code' => $code,
-            ]);
-        }
 
-        // 5. Restart web/proxy for cert to take effect
+        // 8. Restart for SSL to take effect
         $this->restartServices();
 
         return true;
+    }
+
+    /**
+     * Provision Let's Encrypt SSL for a domain.
+     *
+     * Tries v-add-letsencrypt-domain with retries (LE validation can
+     * be flaky if nginx hasn't fully reloaded). Falls back to the
+     * schedule-based approach if direct issuance fails.
+     */
+    private function provisionSsl(string $domain): void
+    {
+        // Retry direct issuance up to 3 times with increasing delays
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            $result = $this->callWithMessage('v-add-letsencrypt-domain', [
+                $this->hestiaUser,
+                $domain,
+                '',
+            ], 120);
+
+            if ($result['code'] === 0) {
+                $this->logger->info('hestia.ssl_provisioned', [
+                    'domain' => $domain, 'attempt' => $attempt,
+                ]);
+                return;
+            }
+
+            $this->logger->warning('hestia.ssl_attempt_failed', [
+                'domain'  => $domain,
+                'attempt' => $attempt,
+                'code'    => $result['code'],
+                'error'   => $result['message'],
+            ]);
+
+            // Don't retry if rate-limited (429) — wait won't help
+            if (str_contains($result['message'], '429')) {
+                $this->logger->warning('hestia.ssl_rate_limited', ['domain' => $domain]);
+                break;
+            }
+
+            if ($attempt < 3) {
+                sleep($attempt * 5);
+            }
+        }
+
+        // Fallback: schedule for later processing via cron
+        $this->logger->info('hestia.ssl_trying_schedule', ['domain' => $domain]);
+
+        $code = $this->call('v-schedule-letsencrypt-domain', [
+            $this->hestiaUser,
+            $domain,
+            '',
+        ]);
+
+        if ($code !== 0) {
+            $this->logger->warning('hestia.ssl_schedule_failed', [
+                'domain' => $domain, 'return_code' => $code,
+            ]);
+        } else {
+            $this->logger->info('hestia.ssl_scheduled', ['domain' => $domain]);
+        }
     }
 
     /**
@@ -150,7 +236,7 @@ final class HestiaCP
      */
     public function removeDomainAlias(string $domain): bool
     {
-        if (!$this->isConfigured()) {
+        if (!$this->isConfigured() || !$this->isValidDomain($domain)) {
             return false;
         }
 
@@ -197,7 +283,7 @@ final class HestiaCP
      */
     public function verifyDns(string $domain): bool
     {
-        if ($this->serverIp === '') {
+        if ($this->serverIp === '' || !$this->isValidDomain($domain)) {
             return true;
         }
 
@@ -254,7 +340,7 @@ final class HestiaCP
      */
     public function prepareDnsZone(string $domain): void
     {
-        if ($this->serverIp === '') {
+        if ($this->serverIp === '' || !$this->isValidDomain($domain)) {
             return;
         }
 
@@ -272,6 +358,12 @@ final class HestiaCP
         }
     }
 
+    /** Validate domain format to prevent injection into HestiaCP commands. */
+    private function isValidDomain(string $domain): bool
+    {
+        return (bool) preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z]{2,})+$/', $domain);
+    }
+
     /**
      * Restart web server and proxy so config/cert changes take effect.
      */
@@ -286,16 +378,52 @@ final class HestiaCP
      *
      * @param string   $command HestiaCP CLI command name.
      * @param string[] $args    Positional arguments (arg1, arg2, ...).
+     * @param int      $timeout Request timeout in seconds.
      * @return int Return code (0 = success).
      */
-    private function call(string $command, array $args): int
+    private function call(string $command, array $args, int $timeout = 60): int
+    {
+        $result = $this->callRaw($command, $args, $timeout);
+        if ($result === null) {
+            return -1;
+        }
+        return (int) trim($result);
+    }
+
+    /**
+     * Execute a HestiaCP API command and return the full response.
+     *
+     * When called without returncode=yes, HestiaCP returns the error
+     * message on failure instead of just the numeric code.
+     */
+    private function callWithMessage(string $command, array $args, int $timeout = 60): array
+    {
+        // First get the return code
+        $code = $this->call($command, $args, $timeout);
+
+        if ($code === 0) {
+            return ['code' => 0, 'message' => ''];
+        }
+
+        // Re-run without returncode to get the error message
+        $message = $this->callRaw($command, $args, $timeout, false) ?? '';
+        return ['code' => $code, 'message' => trim($message)];
+    }
+
+    /**
+     * Low-level HestiaCP API call.
+     */
+    private function callRaw(string $command, array $args, int $timeout, bool $returnCode = true): ?string
     {
         $postFields = [
-            'user'       => $this->apiUser,
-            'password'   => $this->apiPassword,
-            'returncode' => 'yes',
-            'cmd'        => $command,
+            'user'     => $this->apiUser,
+            'password' => $this->apiPassword,
+            'cmd'      => $command,
         ];
+
+        if ($returnCode) {
+            $postFields['returncode'] = 'yes';
+        }
 
         foreach (array_values($args) as $i => $arg) {
             $postFields['arg' . ($i + 1)] = $arg;
@@ -304,7 +432,7 @@ final class HestiaCP
         $ch = curl_init();
         if ($ch === false) {
             $this->logger->error('hestia.curl_init_failed', ['command' => $command]);
-            return -1;
+            return null;
         }
         curl_setopt_array($ch, [
             CURLOPT_URL            => $this->apiUrl . '/',
@@ -314,7 +442,7 @@ final class HestiaCP
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => 0,
             CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT        => 60,
+            CURLOPT_TIMEOUT        => $timeout,
         ]);
 
         $result = curl_exec($ch);
@@ -326,9 +454,9 @@ final class HestiaCP
                 'command' => $command,
                 'error'   => $error,
             ]);
-            return -1;
+            return null;
         }
 
-        return (int) trim((string) $result);
+        return (string) $result;
     }
 }

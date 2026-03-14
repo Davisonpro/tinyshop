@@ -6,6 +6,7 @@ namespace TinyShop\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use TinyShop\App;
 use TinyShop\Models\Plan;
 use TinyShop\Models\Product;
 use TinyShop\Models\ProductImage;
@@ -82,7 +83,7 @@ final class DashboardController
             'product_count'      => $productCount,
             'view_stats'         => $viewStats,
             'order_stats'        => $orderStats,
-            'currency'           => $user['currency'] ?? 'KES',
+            'currency'           => $user['currency'] ?? App::DEFAULT_CURRENCY,
             'active_page'        => 'home',
             'low_stock_products' => $lowStockProducts,
             'onboarding_steps'   => $onboardingSteps,
@@ -180,7 +181,7 @@ final class DashboardController
             'page_title'  => 'Orders',
             'active_page' => 'orders',
             'user'        => $user,
-            'currency'    => $user['currency'] ?? 'KES',
+            'currency'    => $user['currency'] ?? App::DEFAULT_CURRENCY,
         ]);
     }
 
@@ -202,7 +203,7 @@ final class DashboardController
             'page_title'  => 'Customers',
             'active_page' => 'customers',
             'user'        => $user,
-            'currency'    => $user['currency'] ?? 'KES',
+            'currency'    => $user['currency'] ?? App::DEFAULT_CURRENCY,
         ]);
     }
 
@@ -225,7 +226,7 @@ final class DashboardController
             'page_title'  => 'Coupons',
             'active_page' => 'orders',
             'user'        => $user,
-            'currency'    => $user['currency'] ?? 'KES',
+            'currency'    => $user['currency'] ?? App::DEFAULT_CURRENCY,
             'usage'       => $usage,
         ]);
     }
@@ -260,7 +261,7 @@ final class DashboardController
 
         $orderStats = $this->orderModel->getStats($userId);
         $dailySales = $this->orderModel->getDailySales($userId, $salesDays);
-        $currency = $user['currency'] ?? 'KES';
+        $currency = $user['currency'] ?? App::DEFAULT_CURRENCY;
 
         return $this->view->render($response, 'pages/dashboard/analytics.tpl', [
             'page_title'       => 'Analytics',
@@ -374,7 +375,7 @@ final class DashboardController
             'images'      => $images,
             'categories'  => $categories,
             'category_tree' => $categoryTree,
-            'currency'    => $user['currency'] ?? 'KES',
+            'currency'    => $user['currency'] ?? App::DEFAULT_CURRENCY,
             'is_edit'     => $isEdit,
             'usage'       => $usage,
         ]);
@@ -426,9 +427,12 @@ final class DashboardController
      */
     public function import(Request $request, Response $response): Response
     {
+        $user = User::find($this->auth->userId());
+
         return $this->view->render($response, 'pages/dashboard/import.tpl', [
             'page_title'  => 'Import Product',
             'active_page' => 'products',
+            'currency'    => $user['currency'] ?? App::DEFAULT_CURRENCY,
         ]);
     }
 }

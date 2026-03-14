@@ -17,6 +17,7 @@ use TinyShop\Services\Validation;
 use TinyShop\Services\PlanGuard;
 use TinyShop\Services\Theme;
 use TinyShop\Services\HestiaCP;
+use TinyShop\Services\IndexNow;
 use TinyShop\Services\ThemeCustomizer;
 use TinyShop\Models\Setting;
 use TinyShop\Models\Plan;
@@ -83,6 +84,14 @@ return function (Config $config, array $dbConfig): array {
 
         LoggerInterface::class => function () use ($config) {
             return new Logger($config->cacheDir() . '/logs');
+        },
+
+        IndexNow::class => function ($container) use ($config) {
+            return new IndexNow(
+                $container->get(Setting::class),
+                $config,
+                $container->get(LoggerInterface::class)
+            );
         },
 
         HestiaCP::class => function ($container) {
